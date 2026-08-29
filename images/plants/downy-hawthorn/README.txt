@@ -1,4 +1,4 @@
-Quebec Hawthorn — photo files
+Downy Hawthorn — photo files
 
 Drop files into this folder with these exact names. Nothing else
 needs to change in the code -- each one lights up on the card
