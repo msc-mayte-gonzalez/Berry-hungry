@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Foraged — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     TOKENS — palette is fixed to the 3 brand colors given; every
+     other color here is a derived tint/shade of those, plus a
+     dedicated correct/wrong pair for the choice feedback.
+     ============================================================ */
+  :root{
+    --white:      #ffffff;
+    --amber:      #eb9b00;
+    --amber-dark: #b97c00;
+    --amber-tint: #fff1d6;
+    --olive:      #bdc14b;
+    --olive-dark: #8f923a;
+    --olive-tint: #eef0d3;
+    --ink:        #2c2410;   /* derived dark neutral, for text/contrast */
+    --ink-soft:   #6b6248;
+    --correct:    #4c8c3f;   /* green, tuned to sit near olive without blending */
+    --correct-tint: #e4f0df;
+    --wrong:      #c0433a;
+    --wrong-tint: #f7e2df;
+    --shadow: 0 10px 30px -12px rgba(44,36,16,0.35);
+    --radius-lg: 22px;
+    --radius-md: 14px;
+    --radius-sm: 8px;
+    --font-display: 'Baloo 2', ui-rounded, 'Segoe UI', sans-serif;
+    --font-body: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; overflow:hidden; }
+  body{
+    margin:0;
+    font-family: var(--font-body);
+    color: var(--ink);
+    background: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  button{ font-family: inherit; }
+  h1,h2,h3{ font-family: var(--font-display); margin:0; }
+  p{ margin:0; }
+
+  .hidden{ display:none !important; }
+
+  /* Build badge — small, honest, unobtrusive */
+  .build-tag{
+    position: fixed;
+    right: 12px;
+    bottom: 10px;
+    z-index: 500;
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--white);
+    background: rgba(44,36,16,0.55);
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    pointer-events: none;
+  }
+
+  /* ============================================================
+     SCREENS
+     ============================================================ */
+  .screen{
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Generic placeholder-art treatment: used for the start
+     background and the forest floor until real art lands. */
+  .placeholder-art{
+    position: relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .placeholder-tag{
+    position:absolute;
+    top: 14px;
+    left: 14px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: rgba(255,255,255,0.75);
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    z-index: 5;
+  }
+
+  /* ---------- Start screen ---------- */
+  #screen-start .placeholder-art{
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.18), transparent 55%),
+      linear-gradient(160deg, var(--olive) 0%, var(--olive-dark) 55%, #6d7127 100%);
+  }
+  .start-content{
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    gap: 2.4rem;
+    padding: 2rem;
+    text-align:center;
+  }
+  .game-title{
+    color: var(--white);
+    font-weight: 800;
+    font-size: clamp(2.6rem, 9vw, 5rem);
+    letter-spacing: 0.01em;
+    text-shadow: 0 6px 0 rgba(44,36,16,0.25), 0 14px 28px rgba(0,0,0,0.28);
+    display:flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    line-height: 1;
+  }
+  .title-sub{
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--amber-tint);
+    text-shadow:none;
+  }
+  .start-actions{
+    display:flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    width: min(90vw, 340px);
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.01em;
+    padding: 0.95rem 1.6rem;
+    border-radius: 999px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  }
+  .btn:active{ transform: translateY(2px) scale(0.98); }
+  .btn-primary{
+    background: var(--amber);
+    color: var(--white);
+    box-shadow: 0 6px 0 var(--amber-dark), var(--shadow);
+  }
+  .btn-primary:hover{ filter: brightness(1.04); }
+  .btn-primary:active{ box-shadow: 0 3px 0 var(--amber-dark); }
+  .btn-ghost{
+    background: rgba(255,255,255,0.14);
+    color: var(--white);
+    border: 2px solid rgba(255,255,255,0.55);
+  }
+  .btn-ghost:hover{ background: rgba(255,255,255,0.24); }
+  .btn-block{ width:100%; }
+
+  /* ============================================================
+     MODAL SYSTEM (reused by About + the encounter overlay)
+     ============================================================ */
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(26,26,28,0.88);
+    backdrop-filter: blur(3px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 1.2rem;
+  }
+  .modal-card{
+    position: relative;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 2rem 1.8rem 1.8rem;
+    max-width: 440px;
+    width: 100%;
+  }
+  .modal-card h2{
+    font-size: 1.4rem;
+    color: var(--ink);
+    margin-bottom: 0.9rem;
+  }
+  .modal-close{
+    position:absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border:none;
+    background: var(--olive-tint);
+    color: var(--ink);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .modal-close:hover{ background: var(--olive); color: var(--white); }
+
+  .disclaimer{
+    font-size: 0.96rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    background: var(--amber-tint);
+    border-left: 4px solid var(--amber);
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ============================================================
+     PLAY SCREEN — first-person forest with a 3D depth plane
+     ============================================================ */
+  #screen-play .placeholder-art{
+    position:absolute;
+    inset:0;
+    background: linear-gradient(180deg, #d8dc9c 0%, #cdd189 45%, var(--olive) 70%, #767a30 100%);
+    overflow: hidden;
+  }
+
+  /* ============================================================
+     GAME OVER + WIN SCREENS
+     ============================================================ */
+  #screen-gameover .placeholder-art{
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(ellipse at 50% 25%, rgba(255,255,255,0.06), transparent 55%),
+      linear-gradient(160deg, #4a2420 0%, var(--ink) 60%, #1c1708 100%);
+  }
+  #screen-win .placeholder-art{
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.25), transparent 55%),
+      linear-gradient(160deg, var(--amber) 0%, var(--amber-dark) 55%, #7a4c00 100%);
+  }
+
+  /* The 3D stage: perspective lives here, so any child's
+     translateZ is foreshortened (and depth-sorted) automatically. */
+  .stage{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    perspective: 550px;
+    perspective-origin: 50% 40%;
+    transform-style: preserve-3d;
+  }
+
+  /* The forest floor, as a converging trapezoid rather than a
+     true rotated 3D plane — far more predictable to tune, and it
+     reads just as clearly as "a path receding into the distance."
+     Purely decorative, so it never steals a tap meant for a plant. */
+  .ground{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height: 64%;
+    background:
+      repeating-linear-gradient(90deg, rgba(44,36,16,0.15) 0 2px, transparent 2px 34px),
+      linear-gradient(180deg, #565927 0%, #767a30 45%, #9ea24e 100%);
+    clip-path: polygon(41% 0%, 59% 0%, 96% 100%, 4% 100%);
+    pointer-events: none;
+  }
+
+  /* Plants live at a fixed (left, top) position in the flat 2D
+     layout, then get pushed back into depth with --z. Perspective
+     on .stage does the scaling — no manual size math needed. */
+  .plant-block{
+    position:absolute;
+    appearance:none;
+    border: none;
+    cursor:pointer;
+    background: var(--amber);
+    border-radius: 10px;
+    box-shadow: 0 4px 0 var(--amber-dark), 0 8px 16px -6px rgba(0,0,0,0.35);
+    width: 64px;
+    height: 64px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform: translateZ(var(--z, 0px));
+    transition: filter 0.15s ease;
+    animation: bob 2.6s ease-in-out infinite;
+  }
+  .plant-block:hover{ filter: brightness(1.08); }
+  .plant-block:active{ filter: brightness(0.94); }
+  .plant-block::after{
+    content:"?";
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--white);
+    font-size: 1.4rem;
+  }
+  @keyframes bob{
+    0%, 100%{ margin-top: 0px; }
+    50%{ margin-top: -6px; }
+  }
+
+  /* The player, first-person: not part of the 3D stage at all —
+     it's anchored to the viewer's own screen space, like hands
+     or a torso at the bottom of a first-person view, and takes
+     roughly a third of the screen height. */
+  .player-fp{
+    position:absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: min(78vw, 460px);
+    height: 34vh;
+    background: linear-gradient(180deg, var(--ink) 0%, #1c1708 100%);
+    border-radius: 46% 46% 0 0 / 30% 30% 0 0;
+    box-shadow: 0 -6px 24px rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+  .player-fp .placeholder-tag{
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .forest-hint{
+    position:absolute;
+    left: 50%;
+    top: 42%;
+    transform: translateX(-50%);
+    z-index: 12;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 0.3rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--white);
+    text-shadow: 0 2px 6px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.4);
+    white-space: nowrap;
+    pointer-events:none; /* purely decorative — never steals a tap from a plant */
+  }
+
+  /* ---------- HUD: hearts, hunger, start over ---------- */
+  .hud{
+    position:absolute;
+    inset:0;
+    z-index: 14;
+    pointer-events:none; /* clicks fall through to plants/stage below */
+  }
+  .hud-vitals{
+    position:absolute;
+    top: 54px;
+    left: 14px;
+    display:flex;
+    flex-direction:column;
+    gap: 0.55rem;
+  }
+  .hearts{ display:flex; gap: 0.4rem; }
+  .heart{
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--white);
+    color: var(--wrong);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 1.15rem;
+    box-shadow: var(--shadow);
+    transition: opacity 0.2s ease, filter 0.2s ease;
+  }
+  .heart.heart-lost{ opacity:0.32; filter:grayscale(1); }
+  .hunger-bar{ display:flex; align-items:center; gap: 0.5rem; }
+  .hunger-track{
+    position:relative;
+    width: 132px;
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--wrong) 0%, var(--amber) 55%, var(--correct) 100%);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.65);
+  }
+  .hunger-track.alarm{ animation: hunger-track-flash 0.8s ease-in-out infinite; }
+  @keyframes hunger-track-flash{
+    0%, 100%{ box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); }
+    50%{ box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 0 10px 3px rgba(192,67,58,0.9); }
+  }
+  .hunger-slider{
+    position:absolute;
+    top:50%;
+    left: 100%;
+    transform: translate(-50%,-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 3px solid var(--ink);
+    box-shadow: var(--shadow);
+    transition: left 0.25s ease-out;
+  }
+  .hunger-slider.alarm{ animation: hunger-slider-flash 0.8s ease-in-out infinite; }
+  @keyframes hunger-slider-flash{
+    0%, 100%{ background: var(--white); box-shadow: var(--shadow); }
+    50%{ background: var(--wrong); box-shadow: var(--shadow), 0 0 10px 3px rgba(192,67,58,0.9); }
+  }
+  .hunger-label{
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    background: var(--white);
+    padding: 0.16rem 0.42rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+  }
+  /* Static swap once hunger is dangerously low -- no flashing here,
+     the track/slider above do the flashing instead. */
+  .hunger-label.alarm{
+    color: var(--white);
+    background: var(--wrong);
+  }
+
+  .btn-start-over{
+    position:absolute;
+    top: 14px;
+    right: 14px;
+    pointer-events:auto;
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: var(--white);
+    background: rgba(44,36,16,0.55);
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    transition: background 0.15s ease;
+  }
+  .btn-start-over:hover{ background: rgba(44,36,16,0.75); }
+
+  /* ============================================================
+     ENCOUNTER — the two-card identification challenge
+     ============================================================ */
+  .encounter-card-wrap{
+    position:relative;
+    background: transparent;
+    width: 100%;
+    max-width: 560px;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    gap: 1.4rem;
+  }
+  .encounter-prompt{
+    color: var(--white);
+    font-size: clamp(1.3rem, 5vw, 1.7rem);
+    text-align:center;
+    text-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  }
+  /* Mirrors the HUD hearts -- the real HUD sits behind this modal's
+     backdrop, so without this a lost heart is invisible mid-decision. */
+  .encounter-hearts{
+    display:flex;
+    gap: 0.4rem;
+    align-self: flex-start;
+  }
+  .btn-review{
+    appearance:none;
+    border:none;
+    background:none;
+    cursor:pointer;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--white);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 0.5rem 0.8rem;
+  }
+  .btn-review:hover{ opacity: 0.8; }
+  .encounter-close{
+    position:absolute;
+    top: -6px;
+    right: -6px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 1.3rem;
+    cursor:pointer;
+    box-shadow: var(--shadow);
+    z-index: 20;
+  }
+
+  .cards{
+    display:flex;
+    gap: 1.1rem;
+    width: 100%;
+    justify-content:center;
+  }
+
+  .card{
+    position:relative;
+    width: 100%;
+    max-width: 220px;
+    aspect-ratio: 3 / 4.3;
+    perspective: 1200px;
+  }
+  .card-inner{
+    position:relative;
+    width:100%;
+    height:100%;
+    transition: transform 0.55s cubic-bezier(.4,.2,.2,1);
+    transform-style: preserve-3d;
+    cursor:pointer;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+  }
+  .card.flipped .card-inner{ transform: rotateY(180deg); }
+
+  .card-face{
+    position:absolute;
+    inset:0;
+    backface-visibility: hidden;
+    border-radius: var(--radius-md);
+    background: var(--white);
+    padding: 0.9rem;
+    display:flex;
+    flex-direction:column;
+    gap: 0.6rem;
+    border: 3px solid transparent;
+  }
+  .card-back{
+    transform: rotateY(180deg);
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+
+  .card-art{
+    flex: 1;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(160deg, var(--olive-tint), var(--amber-tint));
+    overflow: hidden;
+  }
+  .card-art .placeholder-tag{ position:static; align-self:flex-start; margin: 0.6rem; }
+  /* Hidden until the real file loads -- drop a matching image in
+     images/plants/ and it swaps in automatically, no code changes. */
+  .card-photo{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: cover;
+  }
+  .card-photo.loaded{ display:block; }
+  .card-art.has-photo .placeholder-tag{ display:none; }
+  .card-name{
+    font-size: 1rem;
+    color: var(--ink);
+    text-align:center;
+  }
+  .card-hint{
+    font-size: 0.72rem;
+    color: var(--ink-soft);
+    text-align:center;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  /* Back of card: a scrollable gallery of one real-life photo per
+     identifying trait, plus a sources/credits button pinned below it. */
+  .id-gallery{
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display:flex;
+    flex-direction:column;
+    gap: 0.65rem;
+    padding-right: 2px;
+  }
+  .id-point{ display:flex; flex-direction:column; gap: 0.3rem; flex-shrink:0; }
+  .id-photo-wrap{
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(160deg, var(--olive-tint), var(--amber-tint));
+    overflow: hidden;
+    flex-shrink:0;
+  }
+  .id-photo-wrap .placeholder-tag{ position:static; align-self:flex-start; margin: 0.35rem; font-size: 0.56rem; }
+  .id-photo{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: cover;
+  }
+  .id-photo.loaded{ display:block; }
+  .id-photo-wrap.has-photo .placeholder-tag{ display:none; }
+  .id-text{
+    font-size: 0.76rem;
+    line-height: 1.4;
+    color: var(--ink);
+    text-align:left;
+    font-weight: 700;
+  }
+  .btn-info{
+    flex-shrink:0;
+    align-self:center;
+    margin-top: 0.5rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: var(--olive-tint);
+    color: var(--ink);
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .btn-info:hover{ background: var(--amber-tint); }
+
+  /* correct / wrong feedback reads on the outer card, regardless
+     of which face is showing */
+  .card.card-correct .card-face{ border-color: var(--correct); background: var(--correct-tint); }
+  .card.card-wrong .card-face{ border-color: var(--wrong); background: var(--wrong-tint); }
+
+  /* Once "Ready to choose..." is pressed, the whole card becomes
+     the choice — give it an obvious pressable affordance. */
+  .cards.selecting .card-inner{
+    box-shadow: var(--shadow), 0 0 0 3px var(--amber);
+  }
+  .cards.selecting .card-inner:hover{ transform: translateY(-4px); }
+  .cards.selecting .card.flipped .card-inner:hover{ transform: rotateY(180deg) translateY(-4px); }
+  .cards.answered .card-inner{ cursor:default; }
+  .cards.answered .card-inner:hover{ transform: none; }
+  .cards.answered .card.flipped .card-inner:hover{ transform: rotateY(180deg); }
+
+  .btn-ready{ min-width: 240px; }
+  .btn-ready:disabled{
+    background: var(--olive-tint);
+    color: var(--ink-soft);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .btn-ready:disabled:active{ transform:none; }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 480px){
+    .cards{ gap: 0.7rem; }
+    .card{ max-width: 46vw; }
+    .btn-ready{ min-width: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============ START SCREEN ============ -->
+  <section id="screen-start" class="screen">
+    <div class="placeholder-art">
+      <span class="placeholder-tag">background — art coming later</span>
+    </div>
+    <div class="start-content">
+      <h1 class="game-title">
+        Foraged
+        <span class="title-sub">a survival game</span>
+      </h1>
+      <div class="start-actions">
+        <button id="btn-start" class="btn btn-primary btn-block">Start Game</button>
+        <button id="btn-about" class="btn btn-ghost btn-block">About This Game</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ABOUT MODAL ============ -->
+  <div id="modal-about" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="btn-about-close" class="modal-close" aria-label="Close">×</button>
+      <h2>About This Game</h2>
+      <p class="disclaimer">This game was built for educational purposes only, but does not replace a formal education and training on foraging. DO NOT eat plants you don't know. Unlike this game, you don't have extra hearts to spare and a chance to start over.</p>
+    </div>
+  </div>
+
+  <!-- ============ PLAY SCREEN ============ -->
+  <section id="screen-play" class="screen hidden">
+    <div class="placeholder-art">
+      <span class="placeholder-tag">forest — art coming later</span>
+      <div class="forest-hint">
+        <span>Hold ↑ to walk</span>
+        <span>Tap a plant to identify if friend or foe</span>
+      </div>
+
+      <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
+      <div class="stage" id="stage">
+        <div class="ground"></div>
+      </div>
+
+      <!-- First-person player, screen-anchored, not part of the stage -->
+      <div class="player-fp">
+        <span class="placeholder-tag">player — first-person placeholder</span>
+      </div>
+
+      <!-- HUD -->
+      <div class="hud">
+        <div class="hud-vitals">
+          <div class="hearts" id="hearts">
+            <span class="heart">♥</span>
+            <span class="heart">♥</span>
+          </div>
+          <div class="hunger-bar">
+            <span class="hunger-label" id="hunger-label">HUNGRY!</span>
+            <div class="hunger-track" id="hunger-track">
+              <div class="hunger-slider" id="hunger-slider"></div>
+            </div>
+          </div>
+        </div>
+        <button id="btn-start-over" class="btn-start-over">Start Over</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GAME OVER SCREEN ============ -->
+  <section id="screen-gameover" class="screen hidden">
+    <div class="placeholder-art">
+      <span class="placeholder-tag">player collapsed, tongue out — art coming later</span>
+    </div>
+    <div class="start-content">
+      <h1 class="game-title">
+        Game Over
+        <span class="title-sub">the forest got the better of you</span>
+      </h1>
+      <div class="start-actions">
+        <button id="btn-gameover-again" class="btn btn-primary btn-block">Try Again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WIN / RESCUE SCREEN ============ -->
+  <section id="screen-win" class="screen hidden">
+    <div class="placeholder-art">
+      <span class="placeholder-tag">helicopter rescue — art coming later</span>
+    </div>
+    <div class="start-content">
+      <h1 class="game-title">
+        Rescued!
+        <span class="title-sub">you made it out of the forest</span>
+      </h1>
+      <div class="start-actions">
+        <button id="btn-win-again" class="btn btn-primary btn-block">Play Again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ENCOUNTER OVERLAY (2-card challenge) ============ -->
+  <div id="modal-encounter" class="modal-overlay hidden">
+    <div class="encounter-card-wrap">
+      <button id="btn-encounter-close" class="encounter-close" aria-label="Close">×</button>
+      <div class="encounter-hearts" id="encounter-hearts">
+        <span class="heart">♥</span>
+        <span class="heart">♥</span>
+      </div>
+      <h2 id="encounter-prompt" class="encounter-prompt hidden">Which plant would you eat?</h2>
+      <div class="cards" id="cards-container"></div>
+      <button id="btn-ready" class="btn btn-primary btn-ready">Ready to choose...</button>
+      <button id="btn-review" class="btn-review hidden">Review plants again</button>
+    </div>
+  </div>
+
+  <!-- ============ SOURCES & PHOTO CREDITS MODAL ============ -->
+  <div id="modal-sources" class="modal-overlay hidden">
+    <div class="modal-card">
+      <button id="btn-sources-close" class="modal-close" aria-label="Close">×</button>
+      <h2>Sources &amp; Photo Credits</h2>
+      <p class="disclaimer" id="sources-body">Sources and photo credits will go here once compiled.</p>
+    </div>
+  </div>
+
+  <div class="build-tag">prototype · placeholders throughout</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     DATA — one pair for now (Quebec Hawthorn vs Winterberry Holly).
+     Structured so adding pairs 2 and 3 later is just adding entries
+     here, nothing else in the code needs to change.
+
+     Each plant has a "cover" (the card's default face -- a 2D render
+     of the 3D model, coming later) and an "identification" list: one
+     photo + one short fact per identifying trait, shown on the back.
+     ============================================================ */
+  const plantPairs = [
+    {
+      id: "hawthorn-winterberry",
+      edible: {
+        name: "Quebec Hawthorn",
+        species: "Crataegus sp. — confirm exact species",
+        correct: true,
+        cover: "images/plants/quebec-hawthorn/cover.jpg",
+        identification: [
+          { text: "Broad leaves with shallow lobes and coarse teeth.", photo: "images/plants/quebec-hawthorn/1.jpg" },
+          { text: "Long, sharp black-ish to gray thorns.", photo: "images/plants/quebec-hawthorn/2.jpg" },
+          { text: "Fruit hangs from visible, thin stalks.", photo: "images/plants/quebec-hawthorn/3.jpg" },
+          { text: "Fruit is red to dark red.", photo: "images/plants/quebec-hawthorn/4.jpg" },
+          { text: "Prominent, star-like flower remnants at the tip.", photo: "images/plants/quebec-hawthorn/5.jpg" }
+        ]
+      },
+      poisonous: {
+        name: "Winterberry Holly",
+        species: "Ilex verticillata",
+        correct: false,
+        cover: "images/plants/winterberry-holly/cover.jpg",
+        identification: [
+          { text: "Unlobed leaves with many small teeth.", photo: "images/plants/winterberry-holly/1.jpg" },
+          { text: "No thorns.", photo: "images/plants/winterberry-holly/2.jpg" },
+          { text: "Berries grow close to the twig on very short stalks.", photo: "images/plants/winterberry-holly/3.jpg" },
+          { text: "Fruit is bright red.", photo: "images/plants/winterberry-holly/4.jpg" },
+          { text: "Small black dot at the tip.", photo: "images/plants/winterberry-holly/5.jpg" }
+        ]
+      }
+    }
+  ];
+
+  /* ============================================================
+     ELEMENTS
+     ============================================================ */
+  const screenStart   = document.getElementById("screen-start");
+  const screenPlay     = document.getElementById("screen-play");
+  const screenGameOver  = document.getElementById("screen-gameover");
+  const screenWin        = document.getElementById("screen-win");
+  const modalAbout      = document.getElementById("modal-about");
+  const modalEncounter  = document.getElementById("modal-encounter");
+  const modalSources    = document.getElementById("modal-sources");
+  const sourcesBody      = document.getElementById("sources-body");
+  const stage             = document.getElementById("stage");
+  const ground              = stage.querySelector(".ground");
+  const cardsRow           = document.getElementById("cards-container");
+  const cardsContainer     = cardsRow;
+  const btnReady            = document.getElementById("btn-ready");
+  const btnReview            = document.getElementById("btn-review");
+  const encounterPrompt      = document.getElementById("encounter-prompt");
+  const heartsEl              = document.getElementById("hearts");
+  const encounterHeartsEl      = document.getElementById("encounter-hearts");
+  const hungerSlider            = document.getElementById("hunger-slider");
+  const hungerTrack               = document.getElementById("hunger-track");
+  const hungerLabel              = document.getElementById("hunger-label");
+  const btnStartOver               = document.getElementById("btn-start-over");
+
+  /* ============================================================
+     SCREEN + MODAL HELPERS
+     ============================================================ */
+  function goToPlayScreen(){
+    screenStart.classList.add("hidden");
+    screenPlay.classList.remove("hidden");
+  }
+  function openModal(modal){ modal.classList.remove("hidden"); }
+  function closeModal(modal){ modal.classList.add("hidden"); }
+
+  document.getElementById("btn-start").addEventListener("click", goToPlayScreen);
+
+  document.getElementById("btn-about").addEventListener("click", () => openModal(modalAbout));
+  document.getElementById("btn-about-close").addEventListener("click", () => closeModal(modalAbout));
+  modalAbout.addEventListener("click", (e) => { if (e.target === modalAbout) closeModal(modalAbout); });
+
+  document.getElementById("btn-encounter-close").addEventListener("click", () => closeModal(modalEncounter));
+
+  document.getElementById("btn-sources-close").addEventListener("click", () => closeModal(modalSources));
+  modalSources.addEventListener("click", (e) => { if (e.target === modalSources) closeModal(modalSources); });
+
+  // Opens on top of the encounter modal (still open behind it) --
+  // just placeholder body copy until the real sources are compiled.
+  function openSourcesModal(plantName){
+    sourcesBody.textContent = "Sources and photo credits for " + plantName + " will go here once compiled.";
+    openModal(modalSources);
+  }
+
+  /* ============================================================
+     WALKING — hold ArrowUp to advance. Only forward, and only
+     while held, so stopping to look around is just letting go.
+
+     Each plant has a fixed distance "down the trail". As the
+     player's progress climbs toward that distance, t goes from
+     0 (far, near the vanishing point) to 1 (right at the player).
+     Left/right screen position is interpolated along the SAME
+     trapezoid edges the ground plane uses, plus a fixed outward
+     margin — so plants track the path's angle but sit beside it,
+     never on top of it. Depth (--z) is interpolated too, so the
+     existing perspective scaling on .stage does the rest.
+     ============================================================ */
+  const TRAIL_TOP    = { left: 41, right: 59 };  // ground's clip-path, far edge (%)
+  const TRAIL_BOTTOM = { left: 4,  right: 96 };  // ground's clip-path, near edge (%)
+  const SIDE_MARGIN = 6;      // % — how far beside the trail edge a plant sits
+  const VIEW_RANGE  = 480;    // world units from "just visible" to "at the player"
+  const WALK_SPEED  = 110;    // world units per second while advancing
+  const FAR_TOP = 38, NEAR_TOP = 84;   // vertical screen % range
+  const FAR_Z   = -380, NEAR_Z = -10;  // depth range, matches the old static values
+
+  function lerp(a, b, t){ return a + (b - a) * t; }
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  // Spaced generously — only ever 2 of these are visible at once (see
+  // updatePlants below), so this is about walk-time pacing, not
+  // avoiding on-screen overlap.
+  const plants = [
+    { distance: 300 },
+    { distance: 650 },
+    { distance: 1000 },
+    { distance: 1350 },
+    { distance: 1700 }
+  ];
+
+  // A plant already walked past stays in the DOM (fading out) for a
+  // little before it's dropped from the "active" queue below — this
+  // matches the old fade-out cutoff (t > 1.3).
+  const PASSED_CUTOFF = -0.3 * VIEW_RANGE;
+
+  // Reaching this far down the trail means the player made it out --
+  // set comfortably past the last plant's distance (1700) plus its
+  // fade-out margin, so the rescue never cuts in while a plant is
+  // still on screen.
+  const FINISH_DISTANCE = 2000;
+
+  plants.forEach((plant, i) => {
+    const btn = document.createElement("button");
+    btn.className = "plant-block";
+    btn.style.animationDelay = (i * 0.3) + "s";
+    btn.setAttribute("aria-label", "Unidentified plant");
+    btn.addEventListener("click", () => openEncounter(plantPairs[0]));
+    btn.style.display = "none";
+    stage.appendChild(btn);
+    plant.el = btn;
+  });
+
+  function updatePlants(){
+    // Only the two nearest not-yet-passed plants are ever shown, so
+    // the player only ever sees one close plant (left) and one
+    // further one (right) hinting at depth — everything else stays
+    // hidden until it rolls into that window.
+    const active = plants
+      .filter((plant) => (plant.distance - progress) > PASSED_CUTOFF)
+      .sort((a, b) => (a.distance - progress) - (b.distance - progress));
+    const visible = active.slice(0, 2);
+
+    plants.forEach((plant) => {
+      const slot = visible.indexOf(plant);
+      if (slot === -1){
+        plant.el.style.display = "none";
+        return;
+      }
+      plant.el.style.display = "";
+
+      const side = slot === 0 ? "left" : "right";
+      const remaining = plant.distance - progress;      // >0 ahead, <0 behind
+      const t = clamp(1 - remaining / VIEW_RANGE, 0, 1.3);
+
+      // Past this point the player has walked by it — fade it out
+      // rather than leaving it frozen at their feet forever.
+      plant.el.style.opacity = t > 1.05
+        ? clamp(1 - (t - 1.05) / 0.25, 0, 1)
+        : "1";
+
+      const tClamped = Math.min(t, 1);
+      const edgeX = side === "left"
+        ? lerp(TRAIL_TOP.left,  TRAIL_BOTTOM.left,  tClamped) - SIDE_MARGIN
+        : lerp(TRAIL_TOP.right, TRAIL_BOTTOM.right, tClamped) + SIDE_MARGIN;
+
+      plant.el.style.left = clamp(edgeX, 2, 98) + "%";
+      plant.el.style.top  = lerp(FAR_TOP, NEAR_TOP, tClamped) + "%";
+      plant.el.style.setProperty("--z", lerp(FAR_Z, NEAR_Z, tClamped) + "px");
+    });
+
+    // Scroll the ground's grid lines to match, so the floor reads
+    // as moving with the plants rather than sliding underneath them.
+    ground.style.backgroundPosition = "0 " + (progress * 1.4) + "px, 0 0";
+  }
+
+  let progress = 0;
+  let advancing = false;
+  let lastTime = null;
+
+  function canWalk(){
+    return !screenPlay.classList.contains("hidden")
+        && modalEncounter.classList.contains("hidden")
+        && modalAbout.classList.contains("hidden");
+  }
+
+  /* ============================================================
+     HEARTS — lose one on a wrong pick. Hitting zero ends the run.
+     ============================================================ */
+  const TOTAL_HEARTS = 2;
+  let heartsRemaining = TOTAL_HEARTS;
+  const heartEls = Array.from(heartsEl.querySelectorAll(".heart"));
+  // The HUD hearts sit behind the encounter modal's backdrop, so this
+  // second set inside the modal is what actually stays visible while
+  // the player is deciding -- kept in sync with the HUD set below.
+  const encounterHeartEls = Array.from(encounterHeartsEl.querySelectorAll(".heart"));
+
+  function updateHeartsUI(){
+    [heartEls, encounterHeartEls].forEach((els) => {
+      els.forEach((el, i) => {
+        el.classList.toggle("heart-lost", i >= heartsRemaining);
+      });
+    });
+  }
+
+  /* ============================================================
+     END OF RUN — either rescued (walked far enough with hearts to
+     spare) or game over (out of hearts). Both stop play and hand
+     off to a dedicated screen; "Start Over" on either resets fully.
+     ============================================================ */
+  function endGame(result){
+    advancing = false;
+    closeModal(modalEncounter);
+    screenPlay.classList.add("hidden");
+    if (result === "won") {
+      screenWin.classList.remove("hidden");
+    } else {
+      screenGameOver.classList.remove("hidden");
+    }
+  }
+
+  /* ============================================================
+     HUNGER — ticks down steadily just from being out in the field,
+     whether or not the player is actively walking. Fast enough to
+     pressure moving on to the next plant, slow enough that a single
+     walk between plants is comfortable. Refills on a correct choice.
+     ============================================================ */
+  const HUNGER_DURATION = 15;               // seconds, full → empty
+  const HUNGER_RATE = 100 / HUNGER_DURATION; // % per second
+  let hunger = 100;
+
+  function updateHungerUI(){
+    hunger = clamp(hunger, 0, 100);
+    hungerSlider.style.left = hunger + "%";
+    const alarm = hunger <= 25;
+    // Label does a plain static color swap; the track + slider handle
+    // are what actually flash red as things get dangerous.
+    hungerLabel.classList.toggle("alarm", alarm);
+    hungerTrack.classList.toggle("alarm", alarm);
+    hungerSlider.classList.toggle("alarm", alarm);
+  }
+
+  function tick(now){
+    if (lastTime === null) lastTime = now;
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    if (canWalk()){
+      const wasStarving = hunger <= 0;
+      hunger = clamp(hunger - HUNGER_RATE * dt, 0, 100);
+      updateHungerUI();
+
+      // Letting hunger run all the way out costs a heart, same as a
+      // wrong pick -- then refills, so it can't tick away hearts
+      // every frame while sitting at zero.
+      if (hunger <= 0 && !wasStarving){
+        heartsRemaining = Math.max(0, heartsRemaining - 1);
+        updateHeartsUI();
+        if (heartsRemaining <= 0){
+          endGame("lost");
+        } else {
+          hunger = 100;
+          updateHungerUI();
+        }
+      }
+
+      if (canWalk() && advancing){
+        progress += WALK_SPEED * dt;
+        updatePlants();
+        if (progress >= FINISH_DISTANCE){
+          endGame("won");
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowUp") return;
+    e.preventDefault();
+    advancing = true;
+  });
+  window.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowUp") advancing = false;
+  });
+  // Letting go of the window (alt-tab, etc.) should stop the walk too.
+  window.addEventListener("blur", () => { advancing = false; });
+
+  updatePlants();
+  updateHungerUI();
+  updateHeartsUI();
+
+  /* ============================================================
+     START OVER — reset all run state and go back to the start
+     screen. Used by the HUD button and by both end-of-run screens.
+     ============================================================ */
+  function resetGame(){
+    progress = 0;
+    advancing = false;
+    hunger = 100;
+    updateHungerUI();
+
+    heartsRemaining = TOTAL_HEARTS;
+    updateHeartsUI();
+
+    seenPairs.clear();
+    requireBothExplored = false;
+    exploredCards = new Set();
+
+    closeModal(modalEncounter);
+    updatePlants();
+
+    screenGameOver.classList.add("hidden");
+    screenWin.classList.add("hidden");
+  }
+
+  function startOver(){
+    resetGame();
+    screenPlay.classList.add("hidden");
+    screenStart.classList.remove("hidden");
+  }
+
+  // Losing and hitting "Try Again" drops straight back into a fresh
+  // run -- no need to hit "Start Game" again on the title screen.
+  function tryAgain(){
+    resetGame();
+    screenStart.classList.add("hidden");
+    screenPlay.classList.remove("hidden");
+  }
+
+  btnStartOver.addEventListener("click", startOver);
+  document.getElementById("btn-gameover-again").addEventListener("click", tryAgain);
+  document.getElementById("btn-win-again").addEventListener("click", startOver);
+
+  /* ============================================================
+     ENCOUNTER — build the two cards, handle flip, handle choice.
+
+     Three modes per encounter:
+       "reading"   — tapping a card flips it to read the fact
+       "selecting" — tapping a card (anywhere on it) picks it
+       "answered"  — result is showing, taps are ignored
+
+     A brand-new pair starts in "reading" and is gated behind
+     exploring both cards. A pair the player has already met starts
+     straight in "selecting" — no need to re-explore what they
+     already know — with a "Review plants again" link that drops
+     back into "reading" on demand.
+     ============================================================ */
+  function shuffledPair(pair){
+    return Math.random() < 0.5
+      ? [pair.edible, pair.poisonous]
+      : [pair.poisonous, pair.edible];
+  }
+
+  let mode = "reading";
+
+  // Pairs the player has already met once — only a brand-new pair
+  // requires exploring both cards before it'll let them choose.
+  const seenPairs = new Set();
+  let requireBothExplored = false;
+  let exploredCards = new Set();
+
+  const READY_LABEL  = "Ready to choose...";
+  const LOCKED_LABEL = "First explore both plants";
+
+  function updateReadyState(){
+    const locked = requireBothExplored && exploredCards.size < 2;
+    btnReady.disabled = locked;
+    btnReady.textContent = locked ? LOCKED_LABEL : READY_LABEL;
+  }
+
+  function buildCard(plant){
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.correct = plant.correct ? "true" : "false";
+
+    const idPointsHtml = plant.identification.map((point, i) => `
+      <div class="id-point">
+        <div class="id-photo-wrap placeholder-art">
+          <img class="id-photo" src="${point.photo}" alt="${plant.name} — identifying trait ${i + 1}"
+               onload="this.classList.add('loaded'); this.closest('.id-photo-wrap').classList.add('has-photo');"
+               onerror="this.remove();">
+          <span class="placeholder-tag">photo coming soon</span>
+        </div>
+        <p class="id-text">${point.text}</p>
+      </div>
+    `).join("");
+
+    card.innerHTML = `
+      <div class="card-inner">
+        <div class="card-face card-front">
+          <div class="card-art placeholder-art">
+            <img class="card-photo" src="${plant.cover}" alt="${plant.name}"
+                 onload="this.classList.add('loaded'); this.closest('.card-art').classList.add('has-photo');"
+                 onerror="this.remove();">
+            <span class="placeholder-tag">cover — 2D render coming soon</span>
+          </div>
+          <h3 class="card-name">${plant.name}</h3>
+          <p class="card-hint">Tap to flip</p>
+        </div>
+        <div class="card-face card-back">
+          <div class="id-gallery">${idPointsHtml}</div>
+          <button type="button" class="btn-info" aria-label="Sources and photo credits for ${plant.name}">ⓘ</button>
+        </div>
+      </div>
+    `;
+
+    const inner = card.querySelector(".card-inner");
+    inner.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-info")) return; // handled by its own listener below
+      if (mode === "reading") {
+        card.classList.toggle("flipped");
+        if (card.classList.contains("flipped")) {
+          exploredCards.add(card);
+          updateReadyState();
+        }
+      } else if (mode === "selecting") {
+        selectCard(card);
+      }
+      // mode === "answered": ignore, choice is already locked in
+    });
+
+    card.querySelector(".btn-info").addEventListener("click", (e) => {
+      e.stopPropagation();
+      openSourcesModal(plant.name);
+    });
+
+    return card;
+  }
+
+  function enterReadingMode(){
+    mode = "reading";
+    cardsRow.classList.remove("selecting");
+    encounterPrompt.classList.add("hidden");
+    btnReview.classList.add("hidden");
+    btnReady.classList.remove("hidden");
+    updateReadyState();
+  }
+
+  function enterSelectingMode(){
+    mode = "selecting";
+    // Choosing is about how the plant looks, not the fact on the
+    // back -- snap any flipped cards back to the image+name view.
+    cardsContainer.querySelectorAll(".card.flipped").forEach((card) => {
+      card.classList.remove("flipped");
+    });
+    cardsRow.classList.add("selecting");
+    btnReady.classList.add("hidden");
+    encounterPrompt.classList.remove("hidden");
+    btnReview.classList.remove("hidden");
+  }
+
+  function openEncounter(pair){
+    cardsRow.classList.remove("selecting", "answered");
+    cardsContainer.innerHTML = "";
+    const [a, b] = shuffledPair(pair);
+    cardsContainer.appendChild(buildCard(a));
+    cardsContainer.appendChild(buildCard(b));
+
+    requireBothExplored = !seenPairs.has(pair.id);
+    seenPairs.add(pair.id);
+    exploredCards = new Set();
+
+    // Already know this pair? Skip straight to choosing. Only a
+    // brand-new pair needs the explore-both-cards gate first.
+    if (requireBothExplored) {
+      enterReadingMode();
+    } else {
+      enterSelectingMode();
+    }
+
+    openModal(modalEncounter);
+  }
+
+  btnReady.addEventListener("click", () => {
+    if (btnReady.disabled) return;
+    enterSelectingMode();
+  });
+
+  btnReview.addEventListener("click", () => {
+    enterReadingMode();
+  });
+
+  function selectCard(card){
+    mode = "answered";
+    cardsRow.classList.remove("selecting");
+    cardsRow.classList.add("answered");
+    btnReview.classList.add("hidden");
+
+    const isCorrect = card.dataset.correct === "true";
+    card.classList.add(isCorrect ? "card-correct" : "card-wrong");
+
+    if (isCorrect){
+      hunger = 100;
+      updateHungerUI();
+    } else {
+      heartsRemaining = Math.max(0, heartsRemaining - 1);
+      updateHeartsUI();
+    }
+
+    // Let the result register, then hand the player back to the field --
+    // unless that was the last heart, in which case the run is over.
+    setTimeout(() => {
+      closeModal(modalEncounter);
+      if (heartsRemaining <= 0){
+        endGame("lost");
+      }
+    }, 1100);
+  }
+
+})();
+</script>
+</body>
+</html>
