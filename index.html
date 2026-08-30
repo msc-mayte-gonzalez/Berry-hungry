@@ -149,8 +149,8 @@
   }
   .credits-image{
     display:none;
-    max-width: 78vw;
-    max-height: 78vh;
+    max-width: 39vw;
+    max-height: 39vh;
     width:auto;
     height:auto;
     object-fit: contain;
@@ -433,6 +433,23 @@
     color: var(--white);
     font-size: 1.4rem;
   }
+  /* Real trail art, once it exists (see plantPairs' walkImage +
+     updatePlantArt below) -- takes over from the amber "?" square
+     the same loaded/onerror pattern as every other image in this
+     file. One shared image per PAIR (not per side), so it still
+     doesn't give away which specific plant this is. */
+  .plant-walk-img{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: contain;
+    pointer-events:none;
+  }
+  .plant-walk-img.loaded{ display:block; }
+  .plant-block.has-art{ background: transparent; box-shadow: none; }
+  .plant-block.has-art::after{ display:none; }
   @keyframes bob{
     0%, 100%{ margin-top: 0px; }
     50%{ margin-top: -6px; }
@@ -942,6 +959,21 @@
   .card.card-correct .card-face{ border-color: var(--correct); background: var(--correct-tint); }
   .card.card-wrong .card-face{ border-color: var(--wrong); background: var(--wrong-tint); }
 
+  /* Yellow shine on whichever card the player actually tapped, so it
+     stays obvious which one was "their pick" even once both results
+     are up side by side (the "Your pick" badge alone was easy to
+     miss). Layers on top of the correct/wrong border+background
+     above rather than replacing them -- a soft pulse keeps it
+     noticeable without being distracting. */
+  .card.card-picked .card-face{
+    box-shadow: 0 0 0 3px #ffd23f, 0 0 22px 6px rgba(255,210,63,0.75), var(--shadow);
+    animation: card-picked-shine 1.6s ease-in-out infinite;
+  }
+  @keyframes card-picked-shine{
+    0%, 100%{ box-shadow: 0 0 0 3px #ffd23f, 0 0 22px 6px rgba(255,210,63,0.75), var(--shadow); }
+    50%{ box-shadow: 0 0 0 3px #ffe27a, 0 0 30px 10px rgba(255,210,63,0.95), var(--shadow); }
+  }
+
   /* Once "Click to select" is pressed, the whole card becomes
      the choice — give it an obvious pressable affordance. */
   .cards.selecting .card-face{
@@ -1307,6 +1339,11 @@
     {
       id: "hawthorn-winterberry",
       active: true,
+      // Shown on the WALKING TRAIL itself, before the player taps it --
+      // one shared image per pair (not per side), since both plants in
+      // a look-alike pair look similar enough that this doesn't spoil
+      // which one is friend vs. foe.
+      walkImage: "images/plants/hawthorn-winterberry/walk.png",
       edible: {
         name: "Downy Hawthorn",
         species: "Crataegus sp. — confirm exact species",
@@ -1366,6 +1403,7 @@
     {
       id: "grape-moonseed",
       active: true,
+      walkImage: "images/plants/grape-moonseed/walk.png",
       edible: {
         name: "Riverbank Grape",
         species: "Vitis riparia",
@@ -1421,6 +1459,7 @@
     {
       id: "purslane-spurge",
       active: true,
+      walkImage: "images/plants/purslane-spurge/walk.png",
       edible: {
         name: "Purslane",
         species: "Portulaca oleracea",
@@ -1505,6 +1544,7 @@
   function goToPlayScreen(){
     screenStart.classList.add("hidden");
     screenPlay.classList.remove("hidden");
+    playWalkMusic();
   }
   function openModal(modal){ modal.classList.remove("hidden"); }
   function closeModal(modal){ modal.classList.add("hidden"); }
@@ -1515,7 +1555,10 @@
   document.getElementById("btn-about-close").addEventListener("click", () => closeModal(modalAbout));
   modalAbout.addEventListener("click", (e) => { if (e.target === modalAbout) closeModal(modalAbout); });
 
-  document.getElementById("btn-encounter-close").addEventListener("click", () => closeModal(modalEncounter));
+  document.getElementById("btn-encounter-close").addEventListener("click", () => {
+    closeModal(modalEncounter);
+    playWalkMusic();
+  });
 
   /* ============================================================
      WALKING — hold ArrowUp/W to advance, ArrowDown/S to retreat,
@@ -1543,6 +1586,59 @@
 
   function lerp(a, b, t){ return a + (b - a) * t; }
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  /* ============================================================
+     SOUND EFFECTS -- drop files into a sounds/ folder (same level
+     as images/) with these exact names and each one plays
+     automatically, no code changes needed -- see sounds/README.txt
+     for the full list, format, and when each one fires. Missing
+     files fail silently (caught below), same "nothing breaks, it
+     just doesn't play yet" spirit as the image placeholders.
+     ============================================================ */
+  function playSound(name){
+    try {
+      const audio = new Audio(`sounds/${name}.m4a`);
+      // Fails silently either way: file not there yet, OR the browser
+      // blocking autoplay until the player's interacted with the page
+      // at all (very first sound of a session -- see sounds/README.txt).
+      audio.play().catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ============================================================
+     BACKGROUND MUSIC -- two looping tracks: one for walking the
+     trail, one for the encounter ("which plant would you eat?")
+     screen. Drop files into a music/ folder (same level as images/
+     and sounds/) named exactly music/walk.mp3 and music/choice.mp3
+     and each one plays automatically, no code changes needed -- see
+     music/README.txt. Missing files fail silently, same as the
+     sound effects above. currentMusic tracks whichever track is
+     logically "the one that should be playing" so Pause can stop it
+     and Resume can bring back the RIGHT one, even if that happened
+     mid-encounter.
+     ============================================================ */
+  const MUSIC_VOLUME = 0.5; // 0-1 -- turn down further here if it fights with the sound effects
+  const musicWalk = new Audio("music/walk.mp3");
+  musicWalk.loop = true;
+  musicWalk.volume = MUSIC_VOLUME;
+  const musicChoice = new Audio("music/choice.mp3");
+  musicChoice.loop = true;
+  musicChoice.volume = MUSIC_VOLUME;
+  let currentMusic = null;
+  function switchMusic(track){
+    if (currentMusic && currentMusic !== track) currentMusic.pause();
+    currentMusic = track;
+    track.play().catch(() => {}); // missing file, or no user interaction yet -- fail silently
+  }
+  function playWalkMusic(){ switchMusic(musicWalk); }
+  function playChoiceMusic(){ switchMusic(musicChoice); }
+  function stopAllMusic(){
+    musicWalk.pause();
+    musicChoice.pause();
+    currentMusic = null;
+  }
+  function pauseMusicForOverlay(){ if (currentMusic) currentMusic.pause(); }
+  function resumeMusicFromOverlay(){ if (currentMusic) currentMusic.play().catch(() => {}); }
 
   // Spaced generously — only ever 2 of these are visible at once (see
   // updatePlants below), so this is about walk-time pacing, not
@@ -1587,6 +1683,34 @@
     return a;
   }
 
+  // Refreshes a trail spot's visible art to match whichever pair it's
+  // currently assigned (see assignEncounterSchedule below). The pair
+  // a spot shows can change between playthroughs on reshuffle, but
+  // its button element is only ever created once (see the plants.
+  // forEach a bit further down) -- so this has to be able to run
+  // AGAIN later and swap the image, not just set it once. Bails out
+  // quietly if the button doesn't exist yet -- assignEncounterSchedule's
+  // very first call happens before any buttons are created.
+  function updatePlantArt(plant){
+    const btn = plant.el;
+    if (!btn) return;
+    const existing = btn.querySelector(".plant-walk-img");
+    if (existing) existing.remove();
+    btn.classList.remove("has-art");
+    const src = plant.pair && plant.pair.walkImage;
+    if (!src) return;
+    const img = document.createElement("img");
+    img.className = "plant-walk-img";
+    img.alt = "";
+    img.onload = () => {
+      img.classList.add("loaded");
+      btn.classList.add("has-art");
+    };
+    img.onerror = () => { img.remove(); };
+    img.src = src;
+    btn.appendChild(img);
+  }
+
   // Every pair actually ready for play (see the `active` flag on each
   // entry in plantPairs above) gets EXACTLY 2 of the trail's spots --
   // not a random draw per tap, which could hand one pair 4 encounters
@@ -1603,6 +1727,7 @@
     schedule = shuffled(schedule);
     plants.forEach((plant, i) => {
       plant.pair = schedule[i % schedule.length] || plantPairs[0];
+      updatePlantArt(plant);
     });
   }
   assignEncounterSchedule();
@@ -1626,6 +1751,7 @@
     btn.style.display = "none";
     stage.appendChild(btn);
     plant.el = btn;
+    updatePlantArt(plant); // assignEncounterSchedule() already ran once above, before this button existed
   });
 
   // Marks a trail spot as done -- dims its button and blocks further
@@ -1770,6 +1896,7 @@
   function endGame(result){
     advancing = false;
     retreating = false;
+    stopAllMusic(); // neither the Win nor Game Over screen has its own track
 
     if (result === "won") {
       closeModal(modalEncounter);
@@ -1808,14 +1935,22 @@
      pressure moving on to the next plant, slow enough that a single
      walk between plants is comfortable. Refills on a correct choice.
      ============================================================ */
-  const HUNGER_DURATION = 30;               // seconds, full → empty (half speed -- was 15)
+  const HUNGER_DURATION = 15;               // seconds, full → empty (twice as fast -- was 30)
   const HUNGER_RATE = 100 / HUNGER_DURATION; // % per second
   let hunger = 100;
+  // Tracks whether the low-hunger alarm is currently sounding, so the
+  // sound effect below plays once right as hunger CROSSES into the
+  // danger zone -- not on every single frame it stays there -- and
+  // is free to fire again the next time hunger drops that low (a
+  // correct pick refills it above 25 in between, clearing this).
+  let hungerAlarmActive = false;
 
   function updateHungerUI(){
     hunger = clamp(hunger, 0, 100);
     hungerSlider.style.left = hunger + "%";
     const alarm = hunger <= 25;
+    if (alarm && !hungerAlarmActive) playSound("hunger-low");
+    hungerAlarmActive = alarm;
     // Label does a plain static color swap; the track + slider handle
     // are what actually flash red as things get dangerous.
     hungerLabel.classList.toggle("alarm", alarm);
@@ -1941,6 +2076,11 @@
   screenCredits.addEventListener("click", skipCredits);
   setTimeout(beginReveal, CREDITS_REVEAL_DELAY_MS);
   setTimeout(dismissCredits, CREDITS_TOTAL_MS);
+  // Fires right at mount, alongside the fade-in starting -- most
+  // browsers block audio before the player's interacted with the
+  // page at all, so this specific one may stay silent on a first,
+  // completely cold load (see sounds/README.txt).
+  playSound("credits-appear");
 
   /* ============================================================
      START OVER — reset all run state and go back to the start
@@ -1975,6 +2115,7 @@
     closeModal(modalEncounter);
     closeModal(modalPause);
     updatePlants();
+    stopAllMusic(); // startOver()/tryAgain() below decide what (if anything) plays next
 
     screenGameOver.classList.add("hidden");
     screenWin.classList.add("hidden");
@@ -1993,6 +2134,7 @@
     resetGame();
     screenStart.classList.add("hidden");
     screenPlay.classList.remove("hidden");
+    playWalkMusic();
   }
 
   btnStartOver.addEventListener("click", startOver);
@@ -2002,8 +2144,14 @@
   // Pause: dark backdrop (reuses .modal-overlay) with a big Resume and
   // a big Start Over action. canWalk() already checks modalPause, so
   // hunger/walking simply stop ticking while it's open.
-  btnPause.addEventListener("click", () => openModal(modalPause));
-  btnResume.addEventListener("click", () => closeModal(modalPause));
+  btnPause.addEventListener("click", () => {
+    openModal(modalPause);
+    pauseMusicForOverlay(); // resumes whichever track (walk or choice) was actually playing
+  });
+  btnResume.addEventListener("click", () => {
+    closeModal(modalPause);
+    resumeMusicFromOverlay();
+  });
   btnPauseStartOver.addEventListener("click", () => {
     closeModal(modalPause);
     startOver();
@@ -2322,6 +2470,7 @@
     }
 
     openModal(modalEncounter);
+    playChoiceMusic();
   }
 
   btnReady.addEventListener("click", () => {
@@ -2364,6 +2513,7 @@
   function revealCardResult(cardEl, isPicked){
     const isCorrect = cardEl.dataset.correct === "true";
     cardEl.classList.add(isCorrect ? "card-correct" : "card-wrong");
+    cardEl.classList.toggle("card-picked", isPicked);
 
     const overlay = cardEl.querySelector(".result-overlay");
     const pickBadge = overlay.querySelector(".result-pick-badge");
@@ -2407,9 +2557,11 @@
     currentCards.forEach((c) => revealCardResult(c, c === card));
 
     if (isCorrect){
+      playSound("correct");
       hunger = 100;
       updateHungerUI();
     } else {
+      playSound("wrong");
       setTimeout(() => { loseHeart(); }, HEART_LOSE_DELAY_MS);
     }
 
@@ -2425,6 +2577,7 @@
         endGame("lost");
       } else {
         closeModal(modalEncounter);
+        playWalkMusic();
       }
     }, isFatalPick ? GAME_OVER_START_DELAY_MS : RESULT_DISPLAY_MS);
   }
