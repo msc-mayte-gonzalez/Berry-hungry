@@ -1462,18 +1462,25 @@
 
   function endGame(result){
     advancing = false;
-    closeModal(modalEncounter);
 
     if (result === "won") {
+      closeModal(modalEncounter);
       screenPlay.classList.add("hidden");
       screenWin.classList.remove("hidden");
       return;
     }
 
-    // "lost" -- fade to black, swap to the Game Over screen behind
-    // the black, then fade back in to reveal it.
+    // "lost" -- fade whatever's still on screen (the walking scene,
+    // or -- if this came from a wrong pick -- the encounter card's
+    // "Mean" result, left open on purpose) to black first, THEN close
+    // the encounter modal and swap to the Game Over screen behind the
+    // black, then fade back in to reveal it. Closing the modal only
+    // once the screen is already fully black means the player watches
+    // the actual result darken into the fade, instead of it cutting
+    // away to the plain play screen first.
     fadeOverlay.classList.add("active");
     setTimeout(() => {
+      closeModal(modalEncounter);
       screenPlay.classList.add("hidden");
       screenGameOver.classList.remove("hidden");
       // Let the Game Over screen actually paint behind the black
@@ -1575,7 +1582,7 @@
 
     seenPairs.clear();
     requireBothExplored = false;
-    exploredCards = new Set();
+    seenPhotoIndices = new Set();
     hasSeenGalleryHint = false;
 
     closeModal(modalEncounter);
@@ -1638,10 +1645,13 @@
   let mode = "reading";
 
   // Pairs the player has already met once — only a brand-new pair
-  // requires exploring both cards before it'll let them choose.
+  // requires paging through every photo (both cards' galleries move
+  // together, see galleryPhotoIndex below) before it'll let them
+  // choose. seenPhotoIndices tracks which gallery slides -- cover
+  // included -- have actually been shown this encounter.
   const seenPairs = new Set();
   let requireBothExplored = false;
-  let exploredCards = new Set();
+  let seenPhotoIndices = new Set();
 
   // Which photo is showing is shared across BOTH cards in the current
   // encounter -- a tap steps this once and it applies to whichever of
@@ -1666,7 +1676,7 @@
   const FLIP_SWAP_MS = FLIP_MS / 2;
 
   function updateReadyState(){
-    const locked = requireBothExplored && exploredCards.size < 2;
+    const locked = requireBothExplored && seenPhotoIndices.size < galleryPhotoTotal;
     btnReady.disabled = locked;
     btnReady.textContent = locked ? LOCKED_LABEL : READY_LABEL;
   }
@@ -1823,17 +1833,18 @@
   }
 
   // Steps the shared photo index (cover included) and applies it to
-  // both cards -- the only way photos change now. Any tap that counts
-  // (a card, or the gap between them -- see buildCard/cardsContainer's
-  // click handlers) counts as having explored the pair, since it's
-  // the only way to see anything beyond the cover.
+  // both cards -- the only way photos change now. "Ready to choose..."
+  // only unlocks once every slide in seenPhotoIndices has actually
+  // been shown at least once (see updateReadyState), so a single tap
+  // isn't enough -- the player has to page all the way through both
+  // galleries first.
   function stepGalleryPhoto(delta){
     if (mode !== "reading") return;
     galleryPhotoIndex = ((galleryPhotoIndex + delta) % galleryPhotoTotal + galleryPhotoTotal) % galleryPhotoTotal;
     currentCards.forEach((card) => {
       if (typeof card.showPhoto === "function") card.showPhoto(galleryPhotoIndex);
-      exploredCards.add(card);
     });
+    seenPhotoIndices.add(galleryPhotoIndex);
     updateReadyState();
     updateGalleryCounter();
     // The player has now actually tapped -- no need to keep teaching
@@ -1873,7 +1884,10 @@
 
     requireBothExplored = !seenPairs.has(pair.id);
     seenPairs.add(pair.id);
-    exploredCards = new Set();
+    // The cover (index 0) is already on screen the moment the modal
+    // opens, so it counts as "seen" from the start -- the player just
+    // needs to page through the rest.
+    seenPhotoIndices = new Set([0]);
 
     // Already know this pair? Skip straight to choosing. Only a
     // brand-new pair needs the explore-both-cards gate first.
@@ -1906,6 +1920,13 @@
   // sink in, rather than both firing at the same instant.
   const HEART_LOSE_DELAY_MS = 900;
 
+  // When the pick about to be made will break the LAST heart, the
+  // player doesn't need to sit with the broken-heart result nearly as
+  // long before the Game Over transition starts -- half the usual gap
+  // after the heart actually breaks (RESULT_DISPLAY_MS's gap after
+  // HEART_LOSE_DELAY_MS, halved).
+  const GAME_OVER_START_DELAY_MS = HEART_LOSE_DELAY_MS + Math.round((RESULT_DISPLAY_MS - HEART_LOSE_DELAY_MS) / 2);
+
   function selectCard(card){
     mode = "answered";
     cardsRow.classList.remove("selecting");
@@ -1913,6 +1934,11 @@
     btnReview.classList.add("hidden");
 
     const isCorrect = card.dataset.correct === "true";
+    // heartsRemaining hasn't been decremented for THIS pick yet (that
+    // happens later, inside loseHeart() -- see the setTimeout below),
+    // so "<= 1" here means "this is the last heart" i.e. this pick,
+    // if wrong, ends the run.
+    const isFatalPick = !isCorrect && heartsRemaining <= 1;
     card.classList.add(isCorrect ? "card-correct" : "card-wrong");
 
     // Big "Meal" / "Mean" reveal grows in over the chosen card's
@@ -1940,13 +1966,18 @@
 
     // Let the result (and the heart-loss animation, if any) actually
     // register, then hand the player back to the field -- unless that
-    // was the last heart, in which case the run is over.
+    // was the last heart, in which case the run is over and we start
+    // the Game Over transition sooner (see GAME_OVER_START_DELAY_MS).
+    // endGame("lost") closes the encounter modal itself, only once the
+    // fade-to-black is done, so the result stays visible under the
+    // fade rather than being cut away first.
     setTimeout(() => {
-      closeModal(modalEncounter);
       if (heartsRemaining <= 0){
         endGame("lost");
+      } else {
+        closeModal(modalEncounter);
       }
-    }, RESULT_DISPLAY_MS);
+    }, isFatalPick ? GAME_OVER_START_DELAY_MS : RESULT_DISPLAY_MS);
   }
 
 })();
