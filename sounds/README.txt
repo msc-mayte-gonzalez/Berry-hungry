@@ -1,4 +1,4 @@
-Sound effects — four files
+Sound effects — five files
 
 Drop files into this folder (sounds/, same level as images/) with
 these exact names. Nothing else needs to change in the code -- each
@@ -24,6 +24,12 @@ one plays automatically as soon as it's here.
   wrong.m4a              Plays the instant the player picks the FOE
                         card (the poisonous one) in an encounter.
 
+  game-over.m4a          Plays the instant the Game Over screen
+                        appears (running out of hearts) -- not the
+                        Win screen, just the loss state. A short
+                        sting works well here; it doesn't need to
+                        loop.
+
 Format: M4A (AAC). All current major browsers (Chrome, Firefox,
 Safari, Edge) play it natively through the same audio code this game
 already uses, so if that's the format you've already got the sounds
@@ -42,22 +48,23 @@ end up with files in some other format first.
 
 Keep them short and punchy -- these are one-shot sound effects, not
 music. A few hundred milliseconds to a couple of seconds is normal
-for correct.m4a/wrong.m4a/hunger-low.m4a. credits-appear.m4a can run
-a little longer if it's meant to underscore the whole logo card, but
-even that only needs to cover roughly its 2.2-second fade in/hold/
-fade out (see index.html's CREDITS_FADE_MS/CREDITS_HOLD_MS comments
-if you want the exact numbers) -- anything after that plays under a
-black screen nobody's looking at.
+for correct.m4a/wrong.m4a/hunger-low.m4a/game-over.m4a.
+credits-appear.m4a can run a little longer if it's meant to
+underscore the whole logo card, but even that only needs to cover
+roughly its 2.2-second fade in/hold/fade out (see index.html's
+CREDITS_FADE_MS/CREDITS_HOLD_MS comments if you want the exact
+numbers) -- anything after that plays under a black screen nobody's
+looking at.
 
 IMPORTANT -- about credits-appear.m4a specifically: browsers block
 audio from playing automatically until the player has interacted
 with the page in some way (a click, a tap, a keypress) -- and the
 credits screen is the very first thing shown, before any of that has
 happened. So on a completely cold load, this one sound may stay
-silent in some browsers (Chrome in particular), while the other
-three will always play fine since by then the player has already
-clicked Start, tapped a card, etc. This is a browser policy, not a
-bug in the game -- there isn't a reliable way around it for a sound
+silent in some browsers (Chrome in particular), while the other four
+will always play fine since by then the player has already clicked
+Start, tapped a card, or lost a heart. This is a browser policy, not
+a bug in the game -- there isn't a reliable way around it for a sound
 meant to play with zero prior interaction. If it turns out to matter
 a lot for the jam, one option later is having the credits screen
 itself require a "tap to begin" first (that tap would count as the
@@ -66,5 +73,5 @@ one-tap start, so it's your call whether that trade-off's worth it.
 
 Until these files exist, playing a sound just fails silently --
 nothing breaks, nothing errors, the game plays exactly the same
-minus the sound. You can delete this file once all four are in
+minus the sound. You can delete this file once all five are in
 place.
