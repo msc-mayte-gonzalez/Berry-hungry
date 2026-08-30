@@ -119,6 +119,41 @@
     z-index: 5;
   }
 
+  /* ---------- Initial credits screen ---------- */
+  .screen-credits{
+    /* .screen elements otherwise stack by DOM order alone -- this
+       puts the credits screen above all of them regardless, so it's
+       always what's on top the instant the page loads. */
+    z-index: 700;
+    background: #000;
+  }
+  .credits-art{
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .credits-image{
+    display:none;
+    max-width: 78vw;
+    max-height: 78vh;
+    width:auto;
+    height:auto;
+    object-fit: contain;
+  }
+  .credits-image.loaded{ display:block; }
+  .credits-art.has-credits .placeholder-tag{ display:none; }
+  /* Toggled by JS once, on load -- fades the whole screen to
+     transparent, revealing the Start screen underneath, then it's
+     removed from the DOM so it can never come back this session. */
+  .screen-credits.credits-fade-out{
+    opacity: 0;
+    transition: opacity 1.1s ease;
+    pointer-events: none;
+  }
+
   /* ---------- Start screen ---------- */
   #screen-start .placeholder-art{
     position:absolute;
@@ -208,6 +243,12 @@
     align-items:center;
     justify-content:center;
     padding: 1.2rem;
+    /* When the modal's content is taller than the viewport (short
+       laptop windows, landscape phones, etc.), let it scroll instead
+       of silently overflowing off the top/bottom of the screen --
+       see the max-height query below for the primary fix, this is
+       just the safety net for anything that still doesn't fit. */
+    overflow-y: auto;
   }
   .modal-card{
     position: relative;
@@ -1001,6 +1042,28 @@
       justify-content:center;
     }
   }
+
+  /* Short viewport HEIGHT (a laptop browser window without much
+     vertical room, a landscape phone, etc.) -- independent of width.
+     The encounter modal's content is centered as a column, so when it
+     doesn't fit, the overflow used to be split evenly above and below
+     the visible area, pushing the hearts and the × close button (the
+     first things in that column) off the top of the screen entirely.
+     Below this height, pin the modal to the top and shrink it instead
+     of centering it, and let it scroll for anything that still
+     doesn't fit -- so every control stays reachable no matter how
+     short the window gets. */
+  @media (max-height: 760px){
+    #modal-encounter{
+      align-items: flex-start;
+      padding: 0.6rem;
+    }
+    .encounter-card-wrap{ gap: 0.7rem; }
+    .encounter-hearts{ margin-bottom: 0; }
+    .encounter-hearts .heart{ font-size: 2.3rem; }
+    .encounter-prompt{ font-size: clamp(1.1rem, 4vw, 1.4rem); }
+    .card{ max-width: 190px; }
+  }
 </style>
 </head>
 <body>
@@ -1141,6 +1204,28 @@
       <div class="start-actions">
         <button id="btn-win-again" class="btn btn-primary btn-block">Play Again</button>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ INITIAL CREDITS SCREEN ============
+       Shown once, only the very first time the page loads -- never
+       again on Start Over / Play Again / Try Again, since none of
+       those touch this screen at all (see the credits-screen script
+       below, right after resetGame()). Sits on top of every other
+       screen (see .screen-credits z-index) so it's the first thing
+       painted, then fades out on its own to reveal the Start screen
+       that's been sitting ready underneath it the whole time.
+
+       Drop the artwork in as images/credits.png (a transparent PNG
+       looks best against the black background) -- nothing else needs
+       to change, it lights up automatically. Until then this just
+       shows a plain black screen with a small placeholder tag. -->
+  <section id="screen-credits" class="screen screen-credits">
+    <div class="credits-art">
+      <img class="credits-image" src="images/credits.png" alt=""
+           onload="this.classList.add('loaded'); this.closest('.credits-art').classList.add('has-credits');"
+           onerror="this.remove();">
+      <span class="placeholder-tag">credits — drop images/credits.png in to show it here</span>
     </div>
   </section>
 
@@ -1351,6 +1436,7 @@
   /* ============================================================
      ELEMENTS
      ============================================================ */
+  const screenCredits  = document.getElementById("screen-credits");
   const screenStart   = document.getElementById("screen-start");
   const screenPlay     = document.getElementById("screen-play");
   const screenGameOver  = document.getElementById("screen-gameover");
@@ -1772,6 +1858,26 @@
   updatePlants();
   updateHungerUI();
   updateHeartsUI();
+
+  /* ============================================================
+     INITIAL CREDITS SCREEN -- see the HTML comment above
+     #screen-credits for the full picture. Holds for a few seconds
+     (or until clicked, for faster playtesting) then fades out once
+     and removes itself for good. Start Over / Play Again / Try
+     Again never come back through here -- they only ever touch
+     screen-start / screen-play / etc, never screen-credits.
+     ============================================================ */
+  const CREDITS_HOLD_MS = 2600;
+  const CREDITS_FADE_MS = 1100; // keep in sync with .credits-fade-out's transition above
+  let creditsDismissed = false;
+  function dismissCredits(){
+    if (creditsDismissed) return;
+    creditsDismissed = true;
+    screenCredits.classList.add("credits-fade-out");
+    setTimeout(() => { screenCredits.remove(); }, CREDITS_FADE_MS);
+  }
+  screenCredits.addEventListener("click", dismissCredits);
+  setTimeout(dismissCredits, CREDITS_HOLD_MS);
 
   /* ============================================================
      START OVER — reset all run state and go back to the start
