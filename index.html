@@ -376,6 +376,23 @@
     left: 50%;
     transform: translateX(-50%);
   }
+  /* Drop images/player.png in and it takes over from the placeholder
+     gradient automatically -- same loaded/onerror pattern as the
+     background and card-cover art. "contain" + bottom-anchored so a
+     transparent PNG's own shape shows through rather than being
+     cropped or stretched to fill the box. */
+  .player-img{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: contain;
+    object-position: bottom center;
+  }
+  .player-img.loaded{ display:block; }
+  .player-fp.has-player{ background:none; box-shadow:none; }
+  .player-fp.has-player .placeholder-tag{ display:none; }
 
   .forest-hint{
     position:absolute;
@@ -977,6 +994,9 @@
 
       <!-- First-person player, screen-anchored, not part of the stage -->
       <div class="player-fp">
+        <img class="player-img" src="images/player.png" alt=""
+             onload="this.classList.add('loaded'); this.closest('.player-fp').classList.add('has-player');"
+             onerror="this.remove();">
         <span class="placeholder-tag">player — first-person placeholder</span>
       </div>
 
@@ -1098,13 +1118,13 @@
   "use strict";
 
   /* ============================================================
-     DATA — Downy Hawthorn vs Winterberry Holly is the only pair
-     actually in play right now (see the plant-block click handler
-     below, which always opens plantPairs[0]). Pairs 2 and 3 below
-     are placeholder scaffolding for two upcoming pairs -- the real
-     photos, identifying traits and sources still need to be filled
-     in, and wiring them into the walk (so more than one pair can
-     come up) is a separate step once that content is ready.
+     DATA — one entry per look-alike pair. Only pairs with `active:
+     true` actually come up during the walk (see pickActivePair,
+     used by the plant-block click handler below) -- everything else
+     is scaffolding for a pair that isn't ready to be encountered yet
+     (identifying traits, photos, and/or credits still missing or
+     incomplete). Flip a pair's `active` to true once its content is
+     ready for real play.
 
      Each plant has a "cover" (the card's default face -- a 2D render
      of the 3D model, coming later) and an "identification" list: one
@@ -1113,6 +1133,7 @@
   const plantPairs = [
     {
       id: "hawthorn-winterberry",
+      active: true,
       edible: {
         name: "Downy Hawthorn",
         species: "Crataegus sp. — confirm exact species",
@@ -1158,28 +1179,30 @@
       }
     },
     // -------------------------------------------------------------
-    // PLACEHOLDER PAIR — Riverbank Grape vs Canada Moonseed.
-    // A classic real-world look-alike mix-up: wild grape vines and
-    // moonseed vines climb the same way and their fruit looks
-    // similar from a distance. Photos, identifying traits and
-    // sources below are all TODO -- text is a stand-in until real
-    // reference photos are picked.
+    // Riverbank Grape vs Canada Moonseed -- ACTIVE (see `active`
+    // below): a classic real-world look-alike mix-up, wild grape
+    // vines and moonseed vines climb the same way and their fruit
+    // looks similar from a distance. Identifying traits are final;
+    // photos and credits/sources are still TODO and will show as
+    // "coming soon" / blank until those are added.
     // -------------------------------------------------------------
     {
       id: "grape-moonseed",
+      active: true,
       edible: {
         name: "Riverbank Grape",
         species: "Vitis riparia",
         correct: true,
         cover: "images/plants/riverbank-grape/cover.jpg",
-        // TODO: real source links once identification is written up.
+        // TODO: real source links once credits are written up.
         sources: [],
         identification: [
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/1.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/2.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/3.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/4.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/5.jpg", credit: "Photo credit: TODO" }
+          { text: "Plant climbs using tendrils.", photo: "images/plants/riverbank-grape/1.jpg", credit: "TODO" },
+          { text: "Leaves have long, often reddish petioles.", photo: "images/plants/riverbank-grape/2.jpg", credit: "TODO" },
+          { text: "Leaves are lobed and heart-shaped, with coarsely toothed edges.", photo: "images/plants/riverbank-grape/3.jpg", credit: "TODO" },
+          { text: "Fruit grows in branched, drooping clusters.", photo: "images/plants/riverbank-grape/4.jpg", credit: "TODO" },
+          { text: "Fruit is dark purple to blue-black with a whitish bloom.", photo: "images/plants/riverbank-grape/5.jpg", credit: "TODO" },
+          { text: "Each fruit contains 1–4 small seeds.", photo: "images/plants/riverbank-grape/6.jpg", credit: "TODO" }
         ]
       },
       poisonous: {
@@ -1187,22 +1210,25 @@
         species: "Menispermum canadense",
         correct: false,
         cover: "images/plants/canada-moonseed/cover.jpg",
-        // TODO: real source links once identification is written up.
+        // TODO: real source links once credits are written up.
         sources: [],
         identification: [
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/1.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/2.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/3.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/4.jpg", credit: "Photo credit: TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/5.jpg", credit: "Photo credit: TODO" }
+          { text: "Plant climbs by twining its stems and has no tendrils.", photo: "images/plants/canada-moonseed/1.jpg", credit: "TODO" },
+          { text: "Leaves have long, usually green petioles.", photo: "images/plants/canada-moonseed/2.jpg", credit: "TODO" },
+          { text: "Leaves are lobed and heart-shaped, with smooth, toothless edges.", photo: "images/plants/canada-moonseed/3.jpg", credit: "TODO" },
+          { text: "Fruit grows in loose, drooping clusters.", photo: "images/plants/canada-moonseed/4.jpg", credit: "TODO" },
+          { text: "Fruit is bluish black with a whitish bloom.", photo: "images/plants/canada-moonseed/5.jpg", credit: "TODO" },
+          { text: "Each fruit contains one large, crescent-shaped seed.", photo: "images/plants/canada-moonseed/6.jpg", credit: "TODO" }
         ]
       }
     },
     // -------------------------------------------------------------
-    // PLACEHOLDER PAIR — Purslane vs Spotted Spurge.
+    // PLACEHOLDER PAIR — Purslane vs Spotted Spurge. NOT active yet.
     // Another classic mix-up: spotted spurge is a common low weed
     // that grows alongside purslane and gets picked by mistake.
-    // Photos, identifying traits and sources below are all TODO.
+    // Photos, identifying traits and sources below are all still
+    // TODO -- set `active: true` once real identifying traits (like
+    // grape-moonseed got above) are written up.
     // -------------------------------------------------------------
     {
       id: "purslane-spurge",
@@ -1334,12 +1360,22 @@
   // still on screen.
   const FINISH_DISTANCE = 2000;
 
+  // Draws a random pair from the ones actually ready for play (see
+  // the `active` flag on each entry in plantPairs above) -- called
+  // fresh every time a plant is tapped, so which pair shows up at a
+  // given trail spot varies playthrough to playthrough.
+  function pickActivePair(){
+    const pool = plantPairs.filter((p) => p.active);
+    if (pool.length === 0) return plantPairs[0]; // safety net, shouldn't happen
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   plants.forEach((plant, i) => {
     const btn = document.createElement("button");
     btn.className = "plant-block";
     btn.style.animationDelay = (i * 0.3) + "s";
     btn.setAttribute("aria-label", "Unidentified plant");
-    btn.addEventListener("click", () => openEncounter(plantPairs[0]));
+    btn.addEventListener("click", () => openEncounter(pickActivePair()));
     btn.style.display = "none";
     stage.appendChild(btn);
     plant.el = btn;
