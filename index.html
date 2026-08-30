@@ -119,6 +119,41 @@
     z-index: 5;
   }
 
+  /* ---------- Initial credits screen ---------- */
+  .screen-credits{
+    /* .screen elements otherwise stack by DOM order alone -- this
+       puts the credits screen above all of them regardless, so it's
+       always what's on top the instant the page loads. */
+    z-index: 700;
+    background: #000;
+  }
+  .credits-art{
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .credits-image{
+    display:none;
+    max-width: 78vw;
+    max-height: 78vh;
+    width:auto;
+    height:auto;
+    object-fit: contain;
+  }
+  .credits-image.loaded{ display:block; }
+  .credits-art.has-credits .placeholder-tag{ display:none; }
+  /* Toggled by JS once, on load -- fades the whole screen to
+     transparent, revealing the Start screen underneath, then it's
+     removed from the DOM so it can never come back this session. */
+  .screen-credits.credits-fade-out{
+    opacity: 0;
+    transition: opacity 1.1s ease;
+    pointer-events: none;
+  }
+
   /* ---------- Start screen ---------- */
   #screen-start .placeholder-art{
     position:absolute;
@@ -208,6 +243,12 @@
     align-items:center;
     justify-content:center;
     padding: 1.2rem;
+    /* When the modal's content is taller than the viewport (short
+       laptop windows, landscape phones, etc.), let it scroll instead
+       of silently overflowing off the top/bottom of the screen --
+       see the max-height query below for the primary fix, this is
+       just the safety net for anything that still doesn't fit. */
+    overflow-y: auto;
   }
   .modal-card{
     position: relative;
@@ -343,6 +384,19 @@
   }
   .plant-block:hover{ filter: brightness(1.08); }
   .plant-block:active{ filter: brightness(0.94); }
+  /* Already answered -- still visible on its normal fade schedule, but
+     dimmed and inert so it reads as "done" rather than inviting
+     another tap. Rules below override the hover/active ones above by
+     coming later in the stylesheet. */
+  .plant-block.plant-answered{
+    cursor: default;
+    filter: grayscale(0.7) brightness(0.7);
+    animation-play-state: paused;
+  }
+  .plant-block.plant-answered:hover,
+  .plant-block.plant-answered:active{
+    filter: grayscale(0.7) brightness(0.7);
+  }
   .plant-block::after{
     content:"?";
     font-family: var(--font-display);
@@ -597,7 +651,7 @@
     position:relative;
     background: transparent;
     width: 100%;
-    max-width: 560px;
+    max-width: 620px;
     display:flex;
     flex-direction: column;
     align-items:center;
@@ -705,7 +759,7 @@
   .card{
     position:relative;
     width: 100%;
-    max-width: 220px;
+    max-width: 275px;
     aspect-ratio: 3 / 4.3;
     perspective: 1000px;
   }
@@ -784,7 +838,7 @@
   .id-photo.loaded{ display:block; }
   .id-photo-wrap.has-photo .placeholder-tag{ display:none; }
   .id-text{
-    font-size: 0.76rem;
+    font-size: 0.95rem;
     line-height: 1.4;
     color: var(--ink);
     text-align:left;
@@ -869,23 +923,54 @@
   .cards.answered .card-face:hover{ transform: none; }
 
   /* Big "Friend"/"Foe" reveal once a choice is made -- grows in over
-     the card's photo and stays up long enough to actually read. */
+     the card's photo and stays up long enough to actually read. Both
+     cards show a reveal now (see selectCard), and the two might carry
+     different extra content -- one has the "Your pick" badge, either
+     might have a caveat line, neither might. A plain centered flex
+     stack would shift the WORD itself up or down depending on what
+     surrounds it, so "Friend" and "Foe" would land at different
+     heights across the two cards (as happened here). Grid rows of
+     1fr/auto/1fr fix that: the auto middle row (the word) always sits
+     exactly centered, because the two 1fr spacer rows stay equal to
+     each other no matter what's in them -- badge and caveat float
+     above/below that fixed point instead of pushing it around. */
   .result-overlay{
     position:absolute;
     inset:0;
     display:none;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap: 0.5rem;
+    grid-template-rows: 1fr auto 1fr;
+    justify-items: center;
     padding: 1rem;
     text-align:center;
     pointer-events:none;
     z-index: 30;
   }
-  .result-overlay.show{ display:flex; }
+  .result-overlay.show{ display:grid; }
+  .result-pick-badge{
+    display:inline-block;
+    /* Explicit row (not just DOM order) -- when the badge OR the
+       caveat is hidden (display:none), grid auto-placement would
+       otherwise compact the remaining visible items into the first
+       rows instead of leaving row 2 (the word) where it belongs. This
+       is what actually caused the misalignment: with the badge hidden
+       on the Foe card, the word and caveat auto-placed into rows 1
+       and 2 instead of 2 and 3. */
+    grid-row: 1;
+    align-self: end;
+    margin-bottom: 0.5rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.92);
+    color: var(--ink);
+    font-weight: 800;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
   .result-word{
     display:inline-block;
+    grid-row: 2;
+    align-self: center;
     color: rgba(255,255,255,0.94);
     font-weight: 800;
     font-size: 2.1rem;
@@ -897,11 +982,14 @@
   }
   .result-caveat{
     display:inline-flex;
+    grid-row: 3;
+    align-self: start;
+    margin-top: 0.5rem;
     align-items:center;
     gap: 0.3rem;
     color: rgba(255,255,255,0.96);
     font-weight: 700;
-    font-size: 0.72rem;
+    font-size: 0.95rem;
     text-shadow: 0 2px 6px rgba(0,0,0,0.5);
     background: rgba(20,16,6,0.65);
     padding: 0.35rem 0.7rem;
@@ -932,8 +1020,17 @@
      RESPONSIVE
      ============================================================ */
   @media (max-width: 480px){
-    .cards{ gap: 0.7rem; }
-    .card{ max-width: 46vw; }
+    /* Two cards side-by-side already use nearly the full phone width, so
+       they can't scale up by the same ~25% as desktop without overflowing
+       the screen. Instead we claw back room from the modal's own padding
+       and the gap between cards, widen the cards a little, and land the
+       readable text on a smaller (but still meaningfully bigger than
+       before) size that reliably fits without extra wrapping. */
+    #modal-encounter{ padding: 0.6rem; }
+    .cards{ gap: 0.5rem; }
+    .card{ max-width: 48vw; }
+    .id-text{ font-size: 0.86rem; }
+    .result-caveat{ font-size: 0.86rem; }
     .btn-ready{ min-width: 0; width: 100%; }
     /* Pause/Start Over shrink to icon-only circles to save space. */
     .hud-btn-icon{ display:block; }
@@ -944,6 +1041,28 @@
       padding: 0;
       justify-content:center;
     }
+  }
+
+  /* Short viewport HEIGHT (a laptop browser window without much
+     vertical room, a landscape phone, etc.) -- independent of width.
+     The encounter modal's content is centered as a column, so when it
+     doesn't fit, the overflow used to be split evenly above and below
+     the visible area, pushing the hearts and the × close button (the
+     first things in that column) off the top of the screen entirely.
+     Below this height, pin the modal to the top and shrink it instead
+     of centering it, and let it scroll for anything that still
+     doesn't fit -- so every control stays reachable no matter how
+     short the window gets. */
+  @media (max-height: 760px){
+    #modal-encounter{
+      align-items: flex-start;
+      padding: 0.6rem;
+    }
+    .encounter-card-wrap{ gap: 0.7rem; }
+    .encounter-hearts{ margin-bottom: 0; }
+    .encounter-hearts .heart{ font-size: 2.3rem; }
+    .encounter-prompt{ font-size: clamp(1.1rem, 4vw, 1.4rem); }
+    .card{ max-width: 190px; }
   }
 </style>
 </head>
@@ -983,8 +1102,8 @@
            onerror="this.remove();">
       <span class="placeholder-tag">forest — art coming later</span>
       <div class="forest-hint">
-        <span>Hold ↑ to walk</span>
-        <span>Tap a plant to identify if friend or foe</span>
+        <span id="hint-walk">Hold ↑ / W to walk, ↓ / S to go back</span>
+        <span id="hint-plant">Tap a plant to identify if friend or foe</span>
       </div>
 
       <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
@@ -1088,6 +1207,28 @@
     </div>
   </section>
 
+  <!-- ============ INITIAL CREDITS SCREEN ============
+       Shown once, only the very first time the page loads -- never
+       again on Start Over / Play Again / Try Again, since none of
+       those touch this screen at all (see the credits-screen script
+       below, right after resetGame()). Sits on top of every other
+       screen (see .screen-credits z-index) so it's the first thing
+       painted, then fades out on its own to reveal the Start screen
+       that's been sitting ready underneath it the whole time.
+
+       Drop the artwork in as images/credits.png (a transparent PNG
+       looks best against the black background) -- nothing else needs
+       to change, it lights up automatically. Until then this just
+       shows a plain black screen with a small placeholder tag. -->
+  <section id="screen-credits" class="screen screen-credits">
+    <div class="credits-art">
+      <img class="credits-image" src="images/credits.png" alt=""
+           onload="this.classList.add('loaded'); this.closest('.credits-art').classList.add('has-credits');"
+           onerror="this.remove();">
+      <span class="placeholder-tag">credits — drop images/credits.png in to show it here</span>
+    </div>
+  </section>
+
   <!-- ============ ENCOUNTER OVERLAY (2-card challenge) ============ -->
   <div id="modal-encounter" class="modal-overlay hidden">
     <div class="encounter-card-wrap">
@@ -1163,11 +1304,15 @@
         species: "Ilex verticillata",
         correct: false,
         cover: "images/plants/winterberry-holly/cover.jpg",
+        // Shown as an extra line under the "Foe" reveal when this
+        // plant is the one picked.
+        caveat: "Berries are toxic if ingested",
         sources: [
           "https://www.minnesotawildflowers.info/shrub/winterberry",
           "https://extension.umd.edu/resource/winterberry-holly/",
           "https://blog.davey.com/do-i-have-a-winterberry-holly/",
-          "https://www.uwgb.edu/biodiversity-old/herbarium/shrubs/ilever01.htm"
+          "https://www.uwgb.edu/biodiversity-old/herbarium/shrubs/ilever01.htm",
+          "https://www.wildflower.org/plants/result.php?id_plant=ILVE"
         ],
         identification: [
           { text: "Unlobed leaves with many small teeth.", photo: "images/plants/winterberry-holly/1.jpg", credit: 'Via: <a href="https://www.uwgb.edu" target="_blank" rel="noopener noreferrer">www.uwgb.edu</a>' },
@@ -1213,11 +1358,15 @@
         species: "Menispermum canadense",
         correct: false,
         cover: "images/plants/canada-moonseed/cover.jpg",
+        // Shown as an extra line under the "Foe" reveal when this
+        // plant is the one picked.
+        caveat: "Fruit is highly toxic, may be fatal if eaten",
         sources: [
           "https://www.illinoiswildflowers.info/trees/plants/moonseed.htm",
           "https://minnesotawildflowers.info/shrub/canada-moonseed",
           "https://www.carolinanature.com/trees/meca.html",
-          "https://gobotany.nativeplanttrust.org/species/menispermum/canadense/"
+          "https://gobotany.nativeplanttrust.org/species/menispermum/canadense/",
+          "https://www.wildflower.org/plants/result.php?id_plant=meca3"
         ],
         identification: [
           { text: "Plant climbs by twining its stems and has no tendrils.", photo: "images/plants/canada-moonseed/1.jpg", credit: 'Credits: Lawrence Newcomb. Via: <a href="https://gobotany.nativeplanttrust.org" target="_blank" rel="noopener noreferrer">gobotany.nativeplanttrust.org</a>' },
@@ -1230,28 +1379,33 @@
       }
     },
     // -------------------------------------------------------------
-    // PLACEHOLDER PAIR — Purslane vs Spotted Spurge. NOT active yet.
-    // Another classic mix-up: spotted spurge is a common low weed
-    // that grows alongside purslane and gets picked by mistake.
-    // Photos, identifying traits and sources below are all still
-    // TODO -- set `active: true` once real identifying traits (like
-    // grape-moonseed got above) are written up.
+    // Purslane vs Spotted Spurge -- ACTIVE (see `active` below): a
+    // classic mix-up, spotted spurge is a common low weed that grows
+    // alongside purslane and gets picked by mistake. Identifying
+    // traits, credits, sources, and the "Foe" caveat are all final;
+    // only the actual photo files are still TODO and will show as
+    // "coming soon" until those are added.
     // -------------------------------------------------------------
     {
       id: "purslane-spurge",
+      active: true,
       edible: {
         name: "Purslane",
         species: "Portulaca oleracea",
         correct: true,
         cover: "images/plants/purslane/cover.jpg",
-        // TODO: real source links once identification is written up.
-        sources: [],
+        sources: [
+          "https://hort.extension.wisc.edu/articles/common-purslane-portulaca-oleracea/",
+          "https://www.ontario.ca/document/weed-identification-guide-ontario-crops/purslane",
+          "https://www.gardenia.net/plant/portulaca-oleracea"
+        ],
         identification: [
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/1.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/2.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/3.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/4.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/5.jpg", credit: "TODO" }
+          { text: "Plant grows close to the ground, forming a spreading mat.", photo: "images/plants/purslane/1.jpg", credit: 'Credit: Susan Mahr. Via: <a href="https://hort.extension.wisc.edu/articles/common-purslane-portulaca-oleracea/" target="_blank" rel="noopener noreferrer">hort.extension.wisc.edu</a>' },
+          { text: "Leaves are green, smooth, and hairless.", photo: "images/plants/purslane/2.jpg", credit: 'Via: <a href="https://www.ontario.ca/document/weed-identification-guide-ontario-crops/purslane" target="_blank" rel="noopener noreferrer">www.ontario.ca</a>' },
+          { text: "Leaves are oval to oblong, thick, and fleshy, with smooth edges.", photo: "images/plants/purslane/3.jpg", credit: 'Via: <a href="https://www.gardenia.net/plant/portulaca-oleracea" target="_blank" rel="noopener noreferrer">www.gardenia.net</a>' },
+          { text: "Stems are thick, smooth, and reddish to green.", photo: "images/plants/purslane/4.jpg", credit: 'Via: <a href="https://www.ontario.ca/document/weed-identification-guide-ontario-crops/purslane" target="_blank" rel="noopener noreferrer">www.ontario.ca</a>' },
+          { text: "Produces small yellow flowers.", photo: "images/plants/purslane/5.jpg", credit: 'Credit: HenoftheWood. Via: <a href="https://foragedfoodie.blogspot.com" target="_blank" rel="noopener noreferrer">foragedfoodie.blogspot.com</a>' },
+          { text: "Broken stems release clear sap.", photo: "images/plants/purslane/6.jpg", credit: "Via: supermarket packaging (no specific page given, so this one isn't a clickable link in-game)" }
         ]
       },
       poisonous: {
@@ -1259,14 +1413,21 @@
         species: "Euphorbia maculata",
         correct: false,
         cover: "images/plants/spotted-spurge/cover.jpg",
-        // TODO: real source links once identification is written up.
-        sources: [],
+        // Shown as an extra line under the "Foe" reveal when this
+        // plant is the one picked.
+        caveat: "The white sap irritates the skin, and if ingested can cause vomiting and diarrhea",
+        sources: [
+          "https://hort.extension.wisc.edu/articles/spotted-spurge-chamaesyce-euphorbia-maculata/",
+          "https://minnesotawildflowers.info/flower/spotted-spurge",
+          "https://www.poison.org/articles/keep-away-from-spurge-sap-222"
+        ],
         identification: [
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/1.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/2.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/3.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/4.jpg", credit: "TODO" },
-          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/5.jpg", credit: "TODO" }
+          { text: "Plant grows close to the ground, forming a spreading mat.", photo: "images/plants/spotted-spurge/1.jpg", credit: 'Via: <a href="https://weedid.missouri.edu" target="_blank" rel="noopener noreferrer">weedid.missouri.edu</a>' },
+          { text: "Leaves are dark green, slightly hairy, and often have a maroon spot.", photo: "images/plants/spotted-spurge/2.jpg", credit: 'Via: <a href="https://weedid.missouri.edu" target="_blank" rel="noopener noreferrer">weedid.missouri.edu</a>' },
+          { text: "Leaves are oval to oblong, thin, and may have finely toothed edges.", photo: "images/plants/spotted-spurge/3.jpg", credit: 'Credit: Peter M Dziuk. Via: <a href="https://minnesotawildflowers.info/flower/spotted-spurge" target="_blank" rel="noopener noreferrer">minnesotawildflowers.info</a>' },
+          { text: "Stems are thin, hairy, and pink to maroon.", photo: "images/plants/spotted-spurge/4.jpg", credit: 'Credit: Susan Mahr. Via: <a href="https://hort.extension.wisc.edu/articles/spotted-spurge-chamaesyce-euphorbia-maculata/" target="_blank" rel="noopener noreferrer">hort.extension.wisc.edu</a>' },
+          { text: "Produces tiny, inconspicuous pinkish-white flowers.", photo: "images/plants/spotted-spurge/5.jpg", credit: 'Credit: Peter M Dziuk. Via: <a href="https://minnesotawildflowers.info/flower/spotted-spurge" target="_blank" rel="noopener noreferrer">minnesotawildflowers.info</a>' },
+          { text: "Broken stems release milky white sap.", photo: "images/plants/spotted-spurge/6.jpg", credit: 'Credit: Melody. Via: <a href="https://davesgarden.com" target="_blank" rel="noopener noreferrer">davesgarden.com</a>' }
         ]
       }
     }
@@ -1275,6 +1436,7 @@
   /* ============================================================
      ELEMENTS
      ============================================================ */
+  const screenCredits  = document.getElementById("screen-credits");
   const screenStart   = document.getElementById("screen-start");
   const screenPlay     = document.getElementById("screen-play");
   const screenGameOver  = document.getElementById("screen-gameover");
@@ -1293,6 +1455,8 @@
   const galleryHintRow        = document.getElementById("gallery-hint-row");
   const galleryNavHint        = document.getElementById("gallery-nav-hint");
   const galleryTapHint        = document.getElementById("gallery-tap-hint");
+  const hintWalk               = document.getElementById("hint-walk");
+  const hintPlant              = document.getElementById("hint-plant");
   const heartsEl              = document.getElementById("hearts");
   const encounterHeartsEl      = document.getElementById("encounter-hearts");
   const hungerSlider            = document.getElementById("hunger-slider");
@@ -1351,7 +1515,7 @@
   // Spaced generously — only ever 2 of these are visible at once (see
   // updatePlants below), so this is about walk-time pacing, not
   // avoiding on-screen overlap. Exactly 2 spots per active pair (see
-  // assignEncounterSchedule below) -- currently 2 active pairs, so 4
+  // assignEncounterSchedule below) -- currently 3 active pairs, so 6
   // spots; add/remove a pair of distances here if that count changes.
   //
   // `side` is fixed per spot (alternating) rather than computed from
@@ -1363,7 +1527,9 @@
     { distance: 300,  side: "left"  },
     { distance: 650,  side: "right" },
     { distance: 1000, side: "left"  },
-    { distance: 1350, side: "right" }
+    { distance: 1350, side: "right" },
+    { distance: 1700, side: "left"  },
+    { distance: 2050, side: "right" }
   ];
 
   // A plant already walked past stays in the DOM (fading out) for a
@@ -1372,10 +1538,10 @@
   const PASSED_CUTOFF = -0.3 * VIEW_RANGE;
 
   // Reaching this far down the trail means the player made it out --
-  // set comfortably past the last plant's distance (1350) plus its
+  // set comfortably past the last plant's distance (2050) plus its
   // fade-out margin, so the rescue never cuts in while a plant is
   // still on screen.
-  const FINISH_DISTANCE = 1650;
+  const FINISH_DISTANCE = 2350;
 
   // Shuffles a copy of an array (Fisher-Yates) -- used below to
   // randomize which trail spot gets which pair, without ever changing
@@ -1414,11 +1580,41 @@
     btn.className = "plant-block";
     btn.style.animationDelay = (i * 0.3) + "s";
     btn.setAttribute("aria-label", "Unidentified plant");
-    btn.addEventListener("click", () => openEncounter(plant.pair));
+    // Each trail SPOT is a one-time encounter -- once answered (see
+    // markPlantAnswered, called from selectCard), this button stops
+    // opening the modal even if the player walks back to it. Without
+    // this, backward walking would let a spot be re-answered endlessly
+    // for free hunger refills, which also breaks the "exactly 2
+    // encounters per active pair" trail design above.
+    plant.answered = false;
+    btn.addEventListener("click", () => {
+      if (plant.answered) return;
+      openEncounter(plant);
+    });
     btn.style.display = "none";
     stage.appendChild(btn);
     plant.el = btn;
   });
+
+  // Marks a trail spot as done -- dims its button and blocks further
+  // clicks (see the click handler above), but leaves it fading in/out
+  // on its normal schedule so it isn't confusing for it to just vanish.
+  function markPlantAnswered(plant){
+    if (!plant) return;
+    plant.answered = true;
+    plant.el.disabled = true;
+    plant.el.classList.add("plant-answered");
+    plant.el.setAttribute("aria-label", "Already identified");
+  }
+
+  // Undoes markPlantAnswered -- used by resetGame() so a fresh
+  // playthrough's spots all start clickable again.
+  function resetPlantAnswered(plant){
+    plant.answered = false;
+    plant.el.disabled = false;
+    plant.el.classList.remove("plant-answered");
+    plant.el.setAttribute("aria-label", "Unidentified plant");
+  }
 
   function updatePlants(){
     // Each plant has its own fixed on-screen window, based purely on
@@ -1629,6 +1825,12 @@
         if (dir > 0 && progress >= FINISH_DISTANCE){
           endGame("won");
         }
+        // The player's now actually moved -- no need to keep teaching
+        // the controls for the rest of this playthrough.
+        if (!hasWalkedOnce){
+          hasWalkedOnce = true;
+          hintWalk.classList.add("hidden");
+        }
       }
     }
     requestAnimationFrame(tick);
@@ -1658,6 +1860,26 @@
   updateHeartsUI();
 
   /* ============================================================
+     INITIAL CREDITS SCREEN -- see the HTML comment above
+     #screen-credits for the full picture. Holds for a few seconds
+     (or until clicked, for faster playtesting) then fades out once
+     and removes itself for good. Start Over / Play Again / Try
+     Again never come back through here -- they only ever touch
+     screen-start / screen-play / etc, never screen-credits.
+     ============================================================ */
+  const CREDITS_HOLD_MS = 2600;
+  const CREDITS_FADE_MS = 1100; // keep in sync with .credits-fade-out's transition above
+  let creditsDismissed = false;
+  function dismissCredits(){
+    if (creditsDismissed) return;
+    creditsDismissed = true;
+    screenCredits.classList.add("credits-fade-out");
+    setTimeout(() => { screenCredits.remove(); }, CREDITS_FADE_MS);
+  }
+  screenCredits.addEventListener("click", dismissCredits);
+  setTimeout(dismissCredits, CREDITS_HOLD_MS);
+
+  /* ============================================================
      START OVER — reset all run state and go back to the start
      screen. Used by the HUD button and by both end-of-run screens.
      ============================================================ */
@@ -1676,9 +1898,16 @@
     seenPhotoIndices = new Set();
     hasSeenGalleryHint = false;
 
+    // Forest hints teach their mechanic again each fresh playthrough.
+    hasWalkedOnce = false;
+    hasOpenedPlantOnce = false;
+    hintWalk.classList.remove("hidden");
+    hintPlant.classList.remove("hidden");
+
     // Fresh shuffle each playthrough -- still exactly 2 spots per active
     // pair, just reassigned to different trail positions.
     assignEncounterSchedule();
+    plants.forEach(resetPlantAnswered);
 
     closeModal(modalEncounter);
     closeModal(modalPause);
@@ -1752,6 +1981,10 @@
   // below) at the moment exploration actually finishes, not just at
   // the moment the modal opens.
   let currentPair = null;
+  // The specific trail SPOT (an entry in `plants`) currently open --
+  // kept around so selectCard can mark that one spot as answered once
+  // the player picks a card (see markPlantAnswered).
+  let currentPlantSpot = null;
 
   // Which photo is showing is shared across BOTH cards in the current
   // encounter -- a tap steps this once and it applies to whichever of
@@ -1763,6 +1996,12 @@
   // "Tap the cards to see more" only teaches the mechanic once per
   // playthrough -- reset alongside everything else in resetGame().
   let hasSeenGalleryHint = false;
+
+  // Same idea for the two forest-hint lines: each disappears the first
+  // time the player actually does the thing it's teaching (walks, or
+  // opens a plant) -- reset alongside everything else in resetGame().
+  let hasWalkedOnce = false;
+  let hasOpenedPlantOnce = false;
 
   const READY_LABEL  = "Click to select";
   const LOCKED_LABEL = "First explore both plants";
@@ -1841,6 +2080,7 @@
         <div class="id-slides">${coverSlideHtml}${idPointsHtml}</div>
       </div>
       <div class="result-overlay">
+        <span class="result-pick-badge hidden">Your pick</span>
         <span class="result-word"></span>
         <span class="result-caveat hidden"></span>
       </div>
@@ -1969,7 +2209,17 @@
     if (mode === "reading") stepGalleryPhoto(1);
   });
 
-  function openEncounter(pair){
+  function openEncounter(plant){
+    const pair = plant.pair;
+    currentPlantSpot = plant;
+
+    // The player's now actually opened a plant -- no need to keep
+    // teaching that mechanic for the rest of this playthrough.
+    if (!hasOpenedPlantOnce){
+      hasOpenedPlantOnce = true;
+      hintPlant.classList.add("hidden");
+    }
+
     cardsRow.classList.remove("selecting", "answered");
     cardsContainer.innerHTML = "";
     const [a, b] = shuffledPair(pair);
@@ -2023,8 +2273,10 @@
   // How long the "Friend"/"Foe" reveal (and, on a wrong pick, the
   // heart-loss animation that follows it) stays up before the modal
   // closes -- needs to comfortably outlast both animations so the
-  // player actually gets to read the result, not just glimpse it.
-  const RESULT_DISPLAY_MS = 3467; // 5200 reduced by a third
+  // player actually gets to read the result, including the caveat
+  // line explaining what makes a "Foe" plant dangerous, not just
+  // glimpse it.
+  const RESULT_DISPLAY_MS = 5201; // 3467, +50% so there's time to read the caveat
 
   // On a wrong pick, let the "Foe" reveal register on its own first --
   // the heart only starts shaking once the word has had a moment to
@@ -2038,27 +2290,25 @@
   // HEART_LOSE_DELAY_MS, halved).
   const GAME_OVER_START_DELAY_MS = HEART_LOSE_DELAY_MS + Math.round((RESULT_DISPLAY_MS - HEART_LOSE_DELAY_MS) / 2);
 
-  function selectCard(card){
-    mode = "answered";
-    cardsRow.classList.remove("selecting");
-    cardsRow.classList.add("answered");
-    btnReview.classList.add("hidden");
+  // Grows the "Friend"/"Foe" reveal in over ONE card's photo. Any
+  // plant with a `caveat` field gets an extra line under its reveal --
+  // a heads-up on a "Friend" (e.g. Downy Hawthorn's seeds), or the
+  // reason it's dangerous on a "Foe" (e.g. Canada Moonseed's
+  // toxicity). `isPicked` marks the card the player actually tapped,
+  // so its badge is the only one shown -- see selectCard, which calls
+  // this for BOTH cards so the player always learns which is which,
+  // not just the one they chose.
+  function revealCardResult(cardEl, isPicked){
+    const isCorrect = cardEl.dataset.correct === "true";
+    cardEl.classList.add(isCorrect ? "card-correct" : "card-wrong");
 
-    const isCorrect = card.dataset.correct === "true";
-    // heartsRemaining hasn't been decremented for THIS pick yet (that
-    // happens later, inside loseHeart() -- see the setTimeout below),
-    // so "<= 1" here means "this is the last heart" i.e. this pick,
-    // if wrong, ends the run.
-    const isFatalPick = !isCorrect && heartsRemaining <= 1;
-    card.classList.add(isCorrect ? "card-correct" : "card-wrong");
-
-    // Big "Friend" / "Foe" reveal grows in over the chosen card's
-    // photo. Downy Hawthorn gets an extra caveat line under "Friend".
-    const overlay = card.querySelector(".result-overlay");
+    const overlay = cardEl.querySelector(".result-overlay");
+    const pickBadge = overlay.querySelector(".result-pick-badge");
     const wordEl = overlay.querySelector(".result-word");
     const caveatEl = overlay.querySelector(".result-caveat");
+    pickBadge.classList.toggle("hidden", !isPicked);
     wordEl.textContent = isCorrect ? "Friend" : "Foe";
-    const caveatText = isCorrect && card.plantData && card.plantData.caveat;
+    const caveatText = cardEl.plantData && cardEl.plantData.caveat;
     if (caveatText) {
       caveatEl.textContent = "⚠️ " + caveatText;
       caveatEl.classList.remove("hidden");
@@ -2067,6 +2317,31 @@
       caveatEl.classList.add("hidden");
     }
     overlay.classList.add("show");
+    return isCorrect;
+  }
+
+  function selectCard(card){
+    mode = "answered";
+    cardsRow.classList.remove("selecting");
+    cardsRow.classList.add("answered");
+    btnReview.classList.add("hidden");
+
+    // This trail spot is done -- walking back to it later shouldn't
+    // let the player re-answer it (see the click handler where
+    // `plants` buttons are built, up near assignEncounterSchedule).
+    markPlantAnswered(currentPlantSpot);
+
+    const isCorrect = card.dataset.correct === "true";
+    // heartsRemaining hasn't been decremented for THIS pick yet (that
+    // happens later, inside loseHeart() -- see the setTimeout below),
+    // so "<= 1" here means "this is the last heart" i.e. this pick,
+    // if wrong, ends the run.
+    const isFatalPick = !isCorrect && heartsRemaining <= 1;
+
+    // Reveal BOTH cards -- the player should learn which one is the
+    // Friend and which is the Foe (and why), not just get feedback on
+    // their own pick.
+    currentCards.forEach((c) => revealCardResult(c, c === card));
 
     if (isCorrect){
       hunger = 100;

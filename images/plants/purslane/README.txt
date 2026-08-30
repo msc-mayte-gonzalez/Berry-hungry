@@ -1,5 +1,6 @@
-Purslane — photo files (PLACEHOLDER PAIR — not wired into the walk
-yet, see the DATA comment above plantPairs in index.html)
+Purslane — photo files (ACTIVE pair — this one IS in the walk's
+rotation now, see `active: true` on the purslane-spurge pair in
+index.html)
 
 Drop files into this folder with these exact names once you have them.
 Nothing else needs to change in the code -- each one lights up on the
@@ -8,40 +9,42 @@ card automatically as soon as it's here.
   cover.jpg   The card's default face (front cover). A 2D render of
               the 3D model, once that's ready.
 
-Identifying photos (all still placeholders -- see below):
+Identifying photos:
 
-  1) Placeholder trait — replace with a real identifying detail.
+  1) Plant grows close to the ground, forming a spreading mat.
      Photo: 1.jpg
-     Credit: TODO
+     Credit: Susan Mahr. Via: https://hort.extension.wisc.edu/articles/common-purslane-portulaca-oleracea/
 
-  2) Placeholder trait — replace with a real identifying detail.
+  2) Leaves are green, smooth, and hairless.
      Photo: 2.jpg
-     Credit: TODO
+     Via: https://www.ontario.ca/document/weed-identification-guide-ontario-crops/purslane
 
-  3) Placeholder trait — replace with a real identifying detail.
+  3) Leaves are oval to oblong, thick, and fleshy, with smooth edges.
      Photo: 3.jpg
-     Credit: TODO
+     Via: https://www.gardenia.net/plant/portulaca-oleracea
 
-  4) Placeholder trait — replace with a real identifying detail.
+  4) Stems are thick, smooth, and reddish to green.
      Photo: 4.jpg
-     Credit: TODO
+     Via: https://www.ontario.ca/document/weed-identification-guide-ontario-crops/purslane
 
-  5) Placeholder trait — replace with a real identifying detail.
+  5) Produces small yellow flowers.
      Photo: 5.jpg
-     Credit: TODO
+     Credit: HenoftheWood. Via: https://foragedfoodie.blogspot.com
+
+  6) Broken stems release clear sap.
+     Photo: 6.jpg
+     Via: supermarket packaging (no specific page given, so this one
+     isn't a clickable link in-game)
 
 Info sources (used for identifying this plant overall, not tied to
-any one photo): none added yet -- TODO in index.html (sources: []).
-
-The identifying-trait text above is also just a placeholder right now
-in index.html -- update the "text" field for each entry (like Riverbank
-Grape / Canada Moonseed got) once you've picked real traits, then
-update the photo credits and sources alongside the photos.
+any one photo):
+  - https://hort.extension.wisc.edu/articles/common-purslane-portulaca-oleracea/
+  - https://www.ontario.ca/document/weed-identification-guide-ontario-crops/purslane
+  - https://www.gardenia.net/plant/portulaca-oleracea
 
 Any of these can be missing -- the card just shows a "coming soon"
 placeholder in its place until the file shows up. .jpg or .png both
 work (just keep the extension consistent with the filename above, or
 tell Claude if you'd rather standardize on .png).
 
-You can delete this file once the folder is full and the real trait
-text/sources are filled in.
+You can delete this file once the folder is full.
