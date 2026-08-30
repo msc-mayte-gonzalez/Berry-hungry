@@ -655,7 +655,10 @@
   /* Rescue progress -- sits below the Pause/Start Over buttons, same
      right edge. A vertical version of the hunger track's language
      (pill track + round marker), just climbing instead of sliding
-     sideways, with a fixed goal icon capping the top. */
+     sideways, with a fixed goal icon capping the top. Wrapped in a
+     cream, rounded-corner card of its own (rather than floating
+     directly over the scene like the hunger bar does) so it reads as
+     a distinct, prominent widget at a glance. */
   .rescue-progress{
     position:absolute;
     top: 64px;
@@ -663,14 +666,18 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap: 0.4rem;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    background: var(--amber-tint);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
     pointer-events:none;
   }
   .rescue-goal{
     position:relative;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 80px;   /* 2x -- was 40px */
+    height: 80px;  /* 2x -- was 40px */
+    border-radius: 14px;
     background: var(--amber);
     box-shadow: 0 4px 0 var(--amber-dark), 0 6px 14px -6px rgba(0,0,0,0.35);
     display:flex;
@@ -683,7 +690,7 @@
     font-family: var(--font-display);
     font-weight: 800;
     color: var(--white);
-    font-size: 1.1rem;
+    font-size: 2rem;
   }
   .rescue-goal-img{
     display:none;
@@ -724,8 +731,8 @@
     left:50%;
     bottom: 0%;
     transform: translate(-50%, 50%);
-    width: 28px;
-    height: 28px;
+    width: 56px;   /* 2x -- was 28px */
+    height: 56px;  /* 2x -- was 28px */
     border-radius: 50%;
     background: var(--amber);
     border: 3px solid var(--white);
@@ -740,7 +747,7 @@
     font-family: var(--font-display);
     font-weight: 800;
     color: var(--white);
-    font-size: 0.85rem;
+    font-size: 1.4rem;
   }
   .rescue-marker-img{
     display:none;
@@ -755,6 +762,13 @@
   .rescue-marker.has-art{ background:transparent; border:none; box-shadow:none; }
   .rescue-marker.has-art::after{ display:none; }
   .rescue-label{
+    /* Needs to be a positioned element (even with no offset) so it
+       paints in the SAME stacking step as .rescue-goal/.rescue-track
+       (both position:relative) instead of an earlier one -- otherwise
+       the marker, which deliberately overhangs below the track, would
+       paint on top of this label and hide it, despite coming later in
+       the markup. */
+    position: relative;
     font-size: 0.6rem;
     font-weight: 800;
     letter-spacing: 0.05em;
@@ -1199,6 +1213,20 @@
     cursor: not-allowed;
   }
   .btn-ready:disabled:active{ transform:none; }
+  /* Once unlocked, "Select one" pulses to draw the eye -- this is now
+     the primary signal that picking is available (see
+     stepGalleryPhoto's auto-trigger), not something the player
+     necessarily has to tap themselves to get past. Still a real,
+     clickable button underneath -- tapping it works exactly like
+     landing back on the cover does -- it's just not the expected way
+     in any more. */
+  .btn-ready.cta-ready{
+    animation: cta-ready-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes cta-ready-pulse{
+    0%, 100%{ box-shadow: 0 6px 0 var(--amber-dark), var(--shadow); }
+    50%{ box-shadow: 0 6px 0 var(--amber-dark), var(--shadow), 0 0 18px 6px rgba(235,155,0,0.65); }
+  }
 
   /* ============================================================
      RESPONSIVE
@@ -1458,7 +1486,7 @@
         <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
         <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
       </div>
-      <button id="btn-ready" class="btn btn-primary btn-ready">Click to select</button>
+      <button id="btn-ready" class="btn btn-primary btn-ready">Select one</button>
       <button id="btn-review" class="btn-review hidden">Review plants again</button>
     </div>
   </div>
@@ -1746,10 +1774,12 @@
      for the full list, format, and when each one fires. Missing
      files fail silently (caught below), same "nothing breaks, it
      just doesn't play yet" spirit as the image placeholders.
+     Most of these are M4A -- game-over and rescue are MP3 instead
+     (per explicit request), hence the optional second argument.
      ============================================================ */
-  function playSound(name){
+  function playSound(name, ext){
     try {
-      const audio = new Audio(`sounds/${name}.m4a`);
+      const audio = new Audio(`sounds/${name}.${ext || "m4a"}`);
       // Fails silently either way: file not there yet, OR the browser
       // blocking autoplay until the player's interacted with the page
       // at all (very first sound of a session -- see sounds/README.txt).
@@ -2113,6 +2143,10 @@
       closeModal(modalEncounter);
       screenPlay.classList.add("hidden");
       screenWin.classList.remove("hidden");
+      // Optional rescue sting -- see sounds/README.txt. Same "fires
+      // the instant the screen is swapped in" timing as game-over
+      // below; MP3 per explicit request. Missing file fails silently.
+      playSound("rescue", "mp3");
       return;
     }
 
@@ -2132,9 +2166,10 @@
       // Optional Game Over sting -- see sounds/README.txt. Fires the
       // instant the Game Over screen is swapped in (still hidden
       // behind the black fade for a moment, same as every other
-      // sound cue in this file -- see playSound above). Missing file
-      // fails silently, same "nothing breaks yet" spirit as the rest.
-      playSound("game-over");
+      // sound cue in this file -- see playSound above). MP3 per
+      // explicit request. Missing file fails silently, same "nothing
+      // breaks yet" spirit as the rest.
+      playSound("game-over", "mp3");
       // Let the Game Over screen actually paint behind the black
       // before fading back in, so the reveal doesn't flash the old
       // play screen for a frame.
@@ -2450,7 +2485,7 @@
   let hasWalkedOnce = false;
   let hasOpenedPlantOnce = false;
 
-  const READY_LABEL  = "Click to select";
+  const READY_LABEL  = "Select one";
   const LOCKED_LABEL = "First explore both plants";
 
   // The cute card-flip that plays whenever a card's visible slide
@@ -2461,15 +2496,23 @@
   const FLIP_MS = 600;
   const FLIP_SWAP_MS = FLIP_MS / 2;
 
+  // Returns whether the explore gate is still locked, and along the
+  // way updates btn-ready's label/style to match -- "Select one",
+  // pulsing yellow (.cta-ready, see the CSS), once it isn't. Callers
+  // that need to know whether picking has opened up (see
+  // stepGalleryPhoto's auto-trigger below) use the return value
+  // instead of re-deriving the same condition themselves.
   function updateReadyState(){
     const locked = requireBothExplored && seenPhotoIndices.size < galleryPhotoTotal;
     btnReady.disabled = locked;
     btnReady.textContent = locked ? LOCKED_LABEL : READY_LABEL;
+    btnReady.classList.toggle("cta-ready", !locked);
     // Only counts as "explored" the moment every slide has actually
     // been seen -- closing the modal early and reopening it must NOT
     // skip the gate next time, so this can't happen back in
     // openEncounter just because the modal was opened.
     if (!locked && currentPair) seenPairs.add(currentPair.id);
+    return locked;
   }
 
   function buildCard(plant){
@@ -2613,10 +2656,18 @@
     });
     updateGalleryCounter();
     cardsRow.classList.add("selecting");
-    btnReady.classList.add("hidden");
     encounterPrompt.classList.remove("hidden");
-    btnReview.classList.remove("hidden");
     galleryHintRow.classList.add("hidden");
+    // "Select one" stays up as a pulsing indicator (see .cta-ready in
+    // the CSS) instead of disappearing now that picking is possible --
+    // with "Review plants again" shown right below it, same DOM order
+    // as always. Getting here no longer needs a click on it (see
+    // stepGalleryPhoto's auto-trigger below, and the already-know-this-
+    // pair path in openEncounter) -- it's still a real button underneath
+    // and works exactly the same if tapped, just not the expected way in
+    // any more.
+    updateReadyState();
+    btnReview.classList.remove("hidden");
   }
 
   // "x / N" counter, centered under the cards -- the cover counts as
@@ -2627,10 +2678,10 @@
   }
 
   // Steps the shared photo index (cover included) and applies it to
-  // both cards -- the only way photos change now. "Click to select"
-  // only unlocks once every slide in seenPhotoIndices has actually
-  // been shown at least once (see updateReadyState), so a single tap
-  // isn't enough -- the player has to page all the way through both
+  // both cards -- the only way photos change now. "Select one" only
+  // unlocks once every slide in seenPhotoIndices has actually been
+  // shown at least once (see updateReadyState), so a single tap isn't
+  // enough -- the player has to page all the way through both
   // galleries first.
   function stepGalleryPhoto(delta){
     if (mode !== "reading") return;
@@ -2639,11 +2690,20 @@
       if (typeof card.showPhoto === "function") card.showPhoto(galleryPhotoIndex);
     });
     seenPhotoIndices.add(galleryPhotoIndex);
-    updateReadyState();
+    const locked = updateReadyState();
     updateGalleryCounter();
     // The player has now actually tapped -- no need to keep teaching
     // the mechanic for the rest of THIS pair.
     galleryTapHint.classList.add("hidden");
+
+    // Once unlocked AND the player has cycled all the way back around
+    // to the cover, selecting mode now starts automatically -- no
+    // click on "Select one" required, just finishing the review loop.
+    // Only ever fires from a forward step landing exactly back on the
+    // cover, since galleryPhotoIndex only ever increases (wrapping).
+    if (!locked && galleryPhotoIndex === 0){
+      enterSelectingMode();
+    }
   }
 
   // Tapping in the gap BETWEEN the two cards also pages the gallery,
@@ -2724,7 +2784,7 @@
   // player actually gets to read the result, including the caveat
   // line explaining what makes a "Foe" plant dangerous, not just
   // glimpse it.
-  const RESULT_DISPLAY_MS = 10402; // was 5201 -- doubled again for more reading time
+  const RESULT_DISPLAY_MS = 6935; // was 10402 -- cut by 1/3 (10402 * 2/3)
 
   // On a wrong pick, let the "Foe" reveal register on its own first --
   // the heart only starts shaking once the word has had a moment to
@@ -2774,6 +2834,7 @@
     cardsRow.classList.remove("selecting");
     cardsRow.classList.add("answered");
     btnReview.classList.add("hidden");
+    btnReady.classList.add("hidden"); // was left up as the "Select one" indicator through selecting mode -- see enterSelectingMode
 
     // This trail spot is done -- walking back to it later shouldn't
     // let the player re-answer it (see the click handler where

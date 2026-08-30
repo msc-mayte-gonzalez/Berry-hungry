@@ -72,19 +72,19 @@ Specs:
 
   rescue-marker.png
   - Format: PNG with a transparent background.
-  - Shows inside a small ~28x28px circle, so it's cropped to a circle
+  - Shows inside a ~56x56px circle, so it's cropped to a circle
     automatically (object-fit: cover would be more accurate, but this
     uses contain -- so a square or roughly-circular source with the
     subject filling most of the frame looks best; a source around
-    150-300px square is a safe target). This is meant to read as "the
+    300-500px square is a safe target). This is meant to read as "the
     player, in miniature" -- doesn't need to be a literal match to
     player.png, just recognizably the same character/idea.
 
   rescue-goal.png
   - Format: PNG with a transparent background.
-  - Scaled to fit inside a ~40x40px box, so keep the silhouette
+  - Scaled to fit inside a ~80x80px box, so keep the silhouette
     simple and readable at a glance (a helicopter side-profile or
-    similar) rather than detailed -- a source around 200-400px on its
+    similar) rather than detailed -- a source around 300-500px on its
     longest side is a safe target.
 
 Until these files exist:
