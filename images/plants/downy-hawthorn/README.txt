@@ -7,15 +7,33 @@ automatically as soon as it's here.
   cover.jpg   The card's default face (front cover). A 2D render of
               the 3D model, once that's ready.
 
-  1.jpg       Identifying photo #1 -- Broad leaves with shallow
-              lobes and coarse teeth.
-  2.jpg       Identifying photo #2 -- Long, sharp black-ish to gray
-              thorns.
-  3.jpg       Identifying photo #3 -- Fruit hangs from visible,
-              thin stalks.
-  4.jpg       Identifying photo #4 -- Fruit is red to dark red.
-  5.jpg       Identifying photo #5 -- Prominent, star-like flower
-              remnants at the tip.
+Identifying photos:
+
+  1) Broad leaves with shallow lobes and coarse teeth.
+     Photo: 1.jpg
+     Credits: Katy Chayka. Via: https://www.minnesotawildflowers.info
+
+  2) Long, sharp black-ish to gray thorns.
+     Photo: 2.jpg
+     Via: https://www.tree-guide.com
+
+  3) Fruit hangs from visible, thin stalks.
+     Photo: 3.jpg
+     Credits: Roland Barth. Via: https://ffnaturesearch.org
+
+  4) Fruit is red to dark red.
+     Photo: 4.jpg
+     Via: https://www.tree-guide.com
+
+  5) Prominent, star-like flower remnants at the tip.
+     Photo: 5.jpg
+     Credits: Arthur Haines. Via: https://gobotany.nativeplanttrust.org
+
+Info sources (used for identifying this plant overall, not tied to
+any one photo):
+  - https://www.illinoiswildflowers.info/trees/plants/dwn_hawthorn.html
+  - https://www.tree-guide.com/downy-hawthorn
+  - https://www.minnesotawildflowers.info/tree/downy-hawthorn
 
 Any of these can be missing -- the card just shows a "coming soon"
 placeholder in its place until the file shows up. .jpg or .png both

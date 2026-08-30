@@ -868,7 +868,7 @@
   .cards.answered .card-face{ cursor:default; }
   .cards.answered .card-face:hover{ transform: none; }
 
-  /* Big "Meal"/"Mean" reveal once a choice is made -- grows in over
+  /* Big "Friend"/"Foe" reveal once a choice is made -- grows in over
      the card's photo and stays up long enough to actually read. */
   .result-overlay{
     position:absolute;
@@ -957,7 +957,7 @@
     <div class="start-content">
       <h1 class="game-title">
         Berry Hungry
-        <span class="title-sub">MEAL OR MEAN?</span>
+        <span class="title-sub">FRIEND OR FOE?</span>
       </h1>
       <div class="start-actions">
         <button id="btn-start" class="btn btn-primary btn-block">Start Game</button>
@@ -984,7 +984,7 @@
       <span class="placeholder-tag">forest — art coming later</span>
       <div class="forest-hint">
         <span>Hold ↑ to walk</span>
-        <span>Tap a plant to identify if meal or mean</span>
+        <span>Tap a plant to identify if friend or foe</span>
       </div>
 
       <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
@@ -1119,7 +1119,7 @@
 
   /* ============================================================
      DATA — one entry per look-alike pair. Only pairs with `active:
-     true` actually come up during the walk (see pickActivePair,
+     true` actually come up during the walk (see assignEncounterSchedule,
      used by the plant-block click handler below) -- everything else
      is scaffolding for a pair that isn't ready to be encountered yet
      (identifying traits, photos, and/or credits still missing or
@@ -1139,7 +1139,7 @@
         species: "Crataegus sp. — confirm exact species",
         correct: true,
         cover: "images/plants/downy-hawthorn/cover.jpg",
-        // Shown as an extra line under the "Meal" reveal when this
+        // Shown as an extra line under the "Friend" reveal when this
         // plant is the one picked -- edible fruit, but the seeds
         // (like other Crataegus/pome fruit) aren't meant to be eaten.
         caveat: "But don't eat the seeds!",
@@ -1182,9 +1182,9 @@
     // Riverbank Grape vs Canada Moonseed -- ACTIVE (see `active`
     // below): a classic real-world look-alike mix-up, wild grape
     // vines and moonseed vines climb the same way and their fruit
-    // looks similar from a distance. Identifying traits are final;
-    // photos and credits/sources are still TODO and will show as
-    // "coming soon" / blank until those are added.
+    // looks similar from a distance. Identifying traits, credits and
+    // sources are all final; only the actual photo files are still
+    // TODO and will show as "coming soon" until those are added.
     // -------------------------------------------------------------
     {
       id: "grape-moonseed",
@@ -1194,15 +1194,18 @@
         species: "Vitis riparia",
         correct: true,
         cover: "images/plants/riverbank-grape/cover.jpg",
-        // TODO: real source links once credits are written up.
-        sources: [],
+        sources: [
+          "https://www.minnesotawildflowers.info/shrub/riverbank-grape",
+          "https://www.illinoiswildflowers.info/trees/plants/riverbank_grape.htm",
+          "https://namethatplant.net/4DCGI/Query?scientificname=Vitis%20riparia"
+        ],
         identification: [
-          { text: "Plant climbs using tendrils.", photo: "images/plants/riverbank-grape/1.jpg", credit: "TODO" },
-          { text: "Leaves have long, often reddish petioles.", photo: "images/plants/riverbank-grape/2.jpg", credit: "TODO" },
-          { text: "Leaves are lobed and heart-shaped, with coarsely toothed edges.", photo: "images/plants/riverbank-grape/3.jpg", credit: "TODO" },
-          { text: "Fruit grows in branched, drooping clusters.", photo: "images/plants/riverbank-grape/4.jpg", credit: "TODO" },
-          { text: "Fruit is dark purple to blue-black with a whitish bloom.", photo: "images/plants/riverbank-grape/5.jpg", credit: "TODO" },
-          { text: "Each fruit contains 1–4 small seeds.", photo: "images/plants/riverbank-grape/6.jpg", credit: "TODO" }
+          { text: "Plant climbs using tendrils.", photo: "images/plants/riverbank-grape/1.jpg", credit: 'Credits: K. Chayka. Via: <a href="https://www.minnesotawildflowers.info/shrub/riverbank-grape" target="_blank" rel="noopener noreferrer">www.minnesotawildflowers.info</a>' },
+          { text: "Leaves have long, often reddish petioles.", photo: "images/plants/riverbank-grape/2.jpg", credit: 'Via: <a href="https://www.illinoiswildflowers.info" target="_blank" rel="noopener noreferrer">www.illinoiswildflowers.info</a>' },
+          { text: "Leaves are lobed and heart-shaped, with coarsely toothed edges.", photo: "images/plants/riverbank-grape/3.jpg", credit: 'Credits: Bruce A. Sorrie. Via: <a href="https://namethatplant.net/4DCGI/Query?scientificname=Vitis%20riparia" target="_blank" rel="noopener noreferrer">https://namethatplant.net</a>' },
+          { text: "Fruit grows in branched, drooping clusters.", photo: "images/plants/riverbank-grape/4.jpg", credit: 'Credits: Peter M. Dziuk. Via: <a href="https://www.minnesotawildflowers.info/shrub/riverbank-grape" target="_blank" rel="noopener noreferrer">www.minnesotawildflowers.info</a>' },
+          { text: "Fruit is dark purple to blue-black with a whitish bloom.", photo: "images/plants/riverbank-grape/5.jpg", credit: "Credits: Laval University, CC BY-SA 4.0. Via: Wikimedia Commons" },
+          { text: "Each fruit contains 1–4 small seeds.", photo: "images/plants/riverbank-grape/6.jpg", credit: 'Via: <a href="https://sheffields.com" target="_blank" rel="noopener noreferrer">Sheffield\'s Seeds, sheffields.com</a>' }
         ]
       },
       poisonous: {
@@ -1210,15 +1213,19 @@
         species: "Menispermum canadense",
         correct: false,
         cover: "images/plants/canada-moonseed/cover.jpg",
-        // TODO: real source links once credits are written up.
-        sources: [],
+        sources: [
+          "https://www.illinoiswildflowers.info/trees/plants/moonseed.htm",
+          "https://minnesotawildflowers.info/shrub/canada-moonseed",
+          "https://www.carolinanature.com/trees/meca.html",
+          "https://gobotany.nativeplanttrust.org/species/menispermum/canadense/"
+        ],
         identification: [
-          { text: "Plant climbs by twining its stems and has no tendrils.", photo: "images/plants/canada-moonseed/1.jpg", credit: "TODO" },
-          { text: "Leaves have long, usually green petioles.", photo: "images/plants/canada-moonseed/2.jpg", credit: "TODO" },
-          { text: "Leaves are lobed and heart-shaped, with smooth, toothless edges.", photo: "images/plants/canada-moonseed/3.jpg", credit: "TODO" },
-          { text: "Fruit grows in loose, drooping clusters.", photo: "images/plants/canada-moonseed/4.jpg", credit: "TODO" },
-          { text: "Fruit is bluish black with a whitish bloom.", photo: "images/plants/canada-moonseed/5.jpg", credit: "TODO" },
-          { text: "Each fruit contains one large, crescent-shaped seed.", photo: "images/plants/canada-moonseed/6.jpg", credit: "TODO" }
+          { text: "Plant climbs by twining its stems and has no tendrils.", photo: "images/plants/canada-moonseed/1.jpg", credit: 'Credits: Lawrence Newcomb. Via: <a href="https://gobotany.nativeplanttrust.org" target="_blank" rel="noopener noreferrer">gobotany.nativeplanttrust.org</a>' },
+          { text: "Leaves have long, usually green petioles.", photo: "images/plants/canada-moonseed/2.jpg", credit: 'Credits: Will Cook. Via: <a href="https://carolinanature.com" target="_blank" rel="noopener noreferrer">carolinanature.com</a>' },
+          { text: "Leaves are lobed and heart-shaped, with smooth, toothless edges.", photo: "images/plants/canada-moonseed/3.jpg", credit: 'Credits: Peter M. Dziuk. Via: <a href="https://minnesotawildflowers.info/shrub/canada-moonseed" target="_blank" rel="noopener noreferrer">https://minnesotawildflowers.info</a>' },
+          { text: "Fruit grows in loose, drooping clusters.", photo: "images/plants/canada-moonseed/4.jpg", credit: 'Credits: Matthew Beziat. Via: <a href="https://jungledragon.com" target="_blank" rel="noopener noreferrer">jungledragon.com</a>' },
+          { text: "Fruit is bluish black with a whitish bloom.", photo: "images/plants/canada-moonseed/5.jpg", credit: 'Via: <a href="https://www.illinoiswildflowers.info" target="_blank" rel="noopener noreferrer">www.illinoiswildflowers.info</a>' },
+          { text: "Each fruit contains one large, crescent-shaped seed.", photo: "images/plants/canada-moonseed/6.jpg", credit: 'Via: <a href="https://www.uwgb.edu/" target="_blank" rel="noopener noreferrer">www.uwgb.edu/</a>' }
         ]
       }
     },
@@ -1340,13 +1347,14 @@
 
   // Spaced generously — only ever 2 of these are visible at once (see
   // updatePlants below), so this is about walk-time pacing, not
-  // avoiding on-screen overlap.
+  // avoiding on-screen overlap. Exactly 2 spots per active pair (see
+  // assignEncounterSchedule below) -- currently 2 active pairs, so 4
+  // spots; add/remove a pair of distances here if that count changes.
   const plants = [
     { distance: 300 },
     { distance: 650 },
     { distance: 1000 },
-    { distance: 1350 },
-    { distance: 1700 }
+    { distance: 1350 }
   ];
 
   // A plant already walked past stays in the DOM (fading out) for a
@@ -1355,27 +1363,49 @@
   const PASSED_CUTOFF = -0.3 * VIEW_RANGE;
 
   // Reaching this far down the trail means the player made it out --
-  // set comfortably past the last plant's distance (1700) plus its
+  // set comfortably past the last plant's distance (1350) plus its
   // fade-out margin, so the rescue never cuts in while a plant is
   // still on screen.
-  const FINISH_DISTANCE = 2000;
+  const FINISH_DISTANCE = 1650;
 
-  // Draws a random pair from the ones actually ready for play (see
-  // the `active` flag on each entry in plantPairs above) -- called
-  // fresh every time a plant is tapped, so which pair shows up at a
-  // given trail spot varies playthrough to playthrough.
-  function pickActivePair(){
-    const pool = plantPairs.filter((p) => p.active);
-    if (pool.length === 0) return plantPairs[0]; // safety net, shouldn't happen
-    return pool[Math.floor(Math.random() * pool.length)];
+  // Shuffles a copy of an array (Fisher-Yates) -- used below to
+  // randomize which trail spot gets which pair, without ever changing
+  // how many times each pair appears.
+  function shuffled(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
+
+  // Every pair actually ready for play (see the `active` flag on each
+  // entry in plantPairs above) gets EXACTLY 2 of the trail's spots --
+  // not a random draw per tap, which could hand one pair 4 encounters
+  // and another 0. Assigns plant.pair for every entry in `plants`, in
+  // a fresh shuffled order; called once at startup and again on every
+  // resetGame() so replays get a different (but still exactly-2-each)
+  // layout. If the number of active pairs × 2 doesn't match the
+  // number of trail spots, the schedule is padded/truncated as a
+  // safety net -- keep them in sync (see the `plants` comment above).
+  function assignEncounterSchedule(){
+    const active = plantPairs.filter((p) => p.active);
+    let schedule = [];
+    active.forEach((pair) => { schedule.push(pair); schedule.push(pair); });
+    schedule = shuffled(schedule);
+    plants.forEach((plant, i) => {
+      plant.pair = schedule[i % schedule.length] || plantPairs[0];
+    });
+  }
+  assignEncounterSchedule();
 
   plants.forEach((plant, i) => {
     const btn = document.createElement("button");
     btn.className = "plant-block";
     btn.style.animationDelay = (i * 0.3) + "s";
     btn.setAttribute("aria-label", "Unidentified plant");
-    btn.addEventListener("click", () => openEncounter(pickActivePair()));
+    btn.addEventListener("click", () => openEncounter(plant.pair));
     btn.style.display = "none";
     stage.appendChild(btn);
     plant.el = btn;
@@ -1508,7 +1538,7 @@
 
     // "lost" -- fade whatever's still on screen (the walking scene,
     // or -- if this came from a wrong pick -- the encounter card's
-    // "Mean" result, left open on purpose) to black first, THEN close
+    // "Foe" result, left open on purpose) to black first, THEN close
     // the encounter modal and swap to the Game Over screen behind the
     // black, then fade back in to reveal it. Closing the modal only
     // once the screen is already fully black means the player watches
@@ -1536,7 +1566,7 @@
      pressure moving on to the next plant, slow enough that a single
      walk between plants is comfortable. Refills on a correct choice.
      ============================================================ */
-  const HUNGER_DURATION = 15;               // seconds, full → empty
+  const HUNGER_DURATION = 30;               // seconds, full → empty (half speed -- was 15)
   const HUNGER_RATE = 100 / HUNGER_DURATION; // % per second
   let hunger = 100;
 
@@ -1620,6 +1650,10 @@
     requireBothExplored = false;
     seenPhotoIndices = new Set();
     hasSeenGalleryHint = false;
+
+    // Fresh shuffle each playthrough -- still exactly 2 spots per active
+    // pair, just reassigned to different trail positions.
+    assignEncounterSchedule();
 
     closeModal(modalEncounter);
     closeModal(modalPause);
@@ -1945,13 +1979,13 @@
     enterReadingMode();
   });
 
-  // How long the "Meal"/"Mean" reveal (and, on a wrong pick, the
+  // How long the "Friend"/"Foe" reveal (and, on a wrong pick, the
   // heart-loss animation that follows it) stays up before the modal
   // closes -- needs to comfortably outlast both animations so the
   // player actually gets to read the result, not just glimpse it.
   const RESULT_DISPLAY_MS = 3467; // 5200 reduced by a third
 
-  // On a wrong pick, let the "Mean" reveal register on its own first --
+  // On a wrong pick, let the "Foe" reveal register on its own first --
   // the heart only starts shaking once the word has had a moment to
   // sink in, rather than both firing at the same instant.
   const HEART_LOSE_DELAY_MS = 900;
@@ -1977,12 +2011,12 @@
     const isFatalPick = !isCorrect && heartsRemaining <= 1;
     card.classList.add(isCorrect ? "card-correct" : "card-wrong");
 
-    // Big "Meal" / "Mean" reveal grows in over the chosen card's
-    // photo. Downy Hawthorn gets an extra caveat line under "Meal".
+    // Big "Friend" / "Foe" reveal grows in over the chosen card's
+    // photo. Downy Hawthorn gets an extra caveat line under "Friend".
     const overlay = card.querySelector(".result-overlay");
     const wordEl = overlay.querySelector(".result-word");
     const caveatEl = overlay.querySelector(".result-caveat");
-    wordEl.textContent = isCorrect ? "Meal" : "Mean";
+    wordEl.textContent = isCorrect ? "Friend" : "Foe";
     const caveatText = isCorrect && card.plantData && card.plantData.caveat;
     if (caveatText) {
       caveatEl.textContent = "⚠️ " + caveatText;
