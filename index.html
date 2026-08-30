@@ -50,6 +50,24 @@
 
   .hidden{ display:none !important; }
 
+  /* Full-screen black fade used for the Game Over transition -- see
+     endGame() / FADE_MS. Sits above absolutely everything (including
+     the build-tag) so the whole screen genuinely goes black before
+     the Game Over screen is swapped in underneath it. */
+  .fade-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.65s ease;
+  }
+  .fade-overlay.active{
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   /* Build badge — small, honest, unobtrusive */
   .build-tag{
     position: fixed;
@@ -243,6 +261,21 @@
     background: linear-gradient(180deg, #d8dc9c 0%, #cdd189 45%, var(--olive) 70%, #767a30 100%);
     overflow: hidden;
   }
+  /* Real scene photo/art, once it exists at images/background.jpg --
+     sits over the gradient (which stays as the fallback) and behind
+     everything gameplay-related (forest-hint, stage, player, hud all
+     come later in the DOM so they naturally paint on top). */
+  .scene-bg{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:center;
+  }
+  .scene-bg.loaded{ display:block; }
+  #screen-play .placeholder-art.has-bg .placeholder-tag{ display:none; }
 
   /* ============================================================
      GAME OVER + WIN SCREENS
@@ -369,29 +402,40 @@
     z-index: 14;
     pointer-events:none; /* clicks fall through to plants/stage below */
   }
+  /* Centered near the top of the screen, close to where the action
+     (the encounter cards) actually happens, rather than tucked in a
+     corner. The hearts here use the exact same bare-glyph style and
+     size as the ones shown over the encounter cards (see
+     .encounter-hearts .heart) so there's no jarring swap to a
+     different-looking pair when a plant is tapped. */
   .hud-vitals{
     position:absolute;
-    top: 54px;
-    left: 14px;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
     display:flex;
     flex-direction:column;
+    align-items:center;
     gap: 0.55rem;
+    transition: opacity 0.15s ease;
   }
-  .hearts{ display:flex; gap: 0.4rem; }
+  .hearts{ display:flex; gap: 0.5rem; }
   .heart{
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    background: var(--white);
+    width:auto;
+    height:auto;
+    background:none;
+    box-shadow:none;
+    border-radius:0;
     color: var(--wrong);
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size: 1.15rem;
-    box-shadow: var(--shadow);
-    transition: opacity 0.2s ease, filter 0.2s ease;
+    font-size: 3.4rem;
+    line-height:1;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5));
+    transition: filter 0.2s ease;
   }
-  .heart.heart-lost{ opacity:0.32; filter:grayscale(1); }
+  .heart.heart-lost{ filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5)) grayscale(1); }
   /* Losing a heart: shake first, then (in JS, once the shake ends)
      the icon swaps to the broken heart and this same transition
      carries it into the grayed-out .heart-lost state. */
@@ -454,14 +498,21 @@
     background: var(--wrong);
   }
 
-  .btn-start-over{
+  .hud-top-actions{
     position:absolute;
     top: 14px;
     right: 14px;
+    display:flex;
+    gap: 0.5rem;
+  }
+  .btn-start-over{
     pointer-events:auto;
     appearance:none;
     border:none;
     cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap: 0.4rem;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 0.82rem;
@@ -473,6 +524,54 @@
     transition: background 0.15s ease;
   }
   .btn-start-over:hover{ background: rgba(44,36,16,0.75); }
+  /* Icon lives in the markup for both buttons at all times; which of
+     icon/label actually shows is purely a CSS swap at the mobile
+     breakpoint below, to save space on small screens. */
+  .hud-btn-icon{ display:none; }
+  /* Big centered pause overlay: dark backdrop (reuses .modal-overlay)
+     with a "Paused" heading, well clear of the two large icon+label
+     actions below it so it clearly reads as the game's state rather
+     than a third action -- and the whole group (heading + actions)
+     is what .modal-overlay centers as a unit. */
+  .pause-content{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 2.8rem;
+  }
+  .pause-title{
+    color: var(--white);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.2rem, 8vw, 3.4rem);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  }
+  .pause-actions{
+    display:flex;
+    gap: 2.6rem;
+  }
+  .pause-action{
+    appearance:none;
+    border:none;
+    background:none;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 0.7rem;
+    color: var(--white);
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .pause-action:hover{ transform: translateY(-3px); opacity: 0.85; }
+  .pause-icon{ filter: drop-shadow(0 3px 10px rgba(0,0,0,0.5)); }
 
   /* ============================================================
      ENCOUNTER — the two-card identification challenge
@@ -493,28 +592,23 @@
     text-align:center;
     text-shadow: 0 4px 14px rgba(0,0,0,0.45);
   }
-  /* Mirrors the HUD hearts -- the real HUD sits behind this modal's
-     backdrop, so without this a lost heart is invisible mid-decision.
-     Lives inside .cards-stage now, stacked above the two cards (not
-     overlapping them) and centered over their width: much larger,
-     bare glyphs (no pill background). */
+  /* The .heart glyphs here are styled identically to the HUD's (same
+     base .heart rule) -- shown above the cards, separated from them
+     by their own margin on top of the wrap's gap. The HUD's own
+     hearts (.hud-vitals) are hidden for as long as this modal is
+     open (see the body:has() rule below it), so there's never a
+     second, dimmer set visible behind the blur -- this modal's pair
+     is simply the only pair on screen. */
   .encounter-hearts{
     display:flex;
     gap: 0.5rem;
+    margin-bottom: 0.5rem;
     z-index: 16;
     pointer-events:none;
   }
-  .encounter-hearts .heart{
-    width:auto;
-    height:auto;
-    background:none;
-    box-shadow:none;
-    border-radius:0;
-    font-size: 3.4rem; /* ~3x the HUD heart size */
-    line-height:1;
-    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5));
+  body:has(#modal-encounter:not(.hidden)) .hud-vitals{
+    opacity: 0;
   }
-  .encounter-hearts .heart.heart-lost{ filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5)) grayscale(1); }
   .btn-review{
     appearance:none;
     border:none;
@@ -545,95 +639,17 @@
     z-index: 20;
   }
 
-  /* Photo paging now lives OUTSIDE the cards -- one chevron to the
-     left of the left card, one to the right of the right card. Both
-     step the same shared photo index across both plants at once, so
-     the same trait (e.g. photo 1 = leaves) is comparable side by
-     side, rather than each card paging independently. */
-  .cards-row{
-    display:flex;
-    align-items:center;
-    gap: 0.5rem;
-    width: 100%;
-  }
-  .gallery-nav{
-    flex-shrink: 0;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.85);
-    color: var(--ink);
-    font-size: 1.2rem;
-    font-weight: 800;
-    line-height: 1;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    box-shadow: var(--shadow);
-  }
-  .gallery-nav:hover{ background: var(--white); }
-  /* The left wrap mirrors the right wrap's exact structure (chevron +
-     an invisible copy of the counter + an invisible copy of the "See
-     more" block, via .gallery-nav-invisible) purely so both columns
-     always end up the SAME total height -- that's what keeps the two
-     chevron buttons level with each other regardless of whether "See
-     more" is currently showing on the right. */
-  .gallery-nav-prev-wrap,
-  .gallery-nav-next-wrap{
-    flex-shrink: 0;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-  .gallery-nav-invisible{ visibility:hidden; }
-  /* Photo counter, e.g. "3 / 6" -- lives under the right chevron and
-     is always visible (this is the one place photo position reads
-     now that the per-card chevrons are gone; the cover counts as
-     photo 1, so the total is identification.length + 1). */
-  .gallery-nav-hint{
-    margin-top: 0.3rem;
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    color: var(--white);
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    white-space: nowrap;
-  }
-  /* Onboarding-only "See more" -- sits well clear of the counter above
-     it (not crowding the chevron cluster), first pair of the
-     playthrough only, and disappears the moment the player actually
-     uses the chevrons/taps rather than waiting for the pair to end.
-     The little curled arrow points back up at the chevron it's
-     teaching. */
-  .gallery-nav-more-wrap{
-    margin-top: 1.5rem;
-    display:flex;
-    align-items:center;
-    gap: 0.2rem;
-  }
-  .gallery-nav-more{
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.85);
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    white-space: nowrap;
-  }
-  .gallery-nav-more-arrow{ flex-shrink:0; overflow:visible; }
-
-  /* Wraps just the two cards (not the chevrons) so the hearts row
-     above can be centered precisely over them and survive the cards
-     div being cleared/rebuilt every encounter. */
+  /* Photo paging now happens by tapping the cards themselves (or the
+     gap between them -- see cardsContainer's click handler) rather
+     than dedicated chevron buttons; that also meant the buttons no
+     longer had to steal horizontal space from the cards, which is
+     what let the cards shrink back to full size below. */
   .cards-stage{
     display:flex;
     flex-direction:column;
     align-items:center;
     gap: 0.6rem;
-    flex: 1;
-    min-width: 0;
+    width: 100%;
   }
   .cards{
     display:flex;
@@ -641,6 +657,32 @@
     width: 100%;
     min-width: 0;
     justify-content:center;
+  }
+  /* Counter ("3 / 6", cover counted as photo 1) plus a one-time "tap
+     the cards" hint for the very first pair of the playthrough --
+     sits centered under the cards now that there's no chevron column
+     for it to live beside. */
+  .gallery-hint-row{
+    display:flex;
+    align-items:center;
+    gap: 0.6rem;
+  }
+  .gallery-nav-hint{
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--white);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+  .gallery-tap-hint{
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    white-space: nowrap;
   }
 
   .card{
@@ -651,9 +693,9 @@
     perspective: 1000px;
   }
   /* The cover is slide 1 of the same gallery as the identification
-     photos (see buildCard) -- one face, one set of slides, paged only
-     by the external chevrons. But the cover is still special: crossing
-     the line between it and the identification photos plays a cute
+     photos (see buildCard) -- one face, one set of slides, paged by
+     tapping the cards. But the cover is still special: crossing the
+     line between it and the identification photos plays a cute
      card-flip (see .card-face.flipping below and card.showPhoto). */
   .card-face{
     position:relative;
@@ -669,6 +711,10 @@
     box-shadow: var(--shadow);
     overflow: hidden;
     transition: transform 0.15s ease;
+    /* Tapping a card always does SOMETHING (pages the gallery while
+       reading, picks it while selecting) -- cursor:pointer says so.
+       Only .cards.answered overrides this back to default below. */
+    cursor: pointer;
   }
   /* Plays while the visible slide swaps between the cover and an
      identification photo -- content changes at the 50% mark, when the
@@ -685,9 +731,9 @@
     text-align:center;
   }
   /* Back of card: ONE real-life photo shown at a time. Which photo is
-     showing is now shared across BOTH cards (see galleryPhotoIndex) --
-     the external chevrons in .cards-row step both at once so the same
-     trait is comparable side by side. */
+     showing is shared across BOTH cards (see galleryPhotoIndex) --
+     tapping either card (or the gap between them) steps both at once
+     so the same trait is comparable side by side. */
   .id-slides{
     flex: 1;
     min-height: 0;
@@ -779,7 +825,7 @@
      the list doesn't read as one dense block. */
   .id-source-links{
     list-style: disc;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 16px 0;
     padding-left: 1.05rem;
     line-height: 1.5;
   }
@@ -799,14 +845,13 @@
   /* Once "Ready to choose..." is pressed, the whole card becomes
      the choice — give it an obvious pressable affordance. */
   .cards.selecting .card-face{
-    cursor: pointer;
     box-shadow: var(--shadow), 0 0 0 3px var(--amber);
   }
   .cards.selecting .card-face:hover{ transform: translateY(-4px); }
   .cards.answered .card-face{ cursor:default; }
   .cards.answered .card-face:hover{ transform: none; }
 
-  /* Big "Friend"/"Foe" reveal once a choice is made -- grows in over
+  /* Big "Meal"/"Mean" reveal once a choice is made -- grows in over
      the card's photo and stays up long enough to actually read. */
   .result-overlay{
     position:absolute;
@@ -873,6 +918,15 @@
     .cards{ gap: 0.7rem; }
     .card{ max-width: 46vw; }
     .btn-ready{ min-width: 0; width: 100%; }
+    /* Pause/Start Over shrink to icon-only circles to save space. */
+    .hud-btn-icon{ display:block; }
+    .hud-btn-label{ display:none; }
+    .btn-start-over{
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      justify-content:center;
+    }
   }
 </style>
 </head>
@@ -885,8 +939,8 @@
     </div>
     <div class="start-content">
       <h1 class="game-title">
-        Foraged
-        <span class="title-sub">a survival game</span>
+        Berry Hungry
+        <span class="title-sub">MEAL OR MEAN?</span>
       </h1>
       <div class="start-actions">
         <button id="btn-start" class="btn btn-primary btn-block">Start Game</button>
@@ -907,10 +961,13 @@
   <!-- ============ PLAY SCREEN ============ -->
   <section id="screen-play" class="screen hidden">
     <div class="placeholder-art">
+      <img class="scene-bg" src="images/background.jpg" alt=""
+           onload="this.classList.add('loaded'); this.closest('.placeholder-art').classList.add('has-bg');"
+           onerror="this.remove();">
       <span class="placeholder-tag">forest — art coming later</span>
       <div class="forest-hint">
         <span>Hold ↑ to walk</span>
-        <span>Tap a plant to identify if friend or foe</span>
+        <span>Tap a plant to identify if meal or mean</span>
       </div>
 
       <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
@@ -937,10 +994,47 @@
             </div>
           </div>
         </div>
-        <button id="btn-start-over" class="btn-start-over">Start Over</button>
+        <div class="hud-top-actions">
+          <button id="btn-pause" class="btn-start-over" aria-label="Pause">
+            <svg class="hud-btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <rect x="4" y="3" width="4" height="12" rx="1" fill="white"/>
+              <rect x="10" y="3" width="4" height="12" rx="1" fill="white"/>
+            </svg>
+            <span class="hud-btn-label">Pause</span>
+          </button>
+          <button id="btn-start-over" class="btn-start-over" aria-label="Start Over">
+            <svg class="hud-btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path d="M14.5 6 A6 6 0 1 1 9 3" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+              <polygon points="14.5,2 15.2,7 10.2,5.3" fill="white"/>
+            </svg>
+            <span class="hud-btn-label">Start Over</span>
+          </button>
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- ============ PAUSE OVERLAY ============ -->
+  <div id="modal-pause" class="modal-overlay hidden">
+    <div class="pause-content">
+      <h2 class="pause-title">Paused</h2>
+      <div class="pause-actions">
+        <button id="btn-resume" class="pause-action">
+          <svg class="pause-icon" width="68" height="68" viewBox="0 0 68 68" fill="none" aria-hidden="true">
+            <polygon points="20,13 55,34 20,55" fill="white"/>
+          </svg>
+          <span>Resume</span>
+        </button>
+        <button id="btn-pause-start-over" class="pause-action">
+          <svg class="pause-icon" width="68" height="68" viewBox="0 0 68 68" fill="none" aria-hidden="true">
+            <path d="M50 22 A19 19 0 1 1 33 15" stroke="white" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <polygon points="49,10 51,26 35,20" fill="white"/>
+          </svg>
+          <span>Start Over</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ GAME OVER SCREEN ============ -->
   <section id="screen-gameover" class="screen hidden">
@@ -978,34 +1072,17 @@
   <div id="modal-encounter" class="modal-overlay hidden">
     <div class="encounter-card-wrap">
       <button id="btn-encounter-close" class="encounter-close" aria-label="Close">×</button>
+      <div class="encounter-hearts" id="encounter-hearts">
+        <span class="heart">♥</span>
+        <span class="heart">♥</span>
+      </div>
       <h2 id="encounter-prompt" class="encounter-prompt hidden">Which plant would you eat?</h2>
-      <div class="cards-row">
-        <div class="gallery-nav-prev-wrap">
-          <button type="button" id="gallery-nav-prev" class="gallery-nav" aria-label="Previous photo, both plants">‹</button>
-          <span class="gallery-nav-hint gallery-nav-invisible" aria-hidden="true">1 / 6</span>
-          <span class="gallery-nav-more-wrap gallery-nav-invisible" aria-hidden="true">
-            <span class="gallery-nav-more">See more</span>
-            <svg class="gallery-nav-more-arrow" width="34" height="48" viewBox="0 0 34 48"></svg>
-          </span>
-        </div>
-        <div class="cards-stage">
-          <div class="encounter-hearts" id="encounter-hearts">
-            <span class="heart">♥</span>
-            <span class="heart">♥</span>
-          </div>
-          <div class="cards" id="cards-container"></div>
-        </div>
-        <div class="gallery-nav-next-wrap">
-          <button type="button" id="gallery-nav-next" class="gallery-nav" aria-label="Next photo, both plants">›</button>
-          <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
-          <span id="gallery-nav-more-wrap" class="gallery-nav-more-wrap">
-            <span class="gallery-nav-more">See more</span>
-            <svg class="gallery-nav-more-arrow" width="34" height="48" viewBox="0 0 34 48" fill="none" aria-hidden="true">
-              <path d="M30 44 C 34 34, 14 34, 18 24 C 20 19, 30 20, 28 12 C 27 7, 16 6, 10 8" stroke="rgba(255,255,255,0.85)" stroke-width="2.3" stroke-linecap="round" fill="none"/>
-              <path d="M4 4 L10 8 L14 2" stroke="rgba(255,255,255,0.85)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            </svg>
-          </span>
-        </div>
+      <div class="cards-stage">
+        <div class="cards" id="cards-container"></div>
+      </div>
+      <div id="gallery-hint-row" class="gallery-hint-row">
+        <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
+        <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
       </div>
       <button id="btn-ready" class="btn btn-primary btn-ready">Ready to choose...</button>
       <button id="btn-review" class="btn-review hidden">Review plants again</button>
@@ -1014,14 +1091,20 @@
 
   <div class="build-tag">prototype · placeholders throughout</div>
 
+  <div id="fade-overlay" class="fade-overlay" aria-hidden="true"></div>
+
 <script>
 (function(){
   "use strict";
 
   /* ============================================================
-     DATA — one pair for now (Downy Hawthorn vs Winterberry Holly).
-     Structured so adding pairs 2 and 3 later is just adding entries
-     here, nothing else in the code needs to change.
+     DATA — Downy Hawthorn vs Winterberry Holly is the only pair
+     actually in play right now (see the plant-block click handler
+     below, which always opens plantPairs[0]). Pairs 2 and 3 below
+     are placeholder scaffolding for two upcoming pairs -- the real
+     photos, identifying traits and sources still need to be filled
+     in, and wiring them into the walk (so more than one pair can
+     come up) is a separate step once that content is ready.
 
      Each plant has a "cover" (the card's default face -- a 2D render
      of the 3D model, coming later) and an "identification" list: one
@@ -1035,7 +1118,7 @@
         species: "Crataegus sp. — confirm exact species",
         correct: true,
         cover: "images/plants/downy-hawthorn/cover.jpg",
-        // Shown as an extra line under the "Friend" reveal when this
+        // Shown as an extra line under the "Meal" reveal when this
         // plant is the one picked -- edible fruit, but the seeds
         // (like other Crataegus/pome fruit) aren't meant to be eaten.
         caveat: "But don't eat the seeds!",
@@ -1047,11 +1130,11 @@
           "https://www.minnesotawildflowers.info/tree/downy-hawthorn"
         ],
         identification: [
-          { text: "Broad leaves with shallow lobes and coarse teeth.", photo: "images/plants/downy-hawthorn/1.jpg", credit: "Photo credits: Katy Chayka. Via: minnesotawildflowers.info" },
-          { text: "Long, sharp black-ish to gray thorns.", photo: "images/plants/downy-hawthorn/2.jpg", credit: "Via: tree-guide.com" },
-          { text: "Fruit hangs from visible, thin stalks.", photo: "images/plants/downy-hawthorn/3.jpg", credit: "Via: lakeforest.edu", objectPosition: "80% center" },
-          { text: "Prominent, star-like flower remnants at the tip.", photo: "images/plants/downy-hawthorn/5.jpg", credit: "Photo credits: Roland Barth. Via: ffnaturesearch.org" },
-          { text: "Fruit is red to dark red.", photo: "images/plants/downy-hawthorn/4.jpg", credit: "Via: tree-guide.com", objectPosition: "75% center", scale: 1.15 }
+          { text: "Broad leaves with shallow lobes and coarse teeth.", photo: "images/plants/downy-hawthorn/1.jpg", credit: 'Credits: Katy Chayka. Via: <a href="https://www.minnesotawildflowers.info" target="_blank" rel="noopener noreferrer">www.minnesotawildflowers.info</a>' },
+          { text: "Long, sharp black-ish to gray thorns.", photo: "images/plants/downy-hawthorn/2.jpg", credit: 'Via: <a href="https://www.tree-guide.com" target="_blank" rel="noopener noreferrer">www.tree-guide.com</a>' },
+          { text: "Fruit hangs from visible, thin stalks.", photo: "images/plants/downy-hawthorn/3.jpg", credit: 'Credits: Roland Barth. Via: <a href="https://ffnaturesearch.org" target="_blank" rel="noopener noreferrer">ffnaturesearch.org</a>', objectPosition: "80% center" },
+          { text: "Fruit is red to dark red.", photo: "images/plants/downy-hawthorn/4.jpg", credit: 'Via: <a href="https://www.tree-guide.com" target="_blank" rel="noopener noreferrer">www.tree-guide.com</a>', objectPosition: "75% center", scale: 1.15 },
+          { text: "Prominent, star-like flower remnants at the tip.", photo: "images/plants/downy-hawthorn/5.jpg", credit: 'Credits: Arthur Haines. Via: <a href="https://gobotany.nativeplanttrust.org" target="_blank" rel="noopener noreferrer">gobotany.nativeplanttrust.org</a>' }
         ]
       },
       poisonous: {
@@ -1060,17 +1143,97 @@
         correct: false,
         cover: "images/plants/winterberry-holly/cover.jpg",
         sources: [
-          "https://minnesotawildflowers.info/shrub/winterberry",
+          "https://www.minnesotawildflowers.info/shrub/winterberry",
           "https://extension.umd.edu/resource/winterberry-holly/",
           "https://blog.davey.com/do-i-have-a-winterberry-holly/",
           "https://www.uwgb.edu/biodiversity-old/herbarium/shrubs/ilever01.htm"
         ],
         identification: [
           { text: "Unlobed leaves with many small teeth.", photo: "images/plants/winterberry-holly/1.jpg", credit: 'Via: <a href="https://www.uwgb.edu" target="_blank" rel="noopener noreferrer">www.uwgb.edu</a>' },
-          { text: "No thorns.", photo: "images/plants/winterberry-holly/2.jpg", credit: "Photo credits: Peter M Dziuk. Via: minnesotawildflowers.info" },
-          { text: "Berries grow close to the twig on very short stalks.", photo: "images/plants/winterberry-holly/3.jpg", credit: "Via: cvtslandscape.com" },
-          { text: "Fruit is bright red.", photo: "images/plants/winterberry-holly/4.jpg", credit: "Via: blog.davey.com" },
-          { text: "Small black dot at the tip.", photo: "images/plants/winterberry-holly/5.jpg", credit: "Photo credits: Gary Fewless. Via: uwgb.edu" }
+          { text: "No thorns.", photo: "images/plants/winterberry-holly/2.jpg", credit: 'Credits: Peter M Dziuk. Via: <a href="https://www.minnesotawildflowers.info" target="_blank" rel="noopener noreferrer">www.minnesotawildflowers.info</a>' },
+          { text: "Berries grow close to the twig on very short stalks.", photo: "images/plants/winterberry-holly/3.jpg", credit: 'Via: <a href="https://www.cvtslandscape.com" target="_blank" rel="noopener noreferrer">www.cvtslandscape.com</a>' },
+          { text: "Fruit is bright red.", photo: "images/plants/winterberry-holly/4.jpg", credit: 'Via: <a href="https://blog.davey.com" target="_blank" rel="noopener noreferrer">blog.davey.com</a>' },
+          { text: "Small black dot at the tip.", photo: "images/plants/winterberry-holly/5.jpg", credit: 'Credits: Gary Fewless. Via: <a href="https://www.uwgb.edu" target="_blank" rel="noopener noreferrer">www.uwgb.edu</a>' }
+        ]
+      }
+    },
+    // -------------------------------------------------------------
+    // PLACEHOLDER PAIR — Riverbank Grape vs Canada Moonseed.
+    // A classic real-world look-alike mix-up: wild grape vines and
+    // moonseed vines climb the same way and their fruit looks
+    // similar from a distance. Photos, identifying traits and
+    // sources below are all TODO -- text is a stand-in until real
+    // reference photos are picked.
+    // -------------------------------------------------------------
+    {
+      id: "grape-moonseed",
+      edible: {
+        name: "Riverbank Grape",
+        species: "Vitis riparia",
+        correct: true,
+        cover: "images/plants/riverbank-grape/cover.jpg",
+        // TODO: real source links once identification is written up.
+        sources: [],
+        identification: [
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/1.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/2.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/3.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/4.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/riverbank-grape/5.jpg", credit: "Photo credit: TODO" }
+        ]
+      },
+      poisonous: {
+        name: "Canada Moonseed",
+        species: "Menispermum canadense",
+        correct: false,
+        cover: "images/plants/canada-moonseed/cover.jpg",
+        // TODO: real source links once identification is written up.
+        sources: [],
+        identification: [
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/1.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/2.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/3.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/4.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/canada-moonseed/5.jpg", credit: "Photo credit: TODO" }
+        ]
+      }
+    },
+    // -------------------------------------------------------------
+    // PLACEHOLDER PAIR — Purslane vs Spotted Spurge.
+    // Another classic mix-up: spotted spurge is a common low weed
+    // that grows alongside purslane and gets picked by mistake.
+    // Photos, identifying traits and sources below are all TODO.
+    // -------------------------------------------------------------
+    {
+      id: "purslane-spurge",
+      edible: {
+        name: "Purslane",
+        species: "Portulaca oleracea",
+        correct: true,
+        cover: "images/plants/purslane/cover.jpg",
+        // TODO: real source links once identification is written up.
+        sources: [],
+        identification: [
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/1.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/2.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/3.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/4.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/purslane/5.jpg", credit: "Photo credit: TODO" }
+        ]
+      },
+      poisonous: {
+        name: "Spotted Spurge",
+        species: "Euphorbia maculata",
+        correct: false,
+        cover: "images/plants/spotted-spurge/cover.jpg",
+        // TODO: real source links once identification is written up.
+        sources: [],
+        identification: [
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/1.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/2.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/3.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/4.jpg", credit: "Photo credit: TODO" },
+          { text: "Placeholder trait — replace with a real identifying detail.", photo: "images/plants/spotted-spurge/5.jpg", credit: "Photo credit: TODO" }
         ]
       }
     }
@@ -1085,6 +1248,8 @@
   const screenWin        = document.getElementById("screen-win");
   const modalAbout      = document.getElementById("modal-about");
   const modalEncounter  = document.getElementById("modal-encounter");
+  const modalPause      = document.getElementById("modal-pause");
+  const fadeOverlay     = document.getElementById("fade-overlay");
   const stage             = document.getElementById("stage");
   const ground              = stage.querySelector(".ground");
   const cardsRow           = document.getElementById("cards-container");
@@ -1092,17 +1257,18 @@
   const btnReady            = document.getElementById("btn-ready");
   const btnReview            = document.getElementById("btn-review");
   const encounterPrompt      = document.getElementById("encounter-prompt");
-  const galleryNavPrev        = document.getElementById("gallery-nav-prev");
-  const galleryNavNext        = document.getElementById("gallery-nav-next");
-  const galleryNavNextWrap    = galleryNavNext.closest(".gallery-nav-next-wrap");
+  const galleryHintRow        = document.getElementById("gallery-hint-row");
   const galleryNavHint        = document.getElementById("gallery-nav-hint");
-  const galleryNavMoreWrap    = document.getElementById("gallery-nav-more-wrap");
+  const galleryTapHint        = document.getElementById("gallery-tap-hint");
   const heartsEl              = document.getElementById("hearts");
   const encounterHeartsEl      = document.getElementById("encounter-hearts");
   const hungerSlider            = document.getElementById("hunger-slider");
   const hungerTrack               = document.getElementById("hunger-track");
   const hungerLabel              = document.getElementById("hunger-label");
   const btnStartOver               = document.getElementById("btn-start-over");
+  const btnPause                     = document.getElementById("btn-pause");
+  const btnResume                     = document.getElementById("btn-resume");
+  const btnPauseStartOver              = document.getElementById("btn-pause-start-over");
 
   /* ============================================================
      SCREEN + MODAL HELPERS
@@ -1229,7 +1395,8 @@
   function canWalk(){
     return !screenPlay.classList.contains("hidden")
         && modalEncounter.classList.contains("hidden")
-        && modalAbout.classList.contains("hidden");
+        && modalAbout.classList.contains("hidden")
+        && modalPause.classList.contains("hidden");
   }
 
   /* ============================================================
@@ -1284,15 +1451,40 @@
      spare) or game over (out of hearts). Both stop play and hand
      off to a dedicated screen; "Start Over" on either resets fully.
      ============================================================ */
+  // How long the screen holds at full black before the Game Over
+  // screen is swapped in underneath it (see endGame below). This is
+  // purely the fade's own duration -- it starts only once the
+  // heart-loss animation and its own delay (HEART_LOSE_DELAY_MS /
+  // RESULT_DISPLAY_MS / HEART_SHAKE_MS, depending on how the run
+  // ended) have already played out, so the player always has time to
+  // see why they lost before the screen starts going dark.
+  const FADE_MS = 650;
+
   function endGame(result){
     advancing = false;
     closeModal(modalEncounter);
-    screenPlay.classList.add("hidden");
+
     if (result === "won") {
+      screenPlay.classList.add("hidden");
       screenWin.classList.remove("hidden");
-    } else {
-      screenGameOver.classList.remove("hidden");
+      return;
     }
+
+    // "lost" -- fade to black, swap to the Game Over screen behind
+    // the black, then fade back in to reveal it.
+    fadeOverlay.classList.add("active");
+    setTimeout(() => {
+      screenPlay.classList.add("hidden");
+      screenGameOver.classList.remove("hidden");
+      // Let the Game Over screen actually paint behind the black
+      // before fading back in, so the reveal doesn't flash the old
+      // play screen for a frame.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          fadeOverlay.classList.remove("active");
+        });
+      });
+    }, FADE_MS);
   }
 
   /* ============================================================
@@ -1387,10 +1579,12 @@
     hasSeenGalleryHint = false;
 
     closeModal(modalEncounter);
+    closeModal(modalPause);
     updatePlants();
 
     screenGameOver.classList.add("hidden");
     screenWin.classList.add("hidden");
+    fadeOverlay.classList.remove("active");
   }
 
   function startOver(){
@@ -1410,6 +1604,16 @@
   btnStartOver.addEventListener("click", startOver);
   document.getElementById("btn-gameover-again").addEventListener("click", tryAgain);
   document.getElementById("btn-win-again").addEventListener("click", startOver);
+
+  // Pause: dark backdrop (reuses .modal-overlay) with a big Resume and
+  // a big Start Over action. canWalk() already checks modalPause, so
+  // hunger/walking simply stop ticking while it's open.
+  btnPause.addEventListener("click", () => openModal(modalPause));
+  btnResume.addEventListener("click", () => closeModal(modalPause));
+  btnPauseStartOver.addEventListener("click", () => {
+    closeModal(modalPause);
+    startOver();
+  });
 
   /* ============================================================
      ENCOUNTER — build the two cards, handle flip, handle choice.
@@ -1440,14 +1644,14 @@
   let exploredCards = new Set();
 
   // Which photo is showing is shared across BOTH cards in the current
-  // encounter -- the external chevrons step this once and it applies
-  // to whichever of the two cards are built right now, so the same
-  // trait lines up on both for comparison.
+  // encounter -- a tap steps this once and it applies to whichever of
+  // the two cards are built right now, so the same trait lines up on
+  // both for comparison.
   let galleryPhotoIndex = 0;
   let currentCards = [];
 
-  // "See more" under the right chevron only teaches the mechanic once
-  // per playthrough -- reset alongside everything else in resetGame().
+  // "Tap the cards to see more" only teaches the mechanic once per
+  // playthrough -- reset alongside everything else in resetGame().
   let hasSeenGalleryHint = false;
 
   const READY_LABEL  = "Ready to choose...";
@@ -1574,9 +1778,7 @@
       if (mode === "selecting") {
         selectCard(card);
       } else if (mode === "reading") {
-        // Tapping either card also pages the gallery forward, same as
-        // the right chevron -- the chevrons remain the one place that
-        // always works, but a tap is a shortcut for the same action.
+        // Tapping either card pages the gallery forward for both.
         stepGalleryPhoto(1);
       }
       // mode === "answered": ignore, choice is already locked in.
@@ -1591,8 +1793,7 @@
     encounterPrompt.classList.add("hidden");
     btnReview.classList.add("hidden");
     btnReady.classList.remove("hidden");
-    galleryNavPrev.classList.remove("hidden");
-    galleryNavNextWrap.classList.remove("hidden");
+    galleryHintRow.classList.remove("hidden");
     updateReadyState();
   }
 
@@ -1601,8 +1802,7 @@
     // Choosing is about how the plant looks, not the identification
     // facts -- snap both cards back to the cover (slide 1). If a card
     // is currently showing a photo, card.showPhoto plays the flip on
-    // its way back to the cover, same as stepping past it with the
-    // chevrons.
+    // its way back to the cover, same as tapping past it.
     galleryPhotoIndex = 0;
     currentCards.forEach((card) => {
       if (typeof card.showPhoto === "function") card.showPhoto(0);
@@ -1612,23 +1812,21 @@
     btnReady.classList.add("hidden");
     encounterPrompt.classList.remove("hidden");
     btnReview.classList.remove("hidden");
-    galleryNavPrev.classList.add("hidden");
-    galleryNavNextWrap.classList.add("hidden");
+    galleryHintRow.classList.add("hidden");
   }
 
-  // "x / N" counter under the right chevron -- the one place photo
-  // position reads now that the per-card chevrons are gone. N counts
-  // the cover as photo 1, so it's identification.length + 1.
+  // "x / N" counter, centered under the cards -- the cover counts as
+  // photo 1, so N is identification.length + 1.
   let galleryPhotoTotal = 6;
   function updateGalleryCounter(){
     galleryNavHint.textContent = (galleryPhotoIndex + 1) + " / " + galleryPhotoTotal;
   }
 
   // Steps the shared photo index (cover included) and applies it to
-  // both cards -- the only way photos change now. Any use of the
-  // chevrons (or a tap on the cards themselves -- see buildCard/
-  // cardsContainer's click handlers) counts as having explored the
-  // pair, since it's the only way to see anything beyond the cover.
+  // both cards -- the only way photos change now. Any tap that counts
+  // (a card, or the gap between them -- see buildCard/cardsContainer's
+  // click handlers) counts as having explored the pair, since it's
+  // the only way to see anything beyond the cover.
   function stepGalleryPhoto(delta){
     if (mode !== "reading") return;
     galleryPhotoIndex = ((galleryPhotoIndex + delta) % galleryPhotoTotal + galleryPhotoTotal) % galleryPhotoTotal;
@@ -1638,18 +1836,16 @@
     });
     updateReadyState();
     updateGalleryCounter();
-    // The player has now actually used the chevrons/taps -- no need
-    // to keep teaching the mechanic for the rest of THIS pair.
-    galleryNavMoreWrap.classList.add("gallery-nav-invisible");
+    // The player has now actually tapped -- no need to keep teaching
+    // the mechanic for the rest of THIS pair.
+    galleryTapHint.classList.add("hidden");
   }
-  galleryNavPrev.addEventListener("click", () => stepGalleryPhoto(-1));
-  galleryNavNext.addEventListener("click", () => stepGalleryPhoto(1));
 
   // Tapping in the gap BETWEEN the two cards also pages the gallery,
-  // same as tapping a card or using a chevron. Each card's own click
-  // handler (see buildCard) already covers taps that land on a card;
-  // this only fires when the click hits the empty space of the cards
-  // container itself.
+  // same as tapping a card. Each card's own click handler (see
+  // buildCard) already covers taps that land on a card; this only
+  // fires when the click hits the empty space of the cards container
+  // itself.
   cardsContainer.addEventListener("click", (e) => {
     if (e.target !== cardsContainer) return;
     if (mode === "reading") stepGalleryPhoto(1);
@@ -1668,12 +1864,11 @@
     currentCards = [cardA, cardB];
     updateGalleryCounter();
 
-    // "See more" under the right chevron only teaches the mechanic
-    // once -- every pair after the first playthrough's first one
-    // just gets the counter. (It also disappears as soon as the
-    // player actually uses the chevrons/taps during this pair --
-    // see stepGalleryPhoto.)
-    galleryNavMoreWrap.classList.toggle("gallery-nav-invisible", hasSeenGalleryHint);
+    // "Tap the cards to see more" only teaches the mechanic once --
+    // every pair after the first playthrough's first one just gets
+    // the counter. (It also disappears as soon as the player actually
+    // taps during this pair -- see stepGalleryPhoto.)
+    galleryTapHint.classList.toggle("hidden", hasSeenGalleryHint);
     hasSeenGalleryHint = true;
 
     requireBothExplored = !seenPairs.has(pair.id);
@@ -1700,11 +1895,16 @@
     enterReadingMode();
   });
 
-  // How long the "Friend"/"Foe" reveal (and, on a wrong pick, the
-  // heart-loss animation) stays up before the modal closes -- needs
-  // to comfortably outlast both animations so the player actually
-  // gets to read the result, not just glimpse it.
+  // How long the "Meal"/"Mean" reveal (and, on a wrong pick, the
+  // heart-loss animation that follows it) stays up before the modal
+  // closes -- needs to comfortably outlast both animations so the
+  // player actually gets to read the result, not just glimpse it.
   const RESULT_DISPLAY_MS = 3467; // 5200 reduced by a third
+
+  // On a wrong pick, let the "Mean" reveal register on its own first --
+  // the heart only starts shaking once the word has had a moment to
+  // sink in, rather than both firing at the same instant.
+  const HEART_LOSE_DELAY_MS = 900;
 
   function selectCard(card){
     mode = "answered";
@@ -1715,12 +1915,12 @@
     const isCorrect = card.dataset.correct === "true";
     card.classList.add(isCorrect ? "card-correct" : "card-wrong");
 
-    // Big "Friend" / "Foe" reveal grows in over the chosen card's
-    // photo. Downy Hawthorn gets an extra caveat line under "Friend".
+    // Big "Meal" / "Mean" reveal grows in over the chosen card's
+    // photo. Downy Hawthorn gets an extra caveat line under "Meal".
     const overlay = card.querySelector(".result-overlay");
     const wordEl = overlay.querySelector(".result-word");
     const caveatEl = overlay.querySelector(".result-caveat");
-    wordEl.textContent = isCorrect ? "Friend" : "Foe";
+    wordEl.textContent = isCorrect ? "Meal" : "Mean";
     const caveatText = isCorrect && card.plantData && card.plantData.caveat;
     if (caveatText) {
       caveatEl.textContent = "⚠️ " + caveatText;
@@ -1735,7 +1935,7 @@
       hunger = 100;
       updateHungerUI();
     } else {
-      loseHeart();
+      setTimeout(() => { loseHeart(); }, HEART_LOSE_DELAY_MS);
     }
 
     // Let the result (and the heart-loss animation, if any) actually
