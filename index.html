@@ -393,7 +393,13 @@
 
   /* Plants live at a fixed (left, top) position in the flat 2D
      layout, then get pushed back into depth with --z. Perspective
-     on .stage does the scaling — no manual size math needed. */
+     on .stage does the scaling — no manual size math needed.
+     left/top mark the block's CENTER (translate(-50%,-50%) below),
+     not its top-left corner -- important now that the block is 384px
+     across (see the 500%-larger comment on width/height): anchoring
+     by the corner would drag the visible art noticeably toward the
+     center/right of wherever left/top actually says, since half the
+     block's own width would sit past that point every time. */
   .plant-block{
     position:absolute;
     appearance:none;
@@ -402,12 +408,12 @@
     background: var(--amber);
     border-radius: 10px;
     box-shadow: 0 4px 0 var(--amber-dark), 0 8px 16px -6px rgba(0,0,0,0.35);
-    width: 64px;
-    height: 64px;
+    width: 384px;   /* 500% larger -- i.e. 6x -- was 64px */
+    height: 384px;  /* 500% larger -- i.e. 6x -- was 64px */
     display:flex;
     align-items:center;
     justify-content:center;
-    transform: translateZ(var(--z, 0px));
+    transform: translate(-50%, -50%) translateZ(var(--z, 0px));
     transition: filter 0.15s ease;
     animation: bob 2.6s ease-in-out infinite;
   }
@@ -645,6 +651,134 @@
      icon/label actually shows is purely a CSS swap at the mobile
      breakpoint below, to save space on small screens. */
   .hud-btn-icon{ display:none; }
+
+  /* Rescue progress -- sits below the Pause/Start Over buttons, same
+     right edge. A vertical version of the hunger track's language
+     (pill track + round marker), just climbing instead of sliding
+     sideways, with a fixed goal icon capping the top. Wrapped in a
+     cream, rounded-corner card of its own (rather than floating
+     directly over the scene like the hunger bar does) so it reads as
+     a distinct, prominent widget at a glance. */
+  .rescue-progress{
+    position:absolute;
+    top: 64px;
+    right: 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem;
+    background: var(--amber-tint);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    pointer-events:none;
+  }
+  .rescue-goal{
+    position:relative;
+    width: 80px;   /* 2x -- was 40px */
+    height: 80px;  /* 2x -- was 40px */
+    border-radius: 14px;
+    background: var(--amber);
+    box-shadow: 0 4px 0 var(--amber-dark), 0 6px 14px -6px rgba(0,0,0,0.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .rescue-goal::after{
+    content:"?";
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--white);
+    font-size: 2rem;
+  }
+  .rescue-goal-img{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: contain;
+    pointer-events:none;
+  }
+  .rescue-goal-img.loaded{ display:block; }
+  .rescue-goal.has-art{ background: transparent; box-shadow:none; }
+  .rescue-goal.has-art::after{ display:none; }
+  .rescue-track{
+    position:relative;
+    width: 14px;
+    height: 150px;
+    border-radius: 999px;
+    background: rgba(44,36,16,0.35);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.65);
+  }
+  /* Fills from the bottom as correctCount climbs toward WIN_TARGET --
+     same "how close am I" read as the hunger track's gradient, just
+     vertical and green-only since this one only ever moves one way
+     (good). Kept in sync with .rescue-marker's `bottom` by
+     updateRescueProgress() in the script below. */
+  .rescue-track-fill{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    border-radius: 999px;
+    background: var(--correct);
+    height: 0%;
+    transition: height 0.3s ease-out;
+  }
+  .rescue-marker{
+    position:absolute;
+    left:50%;
+    bottom: 0%;
+    transform: translate(-50%, 50%);
+    width: 56px;   /* 2x -- was 28px */
+    height: 56px;  /* 2x -- was 28px */
+    border-radius: 50%;
+    background: var(--amber);
+    border: 3px solid var(--white);
+    box-shadow: var(--shadow);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: bottom 0.3s ease-out;
+  }
+  .rescue-marker::after{
+    content:"?";
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--white);
+    font-size: 1.4rem;
+  }
+  .rescue-marker-img{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+  .rescue-marker-img.loaded{ display:block; }
+  .rescue-marker.has-art{ background:transparent; border:none; box-shadow:none; }
+  .rescue-marker.has-art::after{ display:none; }
+  .rescue-label{
+    /* Needs to be a positioned element (even with no offset) so it
+       paints in the SAME stacking step as .rescue-goal/.rescue-track
+       (both position:relative) instead of an earlier one -- otherwise
+       the marker, which deliberately overhangs below the track, would
+       paint on top of this label and hide it, despite coming later in
+       the markup. */
+    position: relative;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--ink);
+    background: var(--white);
+    padding: 0.16rem 0.42rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+  }
   /* Big centered pause overlay: dark backdrop (reuses .modal-overlay)
      with a "Paused" heading, well clear of the two large icon+label
      actions below it so it clearly reads as the game's state rather
@@ -955,23 +1089,26 @@
     word-break: break-all;
   }
 
-  /* correct / wrong feedback */
-  .card.card-correct .card-face{ border-color: var(--correct); background: var(--correct-tint); }
-  .card.card-wrong .card-face{ border-color: var(--wrong); background: var(--wrong-tint); }
+  /* correct / wrong feedback -- outline doubled from the base 3px
+     (see .card-face above) to 6px so it reads clearly at a glance. */
+  .card.card-correct .card-face{ border-color: var(--correct); border-width: 6px; background: var(--correct-tint); }
+  .card.card-wrong .card-face{ border-color: var(--wrong); border-width: 6px; background: var(--wrong-tint); }
 
-  /* Yellow shine on whichever card the player actually tapped, so it
+  /* White shine on whichever card the player actually tapped, so it
      stays obvious which one was "their pick" even once both results
      are up side by side (the "Your pick" badge alone was easy to
      miss). Layers on top of the correct/wrong border+background
      above rather than replacing them -- a soft pulse keeps it
-     noticeable without being distracting. */
+     noticeable without being distracting. White (not yellow) so it
+     never reads as a third "this is correct" color next to the
+     green/red outlines above. */
   .card.card-picked .card-face{
-    box-shadow: 0 0 0 3px #ffd23f, 0 0 22px 6px rgba(255,210,63,0.75), var(--shadow);
+    box-shadow: 0 0 0 3px #ffffff, 0 0 22px 6px rgba(255,255,255,0.75), var(--shadow);
     animation: card-picked-shine 1.6s ease-in-out infinite;
   }
   @keyframes card-picked-shine{
-    0%, 100%{ box-shadow: 0 0 0 3px #ffd23f, 0 0 22px 6px rgba(255,210,63,0.75), var(--shadow); }
-    50%{ box-shadow: 0 0 0 3px #ffe27a, 0 0 30px 10px rgba(255,210,63,0.95), var(--shadow); }
+    0%, 100%{ box-shadow: 0 0 0 3px #ffffff, 0 0 22px 6px rgba(255,255,255,0.75), var(--shadow); }
+    50%{ box-shadow: 0 0 0 3px #ffffff, 0 0 30px 10px rgba(255,255,255,0.95), var(--shadow); }
   }
 
   /* Once "Click to select" is pressed, the whole card becomes
@@ -1076,6 +1213,20 @@
     cursor: not-allowed;
   }
   .btn-ready:disabled:active{ transform:none; }
+  /* Once unlocked, "Select one" pulses to draw the eye -- this is now
+     the primary signal that picking is available (see
+     stepGalleryPhoto's auto-trigger), not something the player
+     necessarily has to tap themselves to get past. Still a real,
+     clickable button underneath -- tapping it works exactly like
+     landing back on the cover does -- it's just not the expected way
+     in any more. */
+  .btn-ready.cta-ready{
+    animation: cta-ready-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes cta-ready-pulse{
+    0%, 100%{ box-shadow: 0 6px 0 var(--amber-dark), var(--shadow); }
+    50%{ box-shadow: 0 6px 0 var(--amber-dark), var(--shadow), 0 0 18px 6px rgba(235,155,0,0.65); }
+  }
 
   /* ============================================================
      RESPONSIVE
@@ -1210,6 +1361,32 @@
             <span class="hud-btn-label">Start Over</span>
           </button>
         </div>
+
+        <!-- Rescue progress -- how close the player is to WINNING, which
+             wasn't shown anywhere before (only losing had any feedback).
+             A vertical track in the upper right: the marker climbs from
+             the bottom as correct picks add up, the helicopter goal
+             sits fixed at the top, reached at WIN_TARGET correct picks
+             (see updateRescueProgress in the script below). Drop in
+             images/rescue-marker.png and images/rescue-goal.png to
+             replace the amber "?" placeholders -- see
+             images/README.txt. -->
+        <div class="rescue-progress" id="rescue-progress">
+          <div class="rescue-goal" id="rescue-goal">
+            <img class="rescue-goal-img" src="images/rescue-goal.png" alt="Rescue helicopter"
+                 onload="this.classList.add('loaded'); this.closest('.rescue-goal').classList.add('has-art');"
+                 onerror="this.remove();">
+          </div>
+          <div class="rescue-track" id="rescue-track">
+            <div class="rescue-track-fill" id="rescue-track-fill"></div>
+            <div class="rescue-marker" id="rescue-marker">
+              <img class="rescue-marker-img" src="images/rescue-marker.png" alt="You"
+                   onload="this.classList.add('loaded'); this.closest('.rescue-marker').classList.add('has-art');"
+                   onerror="this.remove();">
+            </div>
+          </div>
+          <div class="rescue-label" id="rescue-label">0 / 5</div>
+        </div>
       </div>
     </div>
   </section>
@@ -1309,7 +1486,7 @@
         <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
         <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
       </div>
-      <button id="btn-ready" class="btn btn-primary btn-ready">Click to select</button>
+      <button id="btn-ready" class="btn btn-primary btn-ready">Select one</button>
       <button id="btn-review" class="btn-review hidden">Review plants again</button>
     </div>
   </div>
@@ -1324,8 +1501,8 @@
 
   /* ============================================================
      DATA — one entry per look-alike pair. Only pairs with `active:
-     true` actually come up during the walk (see assignEncounterSchedule,
-     used by the plant-block click handler below) -- everything else
+     true` actually come up during the walk (see nextPair/
+     createPlantSpot below) -- everything else
      is scaffolding for a pair that isn't ready to be encountered yet
      (identifying traits, photos, and/or credits still missing or
      incomplete). Flip a pair's `active` to true once its content is
@@ -1533,6 +1710,9 @@
   const hungerSlider            = document.getElementById("hunger-slider");
   const hungerTrack               = document.getElementById("hunger-track");
   const hungerLabel              = document.getElementById("hunger-label");
+  const rescueTrackFill        = document.getElementById("rescue-track-fill");
+  const rescueMarker           = document.getElementById("rescue-marker");
+  const rescueLabel            = document.getElementById("rescue-label");
   const btnStartOver               = document.getElementById("btn-start-over");
   const btnPause                     = document.getElementById("btn-pause");
   const btnResume                     = document.getElementById("btn-resume");
@@ -1594,10 +1774,12 @@
      for the full list, format, and when each one fires. Missing
      files fail silently (caught below), same "nothing breaks, it
      just doesn't play yet" spirit as the image placeholders.
+     Most of these are M4A -- game-over and rescue are MP3 instead
+     (per explicit request), hence the optional second argument.
      ============================================================ */
-  function playSound(name){
+  function playSound(name, ext){
     try {
-      const audio = new Audio(`sounds/${name}.m4a`);
+      const audio = new Audio(`sounds/${name}.${ext || "m4a"}`);
       // Fails silently either way: file not there yet, OR the browser
       // blocking autoplay until the player's interacted with the page
       // at all (very first sound of a session -- see sounds/README.txt).
@@ -1616,6 +1798,14 @@
      logically "the one that should be playing" so Pause can stop it
      and Resume can bring back the RIGHT one, even if that happened
      mid-encounter.
+     Walk music is meant to start the instant the Berry Hungry start
+     screen appears (i.e. as soon as the credits reveal, whether that
+     happens automatically or via the click-to-skip), see
+     beginReveal()/skipCredits() below. goToPlayScreen() below calls
+     playWalkMusic() again as a safety net: if that earlier attempt
+     got blocked by the browser's autoplay policy (no interaction
+     yet -- see the credits-appear note above playSound), Start Game
+     is a real click, so it's guaranteed to work there.
      ============================================================ */
   const MUSIC_VOLUME = 0.5; // 0-1 -- turn down further here if it fights with the sound effects
   const musicWalk = new Audio("music/walk.mp3");
@@ -1640,36 +1830,29 @@
   function pauseMusicForOverlay(){ if (currentMusic) currentMusic.pause(); }
   function resumeMusicFromOverlay(){ if (currentMusic) currentMusic.play().catch(() => {}); }
 
-  // Spaced generously — only ever 2 of these are visible at once (see
-  // updatePlants below), so this is about walk-time pacing, not
-  // avoiding on-screen overlap. Exactly 2 spots per active pair (see
-  // assignEncounterSchedule below) -- currently 3 active pairs, so 6
-  // spots; add/remove a pair of distances here if that count changes.
-  //
-  // `side` is fixed per spot (alternating) rather than computed from
-  // which plant happens to be nearest at any given moment -- that way
-  // each plant crests the horizon, grows, and fades out again in the
-  // same spot for its whole lifetime, instead of visually "jumping"
-  // sides when the plant ahead of it passes and drops out.
-  const plants = [
-    { distance: 300,  side: "left"  },
-    { distance: 650,  side: "right" },
-    { distance: 1000, side: "left"  },
-    { distance: 1350, side: "right" },
-    { distance: 1700, side: "left"  },
-    { distance: 2050, side: "right" }
-  ];
+  // The trail never runs out of plants -- ensurePlantsAhead() below
+  // keeps generating more spots, spaced SPOT_SPACING world units
+  // apart, for as long as the player keeps walking forward. `side`
+  // alternates per spot (rather than being computed from which plant
+  // happens to be nearest at any given moment) so each one crests the
+  // horizon, grows, and fades out again in the same spot for its
+  // whole lifetime, instead of visually "jumping" sides.
+  const SPOT_SPACING = 350; // world units between one trail spot and the next
+  let plants = [];
 
   // A plant already walked past stays in the DOM (fading out) for a
   // little before it's dropped from the "active" queue below — this
   // matches the old fade-out cutoff (t > 1.3).
   const PASSED_CUTOFF = -0.3 * VIEW_RANGE;
 
-  // Reaching this far down the trail means the player made it out --
-  // set comfortably past the last plant's distance (2050) plus its
-  // fade-out margin, so the rescue never cuts in while a plant is
-  // still on screen.
-  const FINISH_DISTANCE = 2350;
+  // Once an ANSWERED spot falls this far behind the player, its button
+  // is torn out of the DOM and dropped from `plants` entirely -- the
+  // trail is endless now, so without this, a long playthrough would
+  // keep piling up buttons forever. Only answered spots are pruned;
+  // an unanswered one is left alone no matter how far behind it is,
+  // so walking backward to something you skipped still works exactly
+  // like it always has.
+  const PRUNE_BEHIND_DISTANCE = VIEW_RANGE * 4;
 
   // Shuffles a copy of an array (Fisher-Yates) -- used below to
   // randomize which trail spot gets which pair, without ever changing
@@ -1684,13 +1867,9 @@
   }
 
   // Refreshes a trail spot's visible art to match whichever pair it's
-  // currently assigned (see assignEncounterSchedule below). The pair
-  // a spot shows can change between playthroughs on reshuffle, but
-  // its button element is only ever created once (see the plants.
-  // forEach a bit further down) -- so this has to be able to run
-  // AGAIN later and swap the image, not just set it once. Bails out
-  // quietly if the button doesn't exist yet -- assignEncounterSchedule's
-  // very first call happens before any buttons are created.
+  // currently assigned. Bails out quietly if the button doesn't exist
+  // yet -- createPlantSpot() calls this right after the pair is
+  // assigned, before the button is appended.
   function updatePlantArt(plant){
     const btn = plant.el;
     if (!btn) return;
@@ -1711,39 +1890,39 @@
     btn.appendChild(img);
   }
 
-  // Every pair actually ready for play (see the `active` flag on each
-  // entry in plantPairs above) gets EXACTLY 2 of the trail's spots --
-  // not a random draw per tap, which could hand one pair 4 encounters
-  // and another 0. Assigns plant.pair for every entry in `plants`, in
-  // a fresh shuffled order; called once at startup and again on every
-  // resetGame() so replays get a different (but still exactly-2-each)
-  // layout. If the number of active pairs × 2 doesn't match the
-  // number of trail spots, the schedule is padded/truncated as a
-  // safety net -- keep them in sync (see the `plants` comment above).
-  function assignEncounterSchedule(){
-    const active = plantPairs.filter((p) => p.active);
-    let schedule = [];
-    active.forEach((pair) => { schedule.push(pair); schedule.push(pair); });
-    schedule = shuffled(schedule);
-    plants.forEach((plant, i) => {
-      plant.pair = schedule[i % schedule.length] || plantPairs[0];
-      updatePlantArt(plant);
-    });
+  // A shuffled "bag" of the currently-active pairs -- draining one at
+  // a time and reshuffling a fresh bag once it's empty keeps an
+  // endless trail fair (every active pair turns up about as often as
+  // every other) without ever repeating the exact same pair twice in
+  // a row across a refill.
+  let pairBag = [];
+  function nextPair(){
+    if (pairBag.length === 0){
+      const active = plantPairs.filter((p) => p.active);
+      pairBag = shuffled(active.length ? active : plantPairs);
+    }
+    return pairBag.pop();
   }
-  assignEncounterSchedule();
 
-  plants.forEach((plant, i) => {
+  // Creates one new trail spot (button + all its state) at the given
+  // distance/side and appends it to `plants`. This is the ONLY place
+  // trail-spot buttons get created -- called both for the very first
+  // batch and for every spot generated afterward as the player keeps
+  // walking (see ensurePlantsAhead below).
+  let plantSpotCounter = 0;
+  function createPlantSpot(distance, side){
+    const plant = { distance, side, pair: nextPair(), answered: false };
+    updatePlantArt(plant); // no button yet -- this just no-ops safely
+
     const btn = document.createElement("button");
     btn.className = "plant-block";
-    btn.style.animationDelay = (i * 0.3) + "s";
+    btn.style.animationDelay = ((plantSpotCounter++ % 6) * 0.3) + "s";
     btn.setAttribute("aria-label", "Unidentified plant");
     // Each trail SPOT is a one-time encounter -- once answered (see
     // markPlantAnswered, called from selectCard), this button stops
     // opening the modal even if the player walks back to it. Without
     // this, backward walking would let a spot be re-answered endlessly
-    // for free hunger refills, which also breaks the "exactly 2
-    // encounters per active pair" trail design above.
-    plant.answered = false;
+    // for free hunger refills.
     btn.addEventListener("click", () => {
       if (plant.answered) return;
       openEncounter(plant);
@@ -1751,8 +1930,43 @@
     btn.style.display = "none";
     stage.appendChild(btn);
     plant.el = btn;
-    updatePlantArt(plant); // assignEncounterSchedule() already ran once above, before this button existed
-  });
+    updatePlantArt(plant); // now that the button exists, actually show the art
+
+    plants.push(plant);
+    return plant;
+  }
+
+  // Keeps generating trail spots ahead of the player so the walk never
+  // runs dry -- called once at startup (seeding the same first-batch
+  // spacing/sides the fixed schedule used to have) and again every
+  // time progress changes. Always keeps at least one spot queued up
+  // beyond VIEW_RANGE, so nothing pops into existence visibly on
+  // screen.
+  let nextSpotDistance = null;
+  let nextSpotSide = "left";
+  function ensurePlantsAhead(){
+    if (nextSpotDistance === null){
+      nextSpotDistance = 300;
+      nextSpotSide = "left";
+    }
+    while (nextSpotDistance - progress < VIEW_RANGE + SPOT_SPACING){
+      createPlantSpot(nextSpotDistance, nextSpotSide);
+      nextSpotDistance += SPOT_SPACING;
+      nextSpotSide = nextSpotSide === "left" ? "right" : "left";
+    }
+  }
+
+  // Tears down every trail-spot button and resets the generator back
+  // to its starting state -- used by resetGame() so a fresh
+  // playthrough starts the trail over from scratch instead of
+  // dragging along however many spots the last run generated.
+  function clearAllPlantSpots(){
+    plants.forEach((plant) => { if (plant.el) plant.el.remove(); });
+    plants = [];
+    pairBag = [];
+    nextSpotDistance = null;
+    nextSpotSide = "left";
+  }
 
   // Marks a trail spot as done -- dims its button and blocks further
   // clicks (see the click handler above), but leaves it fading in/out
@@ -1763,15 +1977,6 @@
     plant.el.disabled = true;
     plant.el.classList.add("plant-answered");
     plant.el.setAttribute("aria-label", "Already identified");
-  }
-
-  // Undoes markPlantAnswered -- used by resetGame() so a fresh
-  // playthrough's spots all start clickable again.
-  function resetPlantAnswered(plant){
-    plant.answered = false;
-    plant.el.disabled = false;
-    plant.el.classList.remove("plant-answered");
-    plant.el.setAttribute("aria-label", "Unidentified plant");
   }
 
   function updatePlants(){
@@ -1785,6 +1990,22 @@
     // never visually "jumps" sides the way rank-based left/right did.
     // Distances are spaced so at most two windows ever overlap at once,
     // which is what gives the alternating left/right crossfade.
+    //
+    // The trail is endless, so before drawing anything, prune any
+    // ANSWERED spot that's fallen well behind the player (see
+    // PRUNE_BEHIND_DISTANCE) -- tears its button out of the DOM and
+    // drops it from `plants` so a long playthrough doesn't keep piling
+    // up buttons forever. Unanswered spots are never pruned, no matter
+    // how far behind, so walking back to something skipped still works.
+    plants = plants.filter((plant) => {
+      const behind = progress - plant.distance;
+      if (plant.answered && behind > PRUNE_BEHIND_DISTANCE){
+        plant.el.remove();
+        return false;
+      }
+      return true;
+    });
+
     plants.forEach((plant) => {
       const remaining = plant.distance - progress;      // >0 ahead, <0 behind
 
@@ -1860,6 +2081,26 @@
     });
   }
 
+  /* ============================================================
+     RESCUE PROGRESS -- how close the player is to WINNING (the flip
+     side of hearts/hunger, which only ever showed how close they were
+     to LOSING). Correctly identifying the "Friend" plant WIN_TARGET
+     times reaches the helicopter and wins the run -- see selectCard's
+     isCorrect branch below for where correctCount actually increments
+     and the win check that follows it.
+     ============================================================ */
+  const WIN_TARGET = 5;
+  let correctCount = 0;
+
+  // Moves the marker up the track and updates the "X / 5" label --
+  // called on init, on every correct pick, and on resetGame().
+  function updateRescueProgress(){
+    const pct = clamp((correctCount / WIN_TARGET) * 100, 0, 100);
+    rescueTrackFill.style.height = pct + "%";
+    rescueMarker.style.bottom = pct + "%";
+    rescueLabel.textContent = Math.min(correctCount, WIN_TARGET) + " / " + WIN_TARGET;
+  }
+
   // Animated version -- used whenever a heart is actually lost during
   // play: the full heart shakes, then swaps to the broken icon and
   // eases into the grayed-out .heart-lost state.
@@ -1902,6 +2143,10 @@
       closeModal(modalEncounter);
       screenPlay.classList.add("hidden");
       screenWin.classList.remove("hidden");
+      // Optional rescue sting -- see sounds/README.txt. Same "fires
+      // the instant the screen is swapped in" timing as game-over
+      // below; MP3 per explicit request. Missing file fails silently.
+      playSound("rescue", "mp3");
       return;
     }
 
@@ -1918,6 +2163,13 @@
       closeModal(modalEncounter);
       screenPlay.classList.add("hidden");
       screenGameOver.classList.remove("hidden");
+      // Optional Game Over sting -- see sounds/README.txt. Fires the
+      // instant the Game Over screen is swapped in (still hidden
+      // behind the black fade for a moment, same as every other
+      // sound cue in this file -- see playSound above). MP3 per
+      // explicit request. Missing file fails silently, same "nothing
+      // breaks yet" spirit as the rest.
+      playSound("game-over", "mp3");
       // Let the Game Over screen actually paint behind the black
       // before fading back in, so the reveal doesn't flash the old
       // play screen for a frame.
@@ -1988,10 +2240,12 @@
       const dir = (advancing ? 1 : 0) - (retreating ? 1 : 0);
       if (canWalk() && dir !== 0){
         progress = clamp(progress + dir * WALK_SPEED * dt, 0, Infinity);
+        // The trail is endless -- winning is no longer about reaching a
+        // fixed distance, it's about the rescue-progress goal (5
+        // correct picks, tracked in selectCard/updateRescueProgress).
+        // Keep generating spots ahead as the player keeps walking.
+        ensurePlantsAhead();
         updatePlants();
-        if (dir > 0 && progress >= FINISH_DISTANCE){
-          endGame("won");
-        }
         // The player's now actually moved -- no need to keep teaching
         // the controls for the rest of this playthrough.
         if (!hasWalkedOnce){
@@ -2022,9 +2276,11 @@
   // Letting go of the window (alt-tab, etc.) should stop the walk too.
   window.addEventListener("blur", () => { advancing = false; retreating = false; });
 
+  ensurePlantsAhead();
   updatePlants();
   updateHungerUI();
   updateHeartsUI();
+  updateRescueProgress();
 
   /* ============================================================
      INITIAL CREDITS SCREEN -- see the HTML comment above
@@ -2058,6 +2314,14 @@
   function beginReveal(){
     if (creditsDismissed) return;
     screenCredits.classList.add("credits-reveal");
+    // The Berry Hungry start screen is behind the credits the whole
+    // time (see the HTML comment above #screen-start) -- this is the
+    // moment it actually becomes visible, so walk music starts here
+    // rather than waiting for Start Game. This fires automatically
+    // (no click), so the browser's autoplay policy may block it on a
+    // cold load -- goToPlayScreen() below covers that with a second,
+    // click-guaranteed attempt.
+    playWalkMusic();
   }
   function skipCredits(){
     if (creditsDismissed || screenCredits.classList.contains("credits-reveal")) return;
@@ -2072,6 +2336,8 @@
     creditsDismissed = true;
     screenCredits.classList.add("credits-reveal");
     setTimeout(() => { screenCredits.remove(); }, CREDITS_SCREEN_FADE_MS);
+    // This path IS a click, so autoplay is reliably allowed here.
+    playWalkMusic();
   }
   screenCredits.addEventListener("click", skipCredits);
   setTimeout(beginReveal, CREDITS_REVEAL_DELAY_MS);
@@ -2096,6 +2362,9 @@
     heartsRemaining = TOTAL_HEARTS;
     updateHeartsUI();
 
+    correctCount = 0;
+    updateRescueProgress();
+
     seenPairs.clear();
     requireBothExplored = false;
     seenPhotoIndices = new Set();
@@ -2107,10 +2376,12 @@
     hintWalk.classList.remove("hidden");
     hintPlant.classList.remove("hidden");
 
-    // Fresh shuffle each playthrough -- still exactly 2 spots per active
-    // pair, just reassigned to different trail positions.
-    assignEncounterSchedule();
-    plants.forEach(resetPlantAnswered);
+    // Endless trail -- tear down every spot the last run generated and
+    // start the generator fresh (progress is already reset to 0 above,
+    // so ensurePlantsAhead() reseeds the same first-batch spacing/sides
+    // a brand-new playthrough had).
+    clearAllPlantSpots();
+    ensurePlantsAhead();
 
     closeModal(modalEncounter);
     closeModal(modalPause);
@@ -2214,7 +2485,7 @@
   let hasWalkedOnce = false;
   let hasOpenedPlantOnce = false;
 
-  const READY_LABEL  = "Click to select";
+  const READY_LABEL  = "Select one";
   const LOCKED_LABEL = "First explore both plants";
 
   // The cute card-flip that plays whenever a card's visible slide
@@ -2225,15 +2496,23 @@
   const FLIP_MS = 600;
   const FLIP_SWAP_MS = FLIP_MS / 2;
 
+  // Returns whether the explore gate is still locked, and along the
+  // way updates btn-ready's label/style to match -- "Select one",
+  // pulsing yellow (.cta-ready, see the CSS), once it isn't. Callers
+  // that need to know whether picking has opened up (see
+  // stepGalleryPhoto's auto-trigger below) use the return value
+  // instead of re-deriving the same condition themselves.
   function updateReadyState(){
     const locked = requireBothExplored && seenPhotoIndices.size < galleryPhotoTotal;
     btnReady.disabled = locked;
     btnReady.textContent = locked ? LOCKED_LABEL : READY_LABEL;
+    btnReady.classList.toggle("cta-ready", !locked);
     // Only counts as "explored" the moment every slide has actually
     // been seen -- closing the modal early and reopening it must NOT
     // skip the gate next time, so this can't happen back in
     // openEncounter just because the modal was opened.
     if (!locked && currentPair) seenPairs.add(currentPair.id);
+    return locked;
   }
 
   function buildCard(plant){
@@ -2377,10 +2656,18 @@
     });
     updateGalleryCounter();
     cardsRow.classList.add("selecting");
-    btnReady.classList.add("hidden");
     encounterPrompt.classList.remove("hidden");
-    btnReview.classList.remove("hidden");
     galleryHintRow.classList.add("hidden");
+    // "Select one" stays up as a pulsing indicator (see .cta-ready in
+    // the CSS) instead of disappearing now that picking is possible --
+    // with "Review plants again" shown right below it, same DOM order
+    // as always. Getting here no longer needs a click on it (see
+    // stepGalleryPhoto's auto-trigger below, and the already-know-this-
+    // pair path in openEncounter) -- it's still a real button underneath
+    // and works exactly the same if tapped, just not the expected way in
+    // any more.
+    updateReadyState();
+    btnReview.classList.remove("hidden");
   }
 
   // "x / N" counter, centered under the cards -- the cover counts as
@@ -2391,10 +2678,10 @@
   }
 
   // Steps the shared photo index (cover included) and applies it to
-  // both cards -- the only way photos change now. "Click to select"
-  // only unlocks once every slide in seenPhotoIndices has actually
-  // been shown at least once (see updateReadyState), so a single tap
-  // isn't enough -- the player has to page all the way through both
+  // both cards -- the only way photos change now. "Select one" only
+  // unlocks once every slide in seenPhotoIndices has actually been
+  // shown at least once (see updateReadyState), so a single tap isn't
+  // enough -- the player has to page all the way through both
   // galleries first.
   function stepGalleryPhoto(delta){
     if (mode !== "reading") return;
@@ -2403,11 +2690,20 @@
       if (typeof card.showPhoto === "function") card.showPhoto(galleryPhotoIndex);
     });
     seenPhotoIndices.add(galleryPhotoIndex);
-    updateReadyState();
+    const locked = updateReadyState();
     updateGalleryCounter();
     // The player has now actually tapped -- no need to keep teaching
     // the mechanic for the rest of THIS pair.
     galleryTapHint.classList.add("hidden");
+
+    // Once unlocked AND the player has cycled all the way back around
+    // to the cover, selecting mode now starts automatically -- no
+    // click on "Select one" required, just finishing the review loop.
+    // Only ever fires from a forward step landing exactly back on the
+    // cover, since galleryPhotoIndex only ever increases (wrapping).
+    if (!locked && galleryPhotoIndex === 0){
+      enterSelectingMode();
+    }
   }
 
   // Tapping in the gap BETWEEN the two cards also pages the gallery,
@@ -2488,7 +2784,7 @@
   // player actually gets to read the result, including the caveat
   // line explaining what makes a "Foe" plant dangerous, not just
   // glimpse it.
-  const RESULT_DISPLAY_MS = 5201; // 3467, +50% so there's time to read the caveat
+  const RESULT_DISPLAY_MS = 6935; // was 10402 -- cut by 1/3 (10402 * 2/3)
 
   // On a wrong pick, let the "Foe" reveal register on its own first --
   // the heart only starts shaking once the word has had a moment to
@@ -2538,10 +2834,11 @@
     cardsRow.classList.remove("selecting");
     cardsRow.classList.add("answered");
     btnReview.classList.add("hidden");
+    btnReady.classList.add("hidden"); // was left up as the "Select one" indicator through selecting mode -- see enterSelectingMode
 
     // This trail spot is done -- walking back to it later shouldn't
     // let the player re-answer it (see the click handler where
-    // `plants` buttons are built, up near assignEncounterSchedule).
+    // `plants` buttons are built, up near createPlantSpot).
     markPlantAnswered(currentPlantSpot);
 
     const isCorrect = card.dataset.correct === "true";
@@ -2560,6 +2857,8 @@
       playSound("correct");
       hunger = 100;
       updateHungerUI();
+      correctCount += 1;
+      updateRescueProgress();
     } else {
       playSound("wrong");
       setTimeout(() => { loseHeart(); }, HEART_LOSE_DELAY_MS);
@@ -2567,13 +2866,19 @@
 
     // Let the result (and the heart-loss animation, if any) actually
     // register, then hand the player back to the field -- unless that
-    // was the last heart, in which case the run is over and we start
-    // the Game Over transition sooner (see GAME_OVER_START_DELAY_MS).
+    // was the last heart (run over) or this pick just reached
+    // WIN_TARGET (run won), in which case a transition starts instead.
+    // Checked in this order because they're mutually exclusive -- a
+    // correct pick never costs a heart, so heartsRemaining can only
+    // have hit 0 here as a result of a WRONG pick above.
     // endGame("lost") closes the encounter modal itself, only once the
     // fade-to-black is done, so the result stays visible under the
-    // fade rather than being cut away first.
+    // fade rather than being cut away first. endGame("won") does the
+    // same for the reveal on a winning pick.
     setTimeout(() => {
-      if (heartsRemaining <= 0){
+      if (correctCount >= WIN_TARGET){
+        endGame("won");
+      } else if (heartsRemaining <= 0){
         endGame("lost");
       } else {
         closeModal(modalEncounter);

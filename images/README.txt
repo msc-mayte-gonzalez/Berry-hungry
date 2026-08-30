@@ -1,4 +1,5 @@
-Play-screen background + player + intro credits — three image files
+Play-screen background + player + intro credits + rescue progress —
+five image files
 
 Drop files into this folder with these exact names. Nothing else
 needs to change in the code -- each one lights up automatically as
@@ -16,6 +17,14 @@ soon as it's here.
   credits.png       The image shown on the very first "credits"
                     screen, before the Berry Hungry title screen --
                     only appears once, on first load. See below.
+
+  rescue-marker.png  The small token that climbs the rescue-progress
+                    track in the upper right of the HUD as the player
+                    picks correct plants -- see below.
+
+  rescue-goal.png    The helicopter icon fixed at the TOP of that
+                    same track -- the thing the marker is climbing
+                    toward. See below.
 
 Specs:
 
@@ -45,16 +54,38 @@ Specs:
   - Format: PNG with a transparent background -- it sits centered
     over a solid black screen, so anything transparent in the image
     just shows black through it.
-  - Scaled to fit inside a box up to about 78% of the screen's width
+  - Scaled to fit inside a box up to about 39% of the screen's width
     and height, without cropping or stretching, so any reasonable
     size/aspect ratio works -- something in the 1200-2000px range on
-    its longest side is a safe target.
+    its longest side is a safe target (it'll just render smaller on
+    screen than that box, same as before -- the source file doesn't
+    need to be any smaller).
   - Shown once, automatically, only the very first time the page is
     opened -- never again on Start Over / Play Again / Try Again.
-    It holds for about 2.6 seconds, then fades smoothly to black
-    over about 1.1 seconds and reveals the Berry Hungry title screen
-    underneath. Clicking anywhere on it skips straight to the fade,
-    for faster playtesting.
+    The logo softly fades in (0.6s), holds fully visible (1s), then
+    softly fades back out (0.6s), holds a silent black for a brief
+    pause (0.3s), then the whole screen softly fades itself away too
+    (0.6s) -- so the reveal isn't an abrupt cut -- into the Berry
+    Hungry title screen underneath. About 3.1 seconds total.
+    Clicking anywhere on it skips straight ahead, for faster
+    playtesting.
+
+  rescue-marker.png
+  - Format: PNG with a transparent background.
+  - Shows inside a ~56x56px circle, so it's cropped to a circle
+    automatically (object-fit: cover would be more accurate, but this
+    uses contain -- so a square or roughly-circular source with the
+    subject filling most of the frame looks best; a source around
+    300-500px square is a safe target). This is meant to read as "the
+    player, in miniature" -- doesn't need to be a literal match to
+    player.png, just recognizably the same character/idea.
+
+  rescue-goal.png
+  - Format: PNG with a transparent background.
+  - Scaled to fit inside a ~80x80px box, so keep the silhouette
+    simple and readable at a glance (a helicopter side-profile or
+    similar) rather than detailed -- a source around 300-500px on its
+    longest side is a safe target.
 
 Until these files exist:
   - background.jpg / player.png just show plain gradient/placeholder
@@ -63,5 +94,9 @@ Until these files exist:
     drop images/credits.png in to show it here" tag in the corner,
     then still fades into the title screen on the same schedule --
     so you can playtest the timing before the final art exists.
+  - rescue-marker.png / rescue-goal.png each show as a small amber
+    square with a "?" -- same placeholder language as the trail
+    plants -- and the progress track/label still work and update
+    normally in the meantime.
 
-You can delete this file once all three images are in place.
+You can delete this file once all five images are in place.

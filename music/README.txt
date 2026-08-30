@@ -7,7 +7,9 @@ here.
 
   walk.mp3     Plays while the player is out on the trail (walking
                around, before tapping any plant). Starts the moment
-               "Start Game" or "Try Again" is pressed.
+               the Berry Hungry start screen appears (right as the
+               credits fade away, whether that happens on its own or
+               by clicking to skip), and again on "Try Again."
 
   choice.mp3   Plays instead, while the "which plant would you eat?"
                card screen is open -- swaps in the instant a plant
@@ -36,10 +38,16 @@ yourself -- 0 is silent, 1 is full volume).
 
 IMPORTANT -- same browser rule as sounds/README.txt's note on
 credits-appear.m4a: audio can't autoplay until the player has
-interacted with the page in some way. Since walk.mp3 only starts
-after a click ("Start Game" or "Try Again"), that requirement is
-already satisfied by the time it tries to play -- so, unlike the
-credits sound, both of these should reliably play every time.
+interacted with the page in some way. walk.mp3 now tries to start as
+soon as the credits fade away, which can happen automatically
+(no click yet) -- so on a completely cold load, some browsers may
+block that first attempt and stay silent. There's a safety net,
+though: the moment the player clicks "Start Game," walk.mp3 is asked
+to play again, and a real click always satisfies the browser's
+requirement -- so at worst, the music is a beat or two late on a
+brand-new visit, never permanently silent. choice.mp3 only ever
+starts after a plant is tapped, which is always a click, so it's not
+affected by this at all.
 
 Until these files exist, the game just plays silently -- nothing
 breaks. You can delete this file once both are in place.
