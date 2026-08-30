@@ -123,9 +123,21 @@
   .screen-credits{
     /* .screen elements otherwise stack by DOM order alone -- this
        puts the credits screen above all of them regardless, so it's
-       always what's on top the instant the page loads. */
+       always what's on top the instant the page loads. Stays solid
+       black (opacity untouched) through the logo's own fade in/hold/
+       fade out and the brief black pause after -- then JS adds
+       .credits-reveal (see below) to softly fade the whole screen
+       itself away, and removes it once that's done too (see
+       CREDITS_TOTAL_MS). */
     z-index: 700;
     background: #000;
+    /* Only used for the final reveal (.credits-reveal below) -- keep
+       this 0.6s in sync with CREDITS_SCREEN_FADE_MS in the script. */
+    transition: opacity 0.6s ease;
+  }
+  .screen-credits.credits-reveal{
+    opacity: 0;
+    pointer-events: none;
   }
   .credits-art{
     position: relative;
@@ -143,16 +155,23 @@
     height:auto;
     object-fit: contain;
   }
-  .credits-image.loaded{ display:block; }
-  .credits-art.has-credits .placeholder-tag{ display:none; }
-  /* Toggled by JS once, on load -- fades the whole screen to
-     transparent, revealing the Start screen underneath, then it's
-     removed from the DOM so it can never come back this session. */
-  .screen-credits.credits-fade-out{
-    opacity: 0;
-    transition: opacity 1.1s ease;
-    pointer-events: none;
+  /* Soft fade in, hold fully visible, soft fade out -- 0.6s / 1s /
+     0.6s = 2.2s total. The percentages below are just that split
+     expressed as fractions of 2.2s (0.6/2.2 = 27.27%, 1.6/2.2 =
+     72.73%) -- if CREDITS_FADE_MS or CREDITS_HOLD_MS change in the
+     script, update the 2.2s duration and these two percentages to
+     match. */
+  .credits-image.loaded{
+    display:block;
+    animation: credits-logo-fade 2.2s ease-in-out forwards;
   }
+  @keyframes credits-logo-fade{
+    0%      { opacity: 0; }
+    27.27%  { opacity: 1; }
+    72.73%  { opacity: 1; }
+    100%    { opacity: 0; }
+  }
+  .credits-art.has-credits .placeholder-tag{ display:none; }
 
   /* ---------- Start screen ---------- */
   #screen-start .placeholder-art{
@@ -350,14 +369,24 @@
   /* The forest floor, as a converging trapezoid rather than a
      true rotated 3D plane — far more predictable to tune, and it
      reads just as clearly as "a path receding into the distance."
-     Purely decorative, so it never steals a tap meant for a plant. */
+     Purely decorative, so it never steals a tap meant for a plant.
+
+     Made transparent now that the road is drawn into the real
+     background art instead -- this div, its clip-path shape, and
+     its position in the DOM are all left exactly as they were on
+     purpose. Nothing about plant movement reads from .ground at all
+     (that's plant.distance/side + the --z perspective math in
+     updatePlants(), entirely separate) -- so this is purely a visual
+     change, and if the background art ever changes, uncommenting the
+     `background:` line below brings the drawn road right back. */
   .ground{
     position:absolute;
     left:0; right:0; bottom:0;
     height: 64%;
-    background:
+    background: transparent;
+    /* background:
       repeating-linear-gradient(90deg, rgba(44,36,16,0.15) 0 2px, transparent 2px 34px),
-      linear-gradient(180deg, #565927 0%, #767a30 45%, #9ea24e 100%);
+      linear-gradient(180deg, #565927 0%, #767a30 45%, #9ea24e 100%); */
     clip-path: polygon(41% 0%, 59% 0%, 96% 100%, 4% 100%);
     pointer-events: none;
   }
@@ -1213,8 +1242,11 @@
        those touch this screen at all (see the credits-screen script
        below, right after resetGame()). Sits on top of every other
        screen (see .screen-credits z-index) so it's the first thing
-       painted, then fades out on its own to reveal the Start screen
-       that's been sitting ready underneath it the whole time.
+       painted: the logo softly fades in (0.6s), holds (1s), softly
+       fades out (0.6s), then the screen holds a silent black for a
+       brief 0.3s pause, then the whole screen softly fades itself
+       away too (0.6s) before it's removed, revealing the Start
+       screen that's been sitting ready underneath it the whole time.
 
        Drop the artwork in as images/credits.png (a transparent PNG
        looks best against the black background) -- nothing else needs
@@ -1861,23 +1893,54 @@
 
   /* ============================================================
      INITIAL CREDITS SCREEN -- see the HTML comment above
-     #screen-credits for the full picture. Holds for a few seconds
-     (or until clicked, for faster playtesting) then fades out once
-     and removes itself for good. Start Over / Play Again / Try
-     Again never come back through here -- they only ever touch
-     screen-start / screen-play / etc, never screen-credits.
+     #screen-credits for the full picture. The logo's soft fade-in
+     / hold / fade-out is the credits-logo-fade CSS animation on
+     .credits-image (see above -- CREDITS_FADE_MS/CREDITS_HOLD_MS
+     below must stay in sync with its 2.2s duration and 27.27% /
+     72.73% keyframe split). After a brief black pause, the whole
+     screen then softly fades itself away too (.credits-reveal,
+     CREDITS_SCREEN_FADE_MS -- keep in sync with .screen-credits'
+     own transition above), so the reveal isn't an abrupt cut, and
+     is removed once that's done. A click skips straight to that
+     same soft reveal instead of waiting out whichever phase
+     (fade-in, hold, fade-out, or the black pause) is still playing.
+     Start Over / Play Again / Try Again never come back through
+     here -- they only ever touch screen-start / screen-play / etc,
+     never screen-credits.
      ============================================================ */
-  const CREDITS_HOLD_MS = 2600;
-  const CREDITS_FADE_MS = 1100; // keep in sync with .credits-fade-out's transition above
+  const CREDITS_FADE_MS = 600;          // logo soft fade-in / fade-out, each -- keep in sync with credits-logo-fade above
+  const CREDITS_HOLD_MS = 1000;         // logo fully visible -- keep in sync with credits-logo-fade above
+  const CREDITS_BLACK_PAUSE_MS = 300;   // silent black pause after the logo's done fading out
+  const CREDITS_SCREEN_FADE_MS = 600;   // soft fade of the black screen itself, at the very end -- keep in sync with .screen-credits' transition above
+  const CREDITS_REVEAL_DELAY_MS = CREDITS_FADE_MS * 2 + CREDITS_HOLD_MS + CREDITS_BLACK_PAUSE_MS; // when the final screen fade-out begins
+  const CREDITS_TOTAL_MS = CREDITS_REVEAL_DELAY_MS + CREDITS_SCREEN_FADE_MS; // when it's fully gone
   let creditsDismissed = false;
   function dismissCredits(){
     if (creditsDismissed) return;
     creditsDismissed = true;
-    screenCredits.classList.add("credits-fade-out");
-    setTimeout(() => { screenCredits.remove(); }, CREDITS_FADE_MS);
+    screenCredits.remove();
   }
-  screenCredits.addEventListener("click", dismissCredits);
-  setTimeout(dismissCredits, CREDITS_HOLD_MS);
+  function beginReveal(){
+    if (creditsDismissed) return;
+    screenCredits.classList.add("credits-reveal");
+  }
+  function skipCredits(){
+    if (creditsDismissed || screenCredits.classList.contains("credits-reveal")) return;
+    // Cut the logo to black wherever it currently is, then start the
+    // same soft reveal early -- a fast-forward through whichever
+    // phase is still playing, for faster playtesting.
+    const img = screenCredits.querySelector(".credits-image");
+    if (img){
+      img.style.animation = "none";
+      img.style.opacity = "0";
+    }
+    creditsDismissed = true;
+    screenCredits.classList.add("credits-reveal");
+    setTimeout(() => { screenCredits.remove(); }, CREDITS_SCREEN_FADE_MS);
+  }
+  screenCredits.addEventListener("click", skipCredits);
+  setTimeout(beginReveal, CREDITS_REVEAL_DELAY_MS);
+  setTimeout(dismissCredits, CREDITS_TOTAL_MS);
 
   /* ============================================================
      START OVER — reset all run state and go back to the start
