@@ -859,7 +859,7 @@
   .card.card-correct .card-face{ border-color: var(--correct); background: var(--correct-tint); }
   .card.card-wrong .card-face{ border-color: var(--wrong); background: var(--wrong-tint); }
 
-  /* Once "Ready to choose..." is pressed, the whole card becomes
+  /* Once "Click to select" is pressed, the whole card becomes
      the choice — give it an obvious pressable affordance. */
   .cards.selecting .card-face{
     box-shadow: var(--shadow), 0 0 0 3px var(--amber);
@@ -1104,7 +1104,7 @@
         <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
         <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
       </div>
-      <button id="btn-ready" class="btn btn-primary btn-ready">Ready to choose...</button>
+      <button id="btn-ready" class="btn btn-primary btn-ready">Click to select</button>
       <button id="btn-review" class="btn-review hidden">Review plants again</button>
     </div>
   </div>
@@ -1322,8 +1322,11 @@
   document.getElementById("btn-encounter-close").addEventListener("click", () => closeModal(modalEncounter));
 
   /* ============================================================
-     WALKING — hold ArrowUp to advance. Only forward, and only
-     while held, so stopping to look around is just letting go.
+     WALKING — hold ArrowUp/W to advance, ArrowDown/S to retreat,
+     only while held, so stopping to look around is just letting go.
+     Holding both at once cancels out rather than picking a winner.
+     Retreating is there so a plant the player walked past without
+     tapping isn't gone for good -- they can just back up to it.
 
      Each plant has a fixed distance "down the trail". As the
      player's progress climbs toward that distance, t goes from
@@ -1465,6 +1468,7 @@
 
   let progress = 0;
   let advancing = false;
+  let retreating = false;
   let lastTime = null;
 
   function canWalk(){
@@ -1537,6 +1541,7 @@
 
   function endGame(result){
     advancing = false;
+    retreating = false;
 
     if (result === "won") {
       closeModal(modalEncounter);
@@ -1615,10 +1620,13 @@
         }
       }
 
-      if (canWalk() && advancing){
-        progress += WALK_SPEED * dt;
+      // Opposite keys held together cancel out (dir 0) instead of one
+      // arbitrarily winning.
+      const dir = (advancing ? 1 : 0) - (retreating ? 1 : 0);
+      if (canWalk() && dir !== 0){
+        progress = clamp(progress + dir * WALK_SPEED * dt, 0, Infinity);
         updatePlants();
-        if (progress >= FINISH_DISTANCE){
+        if (dir > 0 && progress >= FINISH_DISTANCE){
           endGame("won");
         }
       }
@@ -1628,15 +1636,22 @@
   requestAnimationFrame(tick);
 
   window.addEventListener("keydown", (e) => {
-    if (e.key !== "ArrowUp") return;
-    e.preventDefault();
-    advancing = true;
+    const key = e.key.toLowerCase();
+    if (key === "arrowup" || key === "w"){
+      e.preventDefault();
+      advancing = true;
+    } else if (key === "arrowdown" || key === "s"){
+      e.preventDefault();
+      retreating = true;
+    }
   });
   window.addEventListener("keyup", (e) => {
-    if (e.key === "ArrowUp") advancing = false;
+    const key = e.key.toLowerCase();
+    if (key === "arrowup" || key === "w") advancing = false;
+    else if (key === "arrowdown" || key === "s") retreating = false;
   });
   // Letting go of the window (alt-tab, etc.) should stop the walk too.
-  window.addEventListener("blur", () => { advancing = false; });
+  window.addEventListener("blur", () => { advancing = false; retreating = false; });
 
   updatePlants();
   updateHungerUI();
@@ -1649,6 +1664,7 @@
   function resetGame(){
     progress = 0;
     advancing = false;
+    retreating = false;
     hunger = 100;
     updateHungerUI();
 
@@ -1731,6 +1747,11 @@
   const seenPairs = new Set();
   let requireBothExplored = false;
   let seenPhotoIndices = new Set();
+  // The pair currently open in the encounter modal -- kept around so
+  // updateReadyState can mark it as fully explored (see seenPairs
+  // below) at the moment exploration actually finishes, not just at
+  // the moment the modal opens.
+  let currentPair = null;
 
   // Which photo is showing is shared across BOTH cards in the current
   // encounter -- a tap steps this once and it applies to whichever of
@@ -1743,7 +1764,7 @@
   // playthrough -- reset alongside everything else in resetGame().
   let hasSeenGalleryHint = false;
 
-  const READY_LABEL  = "Ready to choose...";
+  const READY_LABEL  = "Click to select";
   const LOCKED_LABEL = "First explore both plants";
 
   // The cute card-flip that plays whenever a card's visible slide
@@ -1758,6 +1779,11 @@
     const locked = requireBothExplored && seenPhotoIndices.size < galleryPhotoTotal;
     btnReady.disabled = locked;
     btnReady.textContent = locked ? LOCKED_LABEL : READY_LABEL;
+    // Only counts as "explored" the moment every slide has actually
+    // been seen -- closing the modal early and reopening it must NOT
+    // skip the gate next time, so this can't happen back in
+    // openEncounter just because the modal was opened.
+    if (!locked && currentPair) seenPairs.add(currentPair.id);
   }
 
   function buildCard(plant){
@@ -1879,7 +1905,9 @@
   function enterReadingMode(){
     mode = "reading";
     cardsRow.classList.remove("selecting");
-    encounterPrompt.classList.add("hidden");
+    // Stays visible in reading mode too now -- without it, it's not
+    // clear WHY the player is paging through photos at all.
+    encounterPrompt.classList.remove("hidden");
     btnReview.classList.add("hidden");
     btnReady.classList.remove("hidden");
     galleryHintRow.classList.remove("hidden");
@@ -1912,7 +1940,7 @@
   }
 
   // Steps the shared photo index (cover included) and applies it to
-  // both cards -- the only way photos change now. "Ready to choose..."
+  // both cards -- the only way photos change now. "Click to select"
   // only unlocks once every slide in seenPhotoIndices has actually
   // been shown at least once (see updateReadyState), so a single tap
   // isn't enough -- the player has to page all the way through both
@@ -1961,8 +1989,12 @@
     galleryTapHint.classList.toggle("hidden", hasSeenGalleryHint);
     hasSeenGalleryHint = true;
 
+    currentPair = pair;
     requireBothExplored = !seenPairs.has(pair.id);
-    seenPairs.add(pair.id);
+    // NOTE: seenPairs only gets pair.id added once exploration is
+    // actually complete (see updateReadyState) -- not here, on open.
+    // Otherwise closing early and reopening would wrongly skip the
+    // gate next time.
     // The cover (index 0) is already on screen the moment the modal
     // opens, so it counts as "seen" from the start -- the player just
     // needs to page through the rest.
