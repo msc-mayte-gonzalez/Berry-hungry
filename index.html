@@ -220,6 +220,41 @@
     width: min(90vw, 340px);
   }
 
+  /* ---------- Mission intro screen -- the "why", shown once after
+     Start Game and before the walk begins. Deliberately darker/moodier
+     than the start screen's olive (this is the moment the player
+     realizes they're lost), but kept in the same forest-green family
+     rather than borrowing the Game Over screen's red, which is reserved
+     for actually losing. ---------- */
+  #screen-mission .placeholder-art{
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.08), transparent 55%),
+      linear-gradient(160deg, #241f0c 0%, var(--ink) 45%, var(--olive-dark) 100%);
+  }
+  .mission-content{
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    gap: 2.2rem;
+    padding: 2rem;
+    text-align:center;
+  }
+  .mission-text{
+    color: var(--white);
+    font-weight: 700;
+    font-size: clamp(1.25rem, 4vw, 1.9rem);
+    line-height: 1.5;
+    max-width: 640px;
+    text-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  .mission-actions{ width: min(90vw, 340px); }
+
   /* ---------- Buttons ---------- */
   .btn{
     appearance:none;
@@ -278,6 +313,13 @@
     max-width: 440px;
     width: 100%;
   }
+  /* Desktop-width screens have the room for it, and the About modal's
+     content (long link labels, the credits lines) reads cramped -- like
+     it's getting clipped -- squeezed into the same 440px the phone
+     layout uses. Widen it once there's actually space to spare. */
+  @media (min-width: 760px){
+    #modal-about .modal-card{ max-width: 640px; }
+  }
   .modal-card h2{
     font-size: 1.4rem;
     color: var(--ink);
@@ -307,9 +349,66 @@
     line-height: 1.6;
     color: var(--ink-soft);
     background: var(--amber-tint);
-    border-left: 4px solid var(--amber);
     padding: 0.9rem 1rem;
     border-radius: var(--radius-sm);
+  }
+  .disclaimer + .disclaimer{ margin-top: 0.6rem; }
+  .disclaimer-strong{
+    font-weight: 700;
+    color: var(--wrong);
+  }
+  .about-resources-heading{
+    font-size: 0.96rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    margin: 1rem 0 0.5rem;
+  }
+  .about-links{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
+  .about-links li{
+    padding: 0.55rem 0.7rem;
+    background: var(--olive-tint);
+    border-radius: var(--radius-sm);
+  }
+  .about-link-region{
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .modal-card a{
+    color: var(--amber-dark);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .modal-card a:hover{ color: var(--ink); }
+
+  .about-section-heading{
+    font-size: 1.05rem;
+    color: var(--ink);
+    margin: 1.3rem 0 0.5rem;
+  }
+  .about-plain-text{
+    font-size: 0.94rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .about-credits{
+    margin: 0;
+    padding-left: 1.15rem;
+    font-size: 0.94rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
   /* ============================================================
@@ -1297,12 +1396,48 @@
     </div>
   </section>
 
+  <!-- ============ MISSION INTRO SCREEN -- the setup, shown once after
+       Start Game and before the walk begins ============ -->
+  <section id="screen-mission" class="screen hidden">
+    <div class="placeholder-art">
+      <span class="placeholder-tag">forest — art coming later</span>
+    </div>
+    <div class="mission-content">
+      <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. Will you make it?</p>
+      <div class="mission-actions">
+        <button id="btn-mission-continue" class="btn btn-primary btn-block">Let's Go!</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ ABOUT MODAL ============ -->
   <div id="modal-about" class="modal-overlay hidden">
     <div class="modal-card">
       <button id="btn-about-close" class="modal-close" aria-label="Close">×</button>
       <h2>About This Game</h2>
-      <p class="disclaimer">This game was built for educational purposes only, but does not replace a formal education and training on foraging. DO NOT eat plants you don't know. Unlike this game, you don't have extra hearts to spare and a chance to start over.</p>
+      <p class="disclaimer">This game is for educational purposes only. It does not replace hands-on foraging training.</p>
+      <p class="disclaimer disclaimer-strong">Never eat a plant unless you can identify it with certainty.</p>
+      <p class="disclaimer">Unlike in this game, you don't have extra hearts or a chance to start over.</p>
+      <p class="about-resources-heading">Find hands-on foraging training near you, like:</p>
+      <ul class="about-links">
+        <li><span class="about-link-region">Ontario:</span> <a href="https://wscsurvivalschool.com/" target="_blank" rel="noopener noreferrer">WSC Survival School</a></li>
+        <li><span class="about-link-region">Ontario:</span> <a href="https://wildmuskoka.com/" target="_blank" rel="noopener noreferrer">Wild Muskoka Botanicals</a></li>
+        <li><span class="about-link-region">Ontario:</span> <a href="https://www.pucksplenty.com/" target="_blank" rel="noopener noreferrer">Puck's Plenty</a></li>
+        <li><span class="about-link-region">Quebec:</span> <a href="https://gourmetsauvage.ca/en/" target="_blank" rel="noopener noreferrer">Gourmet Sauvage</a></li>
+        <li><span class="about-link-region">United States:</span> <a href="https://wildfoodadventures.com/" target="_blank" rel="noopener noreferrer">Wild Food Adventures</a></li>
+        <li><span class="about-link-region">United States:</span> <a href="http://www.foragersharvest.com/" target="_blank" rel="noopener noreferrer">Forager's Harvest</a></li>
+      </ul>
+
+      <h3 class="about-section-heading">Prototype</h3>
+      <p class="about-plain-text">Built in 2.5 days.</p>
+
+      <h3 class="about-section-heading">Credits</h3>
+      <ul class="about-credits">
+        <li>Concept and development by M. Gonzalez (Sr. UX Researcher) and an anonymous collaborator (a great 3D Environment Artist!)</li>
+        <li>Supervised by H. Botones</li>
+        <li>Music: <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=281" target="_blank" rel="noopener noreferrer">freesound_community</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
+        <li>Sound effect: <a href="https://pixabay.com/users/universfield-28281460/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=352695" target="_blank" rel="noopener noreferrer">Universfield</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
+      </ul>
     </div>
   </div>
 
@@ -1686,6 +1821,7 @@
      ============================================================ */
   const screenCredits  = document.getElementById("screen-credits");
   const screenStart   = document.getElementById("screen-start");
+  const screenMission  = document.getElementById("screen-mission");
   const screenPlay     = document.getElementById("screen-play");
   const screenGameOver  = document.getElementById("screen-gameover");
   const screenWin        = document.getElementById("screen-win");
@@ -1721,15 +1857,28 @@
   /* ============================================================
      SCREEN + MODAL HELPERS
      ============================================================ */
-  function goToPlayScreen(){
+  // Start Game doesn't drop straight into the walk any more -- it
+  // shows the one-time "why" first (see #screen-mission), same beat as
+  // the credits screen's "who made this," just narrative instead of
+  // production credits. "Let's Go!" there is what actually calls
+  // goToPlayScreen(). Losing and hitting Try Again still skips straight
+  // back into the walk (see tryAgain() below) -- the mission only shows
+  // on a genuine fresh start from the title screen.
+  function goToMissionScreen(){
     screenStart.classList.add("hidden");
+    screenMission.classList.remove("hidden");
+  }
+  function goToPlayScreen(){
+    screenStart.classList.add("hidden"); // harmless if already hidden -- covers any future caller that skips the mission screen
+    screenMission.classList.add("hidden");
     screenPlay.classList.remove("hidden");
     playWalkMusic();
   }
   function openModal(modal){ modal.classList.remove("hidden"); }
   function closeModal(modal){ modal.classList.add("hidden"); }
 
-  document.getElementById("btn-start").addEventListener("click", goToPlayScreen);
+  document.getElementById("btn-start").addEventListener("click", goToMissionScreen);
+  document.getElementById("btn-mission-continue").addEventListener("click", goToPlayScreen);
 
   document.getElementById("btn-about").addEventListener("click", () => openModal(modalAbout));
   document.getElementById("btn-about-close").addEventListener("click", () => closeModal(modalAbout));
@@ -2356,6 +2505,11 @@
     progress = 0;
     advancing = false;
     retreating = false;
+    // Invalidate any encounter-close timer still pending from the run
+    // that just ended -- see the encounterToken comment near its
+    // declaration.
+    encounterToken += 1;
+    currentPlantSpot = null;
     hunger = 100;
     updateHungerUI();
 
@@ -2468,6 +2622,18 @@
   // the player picks a card (see markPlantAnswered).
   let currentPlantSpot = null;
 
+  // Bumped every time a NEW encounter opens (and on resetGame) -- lets
+  // selectCard's delayed "close the modal and go back to walking"
+  // timeout (see RESULT_DISPLAY_MS below) tell whether it's still
+  // talking about the encounter that's actually on screen. Without
+  // this: dismiss a reveal early with the "x" close button, walk to a
+  // brand-new plant and open IT before the old timer runs out, and the
+  // stale timer fires later and yanks the new encounter closed out
+  // from under the player -- looking like the modal "glitches and
+  // closes on its own," fixed by a second click since that reopen has
+  // no stale timer chasing it.
+  let encounterToken = 0;
+
   // Which photo is showing is shared across BOTH cards in the current
   // encounter -- a tap steps this once and it applies to whichever of
   // the two cards are built right now, so the same trait lines up on
@@ -2487,6 +2653,12 @@
 
   const READY_LABEL  = "Select one";
   const LOCKED_LABEL = "First explore both plants";
+  // Shown once exploration is done but the gallery hasn't paged back
+  // around to the cover yet -- without this, "Select one" (and its
+  // pulse) would appear the instant the LAST unseen photo is viewed,
+  // while the cards are still showing that photo rather than the
+  // cover, which reads as a glitch/mismatch. See updateReadyState.
+  const REVIEWING_LABEL = "Keep browsing";
 
   // The cute card-flip that plays whenever a card's visible slide
   // crosses the line between the cover and an identification photo
@@ -2504,9 +2676,19 @@
   // instead of re-deriving the same condition themselves.
   function updateReadyState(){
     const locked = requireBothExplored && seenPhotoIndices.size < galleryPhotoTotal;
+    // "Select one" (and its pulse) only shows once the player is
+    // actually looking at the cover again -- being unlocked mid-gallery
+    // (say, right after the last unseen photo) isn't enough on its
+    // own, otherwise the CTA flips to "Select one" while the cards are
+    // still showing a photo instead of the cover, which looks like a
+    // glitch. See REVIEWING_LABEL above and stepGalleryPhoto's
+    // auto-trigger below, which fires at the same instant this
+    // becomes true.
+    const atCover = galleryPhotoIndex === 0;
+    const ready = !locked && atCover;
     btnReady.disabled = locked;
-    btnReady.textContent = locked ? LOCKED_LABEL : READY_LABEL;
-    btnReady.classList.toggle("cta-ready", !locked);
+    btnReady.textContent = locked ? LOCKED_LABEL : (atCover ? READY_LABEL : REVIEWING_LABEL);
+    btnReady.classList.toggle("cta-ready", ready);
     // Only counts as "explored" the moment every slide has actually
     // been seen -- closing the modal early and reopening it must NOT
     // skip the gate next time, so this can't happen back in
@@ -2719,6 +2901,7 @@
   function openEncounter(plant){
     const pair = plant.pair;
     currentPlantSpot = plant;
+    encounterToken += 1; // this is now the one true encounter -- see the comment by its declaration
 
     // The player's now actually opened a plant -- no need to keep
     // teaching that mechanic for the rest of this playthrough.
@@ -2831,6 +3014,11 @@
 
   function selectCard(card){
     mode = "answered";
+    // Snapshot which encounter this pick belongs to -- see the
+    // encounterToken comment up by its declaration. Read again, live,
+    // inside the setTimeout below to tell a stale close apart from a
+    // real one.
+    const myEncounterToken = encounterToken;
     cardsRow.classList.remove("selecting");
     cardsRow.classList.add("answered");
     btnReview.classList.add("hidden");
@@ -2880,7 +3068,12 @@
         endGame("won");
       } else if (heartsRemaining <= 0){
         endGame("lost");
-      } else {
+      } else if (myEncounterToken === encounterToken){
+        // Only close/return-to-walking on the encounter's OWN behalf --
+        // if a newer encounter has since opened (or the game's been
+        // reset), encounterToken has moved on and this timer is stale;
+        // touching the modal now would yank whatever's showing NOW
+        // closed instead. See the encounterToken comment above.
         closeModal(modalEncounter);
         playWalkMusic();
       }
