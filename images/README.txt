@@ -1,5 +1,5 @@
 Play-screen background + player + intro credits + rescue progress +
-ground rocks + hearts — nine image files
+ground rocks + hearts + win helicopter — ten image files
 
 Drop files into this folder with these exact names. Nothing else
 needs to change in the code -- each one lights up automatically as
@@ -41,6 +41,12 @@ soon as it's here.
   heart-broken.png   The same heart, broken -- shown in place of
                     heart-full.png for each life the player has
                     already lost. See below.
+
+  helicopter.png     ALREADY INCLUDED as a starter/placeholder --
+                    the rescue helicopter that descends from the top
+                    of the screen once the player wins. Swap it out
+                    for final art any time by replacing this file
+                    with a new one under the same name. See below.
 
 Specs:
 
@@ -135,6 +141,22 @@ Specs:
     upper left, and the small pair shown above the cards while
     picking) -- no separate versions needed for each spot.
 
+  helicopter.png
+  - Format: PNG with a transparent background.
+  - Scaled to fit inside a box up to about 30% of the screen's width
+    (max 170px), using "contain", so a roughly-square or wide source
+    with the subject filling most of the frame works best -- around
+    500-800px on its longest side is a safe target.
+  - Descends straight down from off the top of the screen to just
+    above the horizon line over about 2.2 seconds once the player
+    wins, then the screen hands off to the "Rescued!" screen -- so a
+    clear, readable silhouette from a slight top-down angle (as if
+    glimpsed arriving overhead) works better than a straight side
+    profile.
+  - This one's already dropped in for you (using the placeholder art
+    you shared) -- everything above just explains what a final
+    replacement should match if you swap it out later.
+
 Until these files exist:
   - background.jpg / player.png just show plain gradient/placeholder
     shapes in their place -- nothing breaks, it just looks unfinished.
@@ -152,5 +174,8 @@ Until these files exist:
   - heart-full.png / heart-broken.png each fall back to the plain ♥
     / 💔 text characters (same red/gray look as before) -- the HUD
     and hearts-remaining count keep working normally in the meantime.
+  - helicopter.png doesn't apply here -- it's already included (see
+    above).
 
-You can delete this file once all nine images are in place.
+You can delete this file once all ten images are in place (nine of
+them, anyway -- helicopter.png is already here).

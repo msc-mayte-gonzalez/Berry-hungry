@@ -693,6 +693,44 @@
     pointer-events:none; /* purely decorative — never steals a tap from a plant */
   }
 
+  /* ---------- Win moment: rescue helicopter ---------- */
+  /* Screen-anchored, flat 2D overlay -- NOT part of .stage's 3D
+     perspective plane (unlike the plants/rocks), since it's simply
+     dropping in from the top of the screen rather than approaching
+     down the trail. Idle off-screen above until endGame("won") adds
+     .descending (see the script), at which point the `top` transition
+     below carries it down to just above FAR_TOP -- the same vertical
+     % the trail's own far edge sits at (see the script's FAR_TOP
+     constant), i.e. "the horizon line" the player's been walking
+     toward the whole game. */
+  .win-helicopter{
+    position:absolute;
+    left:50%;
+    top:-32%;
+    width: min(30vw, 170px);
+    transform: translateX(-50%);
+    z-index: 13;
+    pointer-events:none;
+    transition: top 2.2s cubic-bezier(0.28, 0.62, 0.35, 1);
+  }
+  .win-helicopter.hidden{ display:none; }
+  .win-helicopter.descending{ top: 32%; }
+  .win-helicopter .placeholder-tag{
+    top: auto;
+    bottom: -1.7rem;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 0.56rem;
+  }
+  .win-helicopter-img{
+    display:none;
+    width:100%;
+    height:auto;
+  }
+  .win-helicopter-img.loaded{ display:block; }
+  .win-helicopter.has-art .placeholder-tag{ display:none; }
+
   /* ---------- HUD: hearts, hunger, start over ---------- */
   .hud{
     position:absolute;
@@ -1329,6 +1367,23 @@
   .cards.selecting .card-face:hover{ transform: translateY(-4px); }
   .cards.answered .card-face{ cursor:default; }
   .cards.answered .card-face:hover{ transform: none; }
+  /* The reveal's own name-less: .card-name sits in the card-face's
+     OWN layout (behind the overlay), while .result-overlay is a
+     same-size sibling on top of it (position:absolute, inset:0) with
+     its own independent grid -- two separate layers sharing one box.
+     A long caveat line (see .result-caveat) can wrap to 2-3 lines and
+     grow taller than its grid row was sized for, especially once the
+     card itself shrinks on a short window (see the max-height:760px
+     card resize below) -- and since nothing clips that growth, it
+     visually reaches down far enough to sit on top of card-name
+     underneath, reading as a layout glitch (this is the "Friend/Foe
+     misaligned" report). The name's already been seen during
+     exploring, and the reveal doesn't need it anyway (the Friend/Foe
+     word + border color + caveat carry the info) -- so it's simplest
+     and fully robust (works at any window size, any caveat length) to
+     just hide it for the reveal's duration, rather than trying to cap
+     how tall the caveat pill is allowed to grow. */
+  .cards.answered .card-name{ display:none; }
 
   /* Big "Friend"/"Foe" reveal once a choice is made -- grows in over
      the card's photo and stays up long enough to actually read. Both
@@ -1612,6 +1667,18 @@
                onerror="this.remove();">
           <span class="placeholder-tag">player — first-person placeholder</span>
         </div>
+      </div>
+
+      <!-- Win moment: once the player reaches WIN_TARGET, a helicopter
+           descends from off the top of the screen down to just above
+           the horizon (see .win-helicopter / endGame("won") in the
+           script) -- hidden the rest of the time. Drop the art in as
+           images/helicopter.png; nothing else needs to change. -->
+      <div class="win-helicopter hidden" id="win-helicopter">
+        <img class="win-helicopter-img" src="images/helicopter.png" alt=""
+             onload="this.classList.add('loaded'); this.closest('.win-helicopter').classList.add('has-art');"
+             onerror="this.remove();">
+        <span class="placeholder-tag">helicopter — drop images/helicopter.png in to show it here</span>
       </div>
 
       <!-- HUD -->
@@ -2016,6 +2083,7 @@
   const hintWalk               = document.getElementById("hint-walk");
   const hintPlant              = document.getElementById("hint-plant");
   const playerSway              = document.getElementById("player-sway");
+  const winHelicopter           = document.getElementById("win-helicopter");
   const heartsEl              = document.getElementById("hearts");
   const encounterHeartsEl      = document.getElementById("encounter-hearts");
   const hungerSlider            = document.getElementById("hunger-slider");
@@ -2510,8 +2578,22 @@
   let retreating = false;
   let lastTime = null;
 
+  // Set the instant a pick is known to end the run -- the fatal heart,
+  // or the pick that reaches WIN_TARGET -- see selectCard. This is
+  // NOT the same thing as the encounter modal being open: the reveal
+  // can be dismissed early (the "x", or tapping to dismiss once
+  // mode is "answered" -- see modalEncounter's click listener), which
+  // only closes the modal, not the run. Without this flag, an early
+  // dismiss would hand movement back to canWalk() (screenPlay is
+  // visible again the moment the modal's hidden) for however long is
+  // left until the delayed endGame() call in selectCard actually
+  // fires and hides screenPlay for real -- letting the player keep
+  // walking after they've already lost (or won). Reset in resetGame().
+  let runEnding = false;
+
   function canWalk(){
     return !screenPlay.classList.contains("hidden")
+        && !runEnding
         && modalEncounter.classList.contains("hidden")
         && modalAbout.classList.contains("hidden")
         && modalPause.classList.contains("hidden");
@@ -2603,6 +2685,15 @@
   // see why they lost before the screen starts going dark.
   const FADE_MS = 650;
 
+  // How long the helicopter's descent (see .win-helicopter's `top`
+  // transition in the CSS) plays out on the play screen itself before
+  // handing off to the actual Win screen -- keep in sync with that
+  // transition's own duration. The player is already frozen well
+  // before this (see runEnding, set the instant the winning pick was
+  // made), so this is purely watching the helicopter arrive, not
+  // something the player could walk through.
+  const WIN_HELICOPTER_MS = 2200;
+
   function endGame(result){
     advancing = false;
     retreating = false;
@@ -2610,12 +2701,22 @@
 
     if (result === "won") {
       closeModal(modalEncounter);
-      screenPlay.classList.add("hidden");
-      screenWin.classList.remove("hidden");
-      // Optional rescue sting -- see sounds/README.txt. Same "fires
-      // the instant the screen is swapped in" timing as game-over
-      // below; MP3 per explicit request. Missing file fails silently.
+      // Optional rescue sting -- see sounds/README.txt. Fires right as
+      // the helicopter starts its descent, same "sting lines up with
+      // the moment that earns it" idea as game-over's own sound
+      // below. MP3 per explicit request. Missing file fails silently.
       playSound("rescue", "mp3");
+      // Play out the helicopter's descent on the (now frozen, see
+      // runEnding) play screen first, THEN swap to the actual Win
+      // screen -- see WIN_HELICOPTER_MS above and resetGame() below,
+      // which puts .win-helicopter back to its off-screen starting
+      // state for the next playthrough.
+      winHelicopter.classList.remove("hidden");
+      winHelicopter.classList.add("descending");
+      setTimeout(() => {
+        screenPlay.classList.add("hidden");
+        screenWin.classList.remove("hidden");
+      }, WIN_HELICOPTER_MS);
       return;
     }
 
@@ -2819,6 +2920,21 @@
     playWalkMusic();
   }
   screenCredits.addEventListener("click", skipCredits);
+  // Undocumented on purpose -- an easter egg for anyone who happens to
+  // click the credits logo itself (not the surrounding black, just the
+  // image) purely by luck. Replays the same "credits-appear" cue that
+  // already plays once automatically below when this screen first
+  // mounts. Only does anything once real art exists at
+  // images/credits.png -- in the placeholder state there's no <img>
+  // left in the DOM to click (onerror removes it, see the markup), so
+  // there's nothing here to stumble onto by luck yet either. This
+  // listener fires before the click finishes bubbling up to
+  // screenCredits' own skipCredits() above -- both still happen on the
+  // same click, same as clicking anywhere else on the screen.
+  const creditsImageEl = screenCredits.querySelector(".credits-image");
+  if (creditsImageEl){
+    creditsImageEl.addEventListener("click", () => { playSound("credits-appear"); });
+  }
   setTimeout(beginReveal, CREDITS_REVEAL_DELAY_MS);
   setTimeout(dismissCredits, CREDITS_TOTAL_MS);
   // Fires right at mount, alongside the fade-in starting -- most
@@ -2835,6 +2951,7 @@
     progress = 0;
     advancing = false;
     retreating = false;
+    runEnding = false;
     // Invalidate any encounter-close timer still pending from the run
     // that just ended -- see the encounterToken comment near its
     // declaration.
@@ -2878,6 +2995,14 @@
     screenGameOver.classList.add("hidden");
     screenWin.classList.add("hidden");
     fadeOverlay.classList.remove("active");
+
+    // Put the rescue helicopter back off-screen for the next
+    // playthrough -- removing "descending" alone would leave it stuck
+    // wherever the transition left it since `top` is still explicitly
+    // set; re-hiding it via .hidden (display:none) sidesteps that,
+    // and the transition doesn't run while display:none anyway.
+    winHelicopter.classList.remove("descending");
+    winHelicopter.classList.add("hidden");
   }
 
   function startOver(){
@@ -3389,6 +3514,14 @@
     } else {
       playSound("wrong");
       setTimeout(() => { loseHeart(); }, HEART_LOSE_DELAY_MS);
+    }
+
+    // Freeze movement right now, synchronously, the moment this pick
+    // is known to end the run -- see runEnding's own comment by
+    // canWalk(). correctCount is already incremented above if this
+    // pick was correct, so it's safe to check here.
+    if (isFatalPick || correctCount >= WIN_TARGET){
+      runEnding = true;
     }
 
     // Let the result (and the heart-loss animation, if any) actually
