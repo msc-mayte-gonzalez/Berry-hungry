@@ -1,10 +1,20 @@
-Play-screen background + player + intro credits + rescue progress +
-ground rocks + hearts + win helicopter + Game Over/Win backgrounds —
-twelve image files
+Title + mission-intro backgrounds + play-screen background + player +
+intro credits + rescue progress + ground rocks + hearts + win
+helicopter + Game Over/Win backgrounds — fourteen image files
 
 Drop files into this folder with these exact names. Nothing else
 needs to change in the code -- each one lights up automatically as
 soon as it's here.
+
+  title-background.jpg   The full-screen background behind the very
+                    first screen the player sees -- the "Berry Hungry
+                    / FRIEND OR FOE?" title/cover screen, behind the
+                    Start Game / About This Game buttons.
+
+  mission-background.jpg   The full-screen background behind the
+                    "Oh no, you just got lost..." mission-intro screen
+                    that appears right after Start Game, before the
+                    walk begins.
 
   background.jpg   The full-screen forest scene the player "walks"
                     through -- fills the whole play screen behind
@@ -60,6 +70,24 @@ soon as it's here.
                     the win screen instead.
 
 Specs:
+
+  title-background.jpg / mission-background.jpg
+  - Format: JPG (same as background.jpg below).
+  - Resolution: around 1920x1080 (16:9) is a good target, same
+    reasoning as background.jpg.
+  - Fills the whole screen behind the title/copy and button, which sit
+    on top of it -- so keep the busiest/most detailed part of the
+    image away from dead-center where the text and button will land,
+    or make sure it still reads fine with text over it (both have
+    their own drop shadow, so they stay readable over most images, but
+    very busy/light center art can still fight with it).
+  - title-background.jpg: the game's "cover" mood -- whatever best
+    sets up "Berry Hungry / Friend or Foe?" at a glance (a forest
+    trail, dappled light, etc.).
+  - mission-background.jpg: whatever mood fits "you just got lost in
+    the forest" -- a slightly more ominous/uncertain forest scene than
+    the title background, since this is the "uh oh" beat right before
+    the walk starts.
 
   background.jpg
   - Format: JPG
@@ -185,8 +213,9 @@ Specs:
     forest" -- daylight, a clearing, a sense of relief/rescue.
 
 Until these files exist:
-  - background.jpg / player.png just show plain gradient/placeholder
-    shapes in their place -- nothing breaks, it just looks unfinished.
+  - title-background.jpg / mission-background.jpg / background.jpg /
+    player.png just show plain gradient/placeholder shapes in their
+    place -- nothing breaks, it just looks unfinished.
   - credits.png shows a plain black screen with a small "credits --
     drop images/credits.png in to show it here" tag in the corner,
     then still fades into the title screen on the same schedule --
@@ -206,5 +235,5 @@ Until these files exist:
   - gameover-background.jpg / win-background.jpg just show their
     existing gradient backgrounds in the meantime -- nothing breaks.
 
-You can delete this file once all twelve images are in place (eleven
-of them, anyway -- helicopter.png is already here).
+You can delete this file once all fourteen images are in place
+(thirteen of them, anyway -- helicopter.png is already here).
