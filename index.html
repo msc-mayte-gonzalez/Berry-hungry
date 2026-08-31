@@ -344,24 +344,44 @@
   }
   .modal-close:hover{ background: var(--olive); color: var(--white); }
 
-  .disclaimer{
-    font-size: 0.96rem;
-    line-height: 1.6;
-    color: var(--ink-soft);
+  /* One amber box holding all three warning lines (rather than a
+     separate box per sentence) -- same content, noticeably less
+     vertical space, which is what was pushing the modal's content
+     taller than the card on desktop. */
+  .disclaimer-box{
     background: var(--amber-tint);
     padding: 0.9rem 1rem;
     border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
   }
-  .disclaimer + .disclaimer{ margin-top: 0.6rem; }
-  .disclaimer-strong{
+  .disclaimer-box p{
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  /* Two classes, not one -- ".disclaimer-box .disclaimer-strong" has to
+     out-specificity ".disclaimer-box p" above (which also targets this
+     same <p>) so the red actually wins instead of getting silently
+     overridden back to the neutral ink-soft color. */
+  .disclaimer-box .disclaimer-strong{
     font-weight: 700;
     color: var(--wrong);
   }
   .about-resources-heading{
-    font-size: 0.96rem;
-    line-height: 1.6;
+    font-size: 0.86rem;
+    line-height: 1.55;
     color: var(--ink-soft);
     margin: 1rem 0 0.5rem;
+  }
+  /* Same idea as .disclaimer-box -- one olive box holding every
+     resource line instead of one box each. */
+  .about-links-box{
+    background: var(--olive-tint);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 0.9rem;
   }
   .about-links{
     list-style: none;
@@ -369,14 +389,9 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
-    font-size: 0.94rem;
+    gap: 0.4rem;
+    font-size: 0.86rem;
     line-height: 1.5;
-  }
-  .about-links li{
-    padding: 0.55rem 0.7rem;
-    background: var(--olive-tint);
-    border-radius: var(--radius-sm);
   }
   .about-link-region{
     font-weight: 700;
@@ -395,7 +410,7 @@
     margin: 1.3rem 0 0.5rem;
   }
   .about-plain-text{
-    font-size: 0.94rem;
+    font-size: 0.86rem;
     line-height: 1.5;
     color: var(--ink-soft);
     margin: 0;
@@ -403,7 +418,7 @@
   .about-credits{
     margin: 0;
     padding-left: 1.15rem;
-    font-size: 0.94rem;
+    font-size: 0.86rem;
     line-height: 1.5;
     color: var(--ink-soft);
     display: flex;
@@ -624,20 +639,24 @@
     z-index: 14;
     pointer-events:none; /* clicks fall through to plants/stage below */
   }
-  /* Centered near the top of the screen, close to where the action
-     (the encounter cards) actually happens, rather than tucked in a
-     corner. The hearts here use the exact same bare-glyph style and
-     size as the ones shown over the encounter cards (see
-     .encounter-hearts .heart) so there's no jarring swap to a
-     different-looking pair when a plant is tapped. */
+  /* Hearts + hunger anchor to the upper LEFT, mirroring the rescue map
+     (.rescue-progress) over on the upper right -- the conventional
+     split for this kind of HUD (vitals are the thing you check on
+     reflex, usually kept on the same side as the movement keys; a map/
+     progress readout is the thing you check on purpose, off in its own
+     corner). Stacked internally (hearts above the hunger bar) so it
+     stays a compact, single vertical strip in its corner on any
+     screen width, phones included. The hearts here use the exact same
+     bare-glyph style and size as the ones shown over the encounter
+     cards (see .encounter-hearts .heart) so there's no jarring swap to
+     a different-looking pair when a plant is tapped. */
   .hud-vitals{
     position:absolute;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 64px;
+    left: 20px;
     display:flex;
     flex-direction:column;
-    align-items:center;
+    align-items:flex-start;
     gap: 0.55rem;
     transition: opacity 0.15s ease;
   }
@@ -751,13 +770,14 @@
      breakpoint below, to save space on small screens. */
   .hud-btn-icon{ display:none; }
 
-  /* Rescue progress -- sits below the Pause/Start Over buttons, same
-     right edge. A vertical version of the hunger track's language
-     (pill track + round marker), just climbing instead of sliding
-     sideways, with a fixed goal icon capping the top. Wrapped in a
-     cream, rounded-corner card of its own (rather than floating
-     directly over the scene like the hunger bar does) so it reads as
-     a distinct, prominent widget at a glance. */
+  /* Rescue progress -- upper right, mirroring the vitals over on the
+     upper left (see .hud-vitals above). A vertical version of the
+     hunger track's language (pill track + round marker), just
+     climbing instead of sliding sideways, with a fixed goal icon
+     capping the top. Wrapped in a cream, rounded-corner card of its
+     own (rather than floating directly over the scene like the hunger
+     bar does) so it reads as a distinct, prominent widget at a
+     glance. */
   .rescue-progress{
     position:absolute;
     top: 64px;
@@ -1415,25 +1435,29 @@
     <div class="modal-card">
       <button id="btn-about-close" class="modal-close" aria-label="Close">×</button>
       <h2>About This Game</h2>
-      <p class="disclaimer">This game is for educational purposes only. It does not replace hands-on foraging training.</p>
-      <p class="disclaimer disclaimer-strong">Never eat a plant unless you can identify it with certainty.</p>
-      <p class="disclaimer">Unlike in this game, you don't have extra hearts or a chance to start over.</p>
+      <div class="disclaimer-box">
+        <p>This game is for educational purposes only. It does not replace hands-on foraging training.</p>
+        <p class="disclaimer-strong">Never eat a plant unless you can identify it with certainty.</p>
+        <p>Unlike in this game, you don't have extra hearts or a chance to start over.</p>
+      </div>
       <p class="about-resources-heading">Find hands-on foraging training near you, like:</p>
-      <ul class="about-links">
-        <li><span class="about-link-region">Ontario:</span> <a href="https://wscsurvivalschool.com/" target="_blank" rel="noopener noreferrer">WSC Survival School</a></li>
-        <li><span class="about-link-region">Ontario:</span> <a href="https://wildmuskoka.com/" target="_blank" rel="noopener noreferrer">Wild Muskoka Botanicals</a></li>
-        <li><span class="about-link-region">Ontario:</span> <a href="https://www.pucksplenty.com/" target="_blank" rel="noopener noreferrer">Puck's Plenty</a></li>
-        <li><span class="about-link-region">Quebec:</span> <a href="https://gourmetsauvage.ca/en/" target="_blank" rel="noopener noreferrer">Gourmet Sauvage</a></li>
-        <li><span class="about-link-region">United States:</span> <a href="https://wildfoodadventures.com/" target="_blank" rel="noopener noreferrer">Wild Food Adventures</a></li>
-        <li><span class="about-link-region">United States:</span> <a href="http://www.foragersharvest.com/" target="_blank" rel="noopener noreferrer">Forager's Harvest</a></li>
-      </ul>
+      <div class="about-links-box">
+        <ul class="about-links">
+          <li><span class="about-link-region">Ontario:</span> <a href="https://wscsurvivalschool.com/" target="_blank" rel="noopener noreferrer">WSC Survival School</a></li>
+          <li><span class="about-link-region">Ontario:</span> <a href="https://wildmuskoka.com/" target="_blank" rel="noopener noreferrer">Wild Muskoka Botanicals</a></li>
+          <li><span class="about-link-region">Ontario:</span> <a href="https://www.pucksplenty.com/" target="_blank" rel="noopener noreferrer">Puck's Plenty</a></li>
+          <li><span class="about-link-region">Quebec:</span> <a href="https://gourmetsauvage.ca/en/" target="_blank" rel="noopener noreferrer">Gourmet Sauvage</a></li>
+          <li><span class="about-link-region">United States:</span> <a href="https://wildfoodadventures.com/" target="_blank" rel="noopener noreferrer">Wild Food Adventures</a></li>
+          <li><span class="about-link-region">United States:</span> <a href="http://www.foragersharvest.com/" target="_blank" rel="noopener noreferrer">Forager's Harvest</a></li>
+        </ul>
+      </div>
 
       <h3 class="about-section-heading">Prototype</h3>
       <p class="about-plain-text">Built in 2.5 days.</p>
 
       <h3 class="about-section-heading">Credits</h3>
       <ul class="about-credits">
-        <li>Concept and development by M. Gonzalez (Sr. UX Researcher) and an anonymous collaborator (a great 3D Environment Artist!)</li>
+        <li>Idea, info collection, and prototype development by M. Gonzalez (Sr. UX Researcher) and an anonymous collaborator (a great 3D Environment Artist!)</li>
         <li>Supervised by H. Botones</li>
         <li>Music: <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=281" target="_blank" rel="noopener noreferrer">freesound_community</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
         <li>Sound effect: <a href="https://pixabay.com/users/universfield-28281460/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=352695" target="_blank" rel="noopener noreferrer">Universfield</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
@@ -1468,18 +1492,6 @@
 
       <!-- HUD -->
       <div class="hud">
-        <div class="hud-vitals">
-          <div class="hearts" id="hearts">
-            <span class="heart">♥</span>
-            <span class="heart">♥</span>
-          </div>
-          <div class="hunger-bar">
-            <span class="hunger-label" id="hunger-label">HUNGRY!</span>
-            <div class="hunger-track" id="hunger-track">
-              <div class="hunger-slider" id="hunger-slider"></div>
-            </div>
-          </div>
-        </div>
         <div class="hud-top-actions">
           <button id="btn-pause" class="btn-start-over" aria-label="Pause">
             <svg class="hud-btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -1497,13 +1509,27 @@
           </button>
         </div>
 
-        <!-- Rescue progress -- how close the player is to WINNING, which
-             wasn't shown anywhere before (only losing had any feedback).
-             A vertical track in the upper right: the marker climbs from
-             the bottom as correct picks add up, the helicopter goal
-             sits fixed at the top, reached at WIN_TARGET correct picks
-             (see updateRescueProgress in the script below). Drop in
-             images/rescue-marker.png and images/rescue-goal.png to
+        <!-- Vitals, upper LEFT -- see .hud-vitals for why. -->
+        <div class="hud-vitals">
+          <div class="hearts" id="hearts">
+            <span class="heart">♥</span>
+            <span class="heart">♥</span>
+          </div>
+          <div class="hunger-bar">
+            <span class="hunger-label" id="hunger-label">HUNGRY!</span>
+            <div class="hunger-track" id="hunger-track">
+              <div class="hunger-slider" id="hunger-slider"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rescue progress, upper RIGHT -- how close the player is to
+             WINNING, which wasn't shown anywhere before (only losing
+             had any feedback). A vertical track: the marker climbs
+             from the bottom as correct picks add up, the helicopter
+             goal sits fixed at the top, reached at WIN_TARGET correct
+             picks (see updateRescueProgress in the script below). Drop
+             in images/rescue-marker.png and images/rescue-goal.png to
              replace the amber "?" placeholders -- see
              images/README.txt. -->
         <div class="rescue-progress" id="rescue-progress">
@@ -1885,6 +1911,34 @@
   modalAbout.addEventListener("click", (e) => { if (e.target === modalAbout) closeModal(modalAbout); });
 
   document.getElementById("btn-encounter-close").addEventListener("click", () => {
+    closeModal(modalEncounter);
+    playWalkMusic();
+  });
+
+  // Once the Friend/Foe result is showing (mode "answered"), the pick
+  // is already locked in -- so a tap ANYWHERE, on the backdrop or on
+  // the cards themselves, dismisses early too, same as the "x". Not
+  // just a convenience: a player reading the reveal instinctively taps
+  // to move on and doesn't necessarily go hunting for the close button
+  // first. Scoped to "answered" only -- during reading/selecting a tap
+  // on a card still has its normal job (paging the gallery / picking),
+  // so this must never fire before a pick is actually made. The info
+  // ("ⓘ") toggle stays tappable through this without closing anything,
+  // same as it already does for the card's own click handler.
+  //
+  // justAnswered guards against the ONE click that's exempt from all
+  // this: the pick itself. selectCard() sets mode = "answered"
+  // synchronously, and that happens on a card that's a DESCENDANT of
+  // modalEncounter -- so the very click event that made the pick is
+  // still bubbling up to this same listener, and by the time it
+  // arrives mode already reads "answered". Without this guard, every
+  // pick would close its own reveal in the same instant it appeared.
+  // See selectCard/openEncounter for where the flag gets set/cleared.
+  let justAnswered = false;
+  modalEncounter.addEventListener("click", (e) => {
+    if (justAnswered) { justAnswered = false; return; }
+    if (mode !== "answered") return;
+    if (e.target.closest(".btn-info")) return;
     closeModal(modalEncounter);
     playWalkMusic();
   });
@@ -2902,6 +2956,7 @@
     const pair = plant.pair;
     currentPlantSpot = plant;
     encounterToken += 1; // this is now the one true encounter -- see the comment by its declaration
+    justAnswered = false; // fresh encounter, no pick-in-flight -- see the flag's declaration
 
     // The player's now actually opened a plant -- no need to keep
     // teaching that mechanic for the rest of this playthrough.
@@ -3014,6 +3069,11 @@
 
   function selectCard(card){
     mode = "answered";
+    // This exact click is still bubbling up to modalEncounter's
+    // click-to-dismiss listener (see where it's declared) -- flag it
+    // as the pick itself so that listener doesn't treat it as an
+    // instant "dismiss the reveal it just opened."
+    justAnswered = true;
     // Snapshot which encounter this pick belongs to -- see the
     // encounterToken comment up by its declaration. Read again, live,
     // inside the setTimeout below to tell a stale close apart from a
