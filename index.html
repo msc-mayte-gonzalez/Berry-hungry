@@ -575,6 +575,47 @@
     50%{ margin-top: -6px; }
   }
 
+  /* Ground rocks -- decorative only (never clickable, never announced
+     to screen readers -- see aria-hidden in the JS), scattered along
+     the trail itself as a motion cue. Center-anchored and pushed into
+     depth with --z exactly like .plant-block, just smaller and with
+     no interactive states (no hover/active/bob -- these don't invite
+     a tap, they're just ground texture going by). Two sizes; which
+     one a given rock is comes from its own "rock-small"/"rock-big"
+     class, picked randomly per rock in createRockSpot(). */
+  .rock{
+    position:absolute;
+    pointer-events:none;
+    transform: translate(-50%, -50%) translateZ(var(--z, 0px));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .rock-small{ width: 56px; height: 38px; }
+  .rock-big{ width: 108px; height: 70px; }
+  /* Placeholder stone shape -- an irregular blob rather than the
+     amber "?" the plants/rescue icons use, since there's nothing to
+     identify about a rock; it only needs to read as "a rock" at a
+     glance until real art replaces it. */
+  .rock::before{
+    content:"";
+    position:absolute;
+    inset: 8% 4% 0 4%;
+    border-radius: 48% 52% 45% 55% / 60% 55% 45% 40%;
+    background: linear-gradient(160deg, #9a9186 0%, #787266 55%, #514d46 100%);
+    box-shadow: 0 4px 6px -2px rgba(0,0,0,0.4), inset 0 -4px 6px rgba(0,0,0,0.2);
+  }
+  .rock-img{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: contain;
+  }
+  .rock-img.loaded{ display:block; }
+  .rock.has-art::before{ display:none; }
+
   /* The player, first-person: not part of the 3D stage at all —
      it's anchored to the viewer's own screen space, like hands
      or a torso at the bottom of a first-person view, and takes
@@ -595,6 +636,26 @@
     top: 16px;
     left: 50%;
     transform: translateX(-50%);
+  }
+  /* Fills .player-fp exactly (its parent already centers/sizes the
+     whole thing) -- exists purely so the walking sway below has its
+     own transform to animate without fighting .player-fp's own
+     translateX(-50%) centering. Idle by default: only sways while the
+     player is actually holding a movement key (see the "walking"
+     class, toggled once per frame in tick() from `dir !== 0`) -- a
+     lightweight cue that something's in motion, not a constant fidget
+     while just standing there deciding on a plant. */
+  .player-sway{
+    position:absolute;
+    inset:0;
+  }
+  .player-sway.walking{
+    animation: player-walk-sway 0.62s ease-in-out infinite;
+  }
+  @keyframes player-walk-sway{
+    0%, 100%{ transform: translateX(0) rotate(0deg); }
+    25%{      transform: translateX(-1.6%) rotate(-1deg); }
+    75%{      transform: translateX(1.6%) rotate(1deg); }
   }
   /* Drop images/player.png in and it takes over from the placeholder
      gradient automatically -- same loaded/onerror pattern as the
@@ -1394,6 +1455,22 @@
     .encounter-hearts .heart{ font-size: 2.3rem; }
     .encounter-prompt{ font-size: clamp(1.1rem, 4vw, 1.4rem); }
     .card{ max-width: 190px; }
+    /* Same fix, same reason, for the About modal -- it never got this
+       rule even though it has the identical failure mode: a flex
+       overlay centered with align-items:center clips an overflowing
+       child at its TOP edge in a way overflow-y:auto can't reach (a
+       well-known centered-flex-overflow quirk), so on a short window
+       the close button and opening lines become unreachable no matter
+       how far you scroll. This is what "had to zoom out to 75%" was
+       actually working around -- zooming shrank the rendered content
+       below the trigger height. Pin to the top and shrink its own
+       padding instead, so it scrolls properly like the encounter
+       modal already does. */
+    #modal-about{
+      align-items: flex-start;
+      padding: 0.6rem;
+    }
+    #modal-about .modal-card{ padding: 1.3rem 1.4rem 1.2rem; }
   }
 </style>
 </head>
@@ -1482,12 +1559,18 @@
         <div class="ground"></div>
       </div>
 
-      <!-- First-person player, screen-anchored, not part of the stage -->
+      <!-- First-person player, screen-anchored, not part of the stage.
+           The sway animation (see .player-sway.walking) lives on this
+           inner wrapper rather than .player-fp itself, so it can
+           animate its own transform without fighting the outer
+           translateX(-50%) that keeps the whole thing centered. -->
       <div class="player-fp">
-        <img class="player-img" src="images/player.png" alt=""
-             onload="this.classList.add('loaded'); this.closest('.player-fp').classList.add('has-player');"
-             onerror="this.remove();">
-        <span class="placeholder-tag">player — first-person placeholder</span>
+        <div class="player-sway" id="player-sway">
+          <img class="player-img" src="images/player.png" alt=""
+               onload="this.classList.add('loaded'); this.closest('.player-fp').classList.add('has-player');"
+               onerror="this.remove();">
+          <span class="placeholder-tag">player — first-person placeholder</span>
+        </div>
       </div>
 
       <!-- HUD -->
@@ -1867,6 +1950,7 @@
   const galleryTapHint        = document.getElementById("gallery-tap-hint");
   const hintWalk               = document.getElementById("hint-walk");
   const hintPlant              = document.getElementById("hint-plant");
+  const playerSway              = document.getElementById("player-sway");
   const heartsEl              = document.getElementById("hearts");
   const encounterHeartsEl      = document.getElementById("encounter-hearts");
   const hungerSlider            = document.getElementById("hunger-slider");
@@ -2244,6 +2328,118 @@
     ground.style.backgroundPosition = "0 " + (progress * 1.4) + "px, 0 0";
   }
 
+  /* ============================================================
+     GROUND ROCKS -- purely decorative motion cues scattered along
+     the trail itself (not beside it like the plants). Same
+     distance-based progression as the plants (crest the horizon,
+     grow toward the player, fade out once passed, generated
+     endlessly as the player walks) but with none of the plant
+     click/answer machinery -- these are never tappable, just a
+     visual "the ground is moving toward you" cue.
+
+     The plants sit BESIDE the trail and visibly diverge toward the
+     screen edges as they approach (see updatePlants' SIDE_MARGIN
+     offset) -- that outward drift is what reads as "diagonal." A
+     rock instead gets a fixed random "lane" (0 = the trail's own left
+     edge, 1 = its right edge, same edges .ground's clip-path uses)
+     that stays the SAME fraction across the trail's width the whole
+     way in, so it travels straight down from the horizon to the
+     player along its own lane rather than sliding outward -- "from
+     the horizon to where the player is," not diagonal.
+
+     Two art variants (small/big), picked randomly per rock -- drop in
+     images/rock-small.png and images/rock-big.png (transparent PNG,
+     same loaded/onerror pattern as everything else) to replace the
+     placeholder stone shapes below.
+     ============================================================ */
+  const ROCK_SPACING = 170; // world units between one rock and the next -- denser than plants (SPOT_SPACING), since these are just a motion cue, not something to read
+  const ROCK_LANE_MIN = 0.1, ROCK_LANE_MAX = 0.9; // keep off the very edges of the trail
+  let rocks = [];
+  let nextRockDistance = null;
+
+  function createRockSpot(distance){
+    const size = Math.random() < 0.5 ? "small" : "big";
+    const lane = ROCK_LANE_MIN + Math.random() * (ROCK_LANE_MAX - ROCK_LANE_MIN);
+    const rock = { distance, size, lane };
+
+    const el = document.createElement("div");
+    el.className = "rock rock-" + size;
+    el.setAttribute("aria-hidden", "true"); // decorative only -- never announced, never tappable
+
+    const img = document.createElement("img");
+    img.className = "rock-img";
+    img.alt = "";
+    img.onload = () => { img.classList.add("loaded"); el.classList.add("has-art"); };
+    img.onerror = () => { img.remove(); };
+    img.src = "images/rock-" + size + ".png";
+    el.appendChild(img);
+
+    el.style.display = "none";
+    stage.appendChild(el);
+    rock.el = el;
+    rocks.push(rock);
+    return rock;
+  }
+
+  // Same "always keep at least one spot queued up past VIEW_RANGE"
+  // approach as ensurePlantsAhead(), just with its own denser spacing.
+  function ensureRocksAhead(){
+    if (nextRockDistance === null) nextRockDistance = 150;
+    while (nextRockDistance - progress < VIEW_RANGE + ROCK_SPACING){
+      createRockSpot(nextRockDistance);
+      nextRockDistance += ROCK_SPACING;
+    }
+  }
+
+  // No "answered" state to preserve here (unlike plants) -- a rock
+  // that's fallen behind has nothing left to say, so it's always safe
+  // to prune once it's far enough back.
+  function clearAllRocks(){
+    rocks.forEach((rock) => { if (rock.el) rock.el.remove(); });
+    rocks = [];
+    nextRockDistance = null;
+  }
+
+  function updateRocks(){
+    rocks = rocks.filter((rock) => {
+      const behind = progress - rock.distance;
+      if (behind > PRUNE_BEHIND_DISTANCE){
+        rock.el.remove();
+        return false;
+      }
+      return true;
+    });
+
+    rocks.forEach((rock) => {
+      const remaining = rock.distance - progress;
+      if (remaining > VIEW_RANGE || remaining <= PASSED_CUTOFF){
+        rock.el.style.display = "none";
+        return;
+      }
+      rock.el.style.display = "";
+
+      const t = clamp(1 - remaining / VIEW_RANGE, 0, 1.3);
+      const FADE_IN_SPAN = 0.08;
+      rock.el.style.opacity = t > 1.05
+        ? clamp(1 - (t - 1.05) / 0.25, 0, 1)
+        : (t < FADE_IN_SPAN ? clamp(t / FADE_IN_SPAN, 0, 1) : "1");
+
+      const tClamped = Math.min(t, 1);
+      // Interpolate between the trail's OWN edges at this depth (the
+      // same TRAIL_TOP/TRAIL_BOTTOM the plants read, just without
+      // their extra outward SIDE_MARGIN), then place the rock at its
+      // fixed lane fraction across that width -- straight down the
+      // path, not drifting toward either side as it nears the player.
+      const trailLeftAtT  = lerp(TRAIL_TOP.left,  TRAIL_BOTTOM.left,  tClamped);
+      const trailRightAtT = lerp(TRAIL_TOP.right, TRAIL_BOTTOM.right, tClamped);
+      const edgeX = lerp(trailLeftAtT, trailRightAtT, rock.lane);
+
+      rock.el.style.left = edgeX + "%";
+      rock.el.style.top  = lerp(FAR_TOP, NEAR_TOP, tClamped) + "%";
+      rock.el.style.setProperty("--z", lerp(FAR_Z, NEAR_Z, tClamped) + "px");
+    });
+  }
+
   let progress = 0;
   let advancing = false;
   let retreating = false;
@@ -2418,6 +2614,15 @@
     const dt = (now - lastTime) / 1000;
     lastTime = now;
 
+    // Opposite keys held together cancel out (dir 0) instead of one
+    // arbitrarily winning. Computed unconditionally (not just inside
+    // the canWalk() branch below) so the walking-sway toggle right
+    // after it always reflects reality -- including turning back off
+    // the instant a modal opens mid-stride, when canWalk() itself
+    // would otherwise skip straight past this.
+    const dir = (advancing ? 1 : 0) - (retreating ? 1 : 0);
+    playerSway.classList.toggle("walking", canWalk() && dir !== 0);
+
     if (canWalk()){
       const wasStarving = hunger <= 0;
       hunger = clamp(hunger - HUNGER_RATE * dt, 0, 100);
@@ -2438,9 +2643,6 @@
         }
       }
 
-      // Opposite keys held together cancel out (dir 0) instead of one
-      // arbitrarily winning.
-      const dir = (advancing ? 1 : 0) - (retreating ? 1 : 0);
       if (canWalk() && dir !== 0){
         progress = clamp(progress + dir * WALK_SPEED * dt, 0, Infinity);
         // The trail is endless -- winning is no longer about reaching a
@@ -2449,6 +2651,8 @@
         // Keep generating spots ahead as the player keeps walking.
         ensurePlantsAhead();
         updatePlants();
+        ensureRocksAhead();
+        updateRocks();
         // The player's now actually moved -- no need to keep teaching
         // the controls for the rest of this playthrough.
         if (!hasWalkedOnce){
@@ -2481,6 +2685,8 @@
 
   ensurePlantsAhead();
   updatePlants();
+  ensureRocksAhead();
+  updateRocks();
   updateHungerUI();
   updateHeartsUI();
   updateRescueProgress();
@@ -2587,13 +2793,16 @@
     // Endless trail -- tear down every spot the last run generated and
     // start the generator fresh (progress is already reset to 0 above,
     // so ensurePlantsAhead() reseeds the same first-batch spacing/sides
-    // a brand-new playthrough had).
+    // a brand-new playthrough had). Same idea for the decorative rocks.
     clearAllPlantSpots();
     ensurePlantsAhead();
+    clearAllRocks();
+    ensureRocksAhead();
 
     closeModal(modalEncounter);
     closeModal(modalPause);
     updatePlants();
+    updateRocks();
     stopAllMusic(); // startOver()/tryAgain() below decide what (if anything) plays next
 
     screenGameOver.classList.add("hidden");
