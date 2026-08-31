@@ -502,6 +502,13 @@
       radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.25), transparent 55%),
       linear-gradient(160deg, var(--amber) 0%, var(--amber-dark) 55%, #7a4c00 100%);
   }
+  /* Same "real photo/art sits over the gradient fallback" pattern as
+     the play screen's background.jpg (see .scene-bg/.has-bg above) --
+     images/gameover-background.jpg and images/win-background.jpg use
+     the exact same mechanism, they just needed their own has-bg rule
+     since each screen's placeholder-tag is a separate element. */
+  #screen-gameover .placeholder-art.has-bg .placeholder-tag,
+  #screen-win .placeholder-art.has-bg .placeholder-tag{ display:none; }
 
   /* The 3D stage: perspective lives here, so any child's
      translateZ is foreshortened (and depth-sorted) automatically. */
@@ -731,12 +738,14 @@
   /* Screen-anchored, flat 2D overlay -- NOT part of .stage's 3D
      perspective plane (unlike the plants/rocks), since it's simply
      dropping in from the top of the screen rather than approaching
-     down the trail. Idle off-screen above until endGame("won") adds
-     .descending (see the script), at which point the `top` transition
-     below carries it down to just above FAR_TOP -- the same vertical
-     % the trail's own far edge sits at (see the script's FAR_TOP
-     constant), i.e. "the horizon line" the player's been walking
-     toward the whole game. */
+     down the trail. Idle off-screen above until the winning pick adds
+     .descending (see runEnding in the script), at which point the
+     `top` transition below carries it down to just above FAR_TOP -- the
+     same vertical % the trail's own far edge sits at (see the script's
+     FAR_TOP constant), i.e. "the horizon line" the player's been
+     walking toward the whole game. Duration kept in sync with
+     WIN_HELICOPTER_MS in the script, which waits out the full descent
+     before swapping to the Win screen. */
   .win-helicopter{
     position:absolute;
     left:50%;
@@ -745,7 +754,7 @@
     transform: translateX(-50%);
     z-index: 13;
     pointer-events:none;
-    transition: top 2.2s cubic-bezier(0.28, 0.62, 0.35, 1);
+    transition: top 8.8s cubic-bezier(0.28, 0.62, 0.35, 1);
   }
   .win-helicopter.hidden{ display:none; }
   .win-helicopter.descending{ top: 32%; }
@@ -1423,38 +1432,55 @@
      the card's photo and stays up long enough to actually read. Both
      cards show a reveal now (see selectCard), and the two might carry
      different extra content -- one has the "Your pick" badge, either
-     might have a caveat line, neither might. A plain centered flex
-     stack would shift the WORD itself up or down depending on what
-     surrounds it, so "Friend" and "Foe" would land at different
-     heights across the two cards (as happened here). Grid rows of
-     1fr/auto/1fr fix that: the auto middle row (the word) always sits
-     exactly centered, because the two 1fr spacer rows stay equal to
-     each other no matter what's in them -- badge and caveat float
-     above/below that fixed point instead of pushing it around. */
+     might have a caveat line, neither might.
+     A PREVIOUS version of this centered the word via CSS Grid's
+     "1fr auto 1fr" row trick, on the theory that two equal-fr spacer
+     rows always stay equal regardless of their content. That's only
+     true when neither spacer row's content forces it past its fair
+     share of free space -- a bare "1fr" track's minimum size still
+     defaults to its content's min-content size, so a card with a
+     multi-line caveat (real content in the bottom row) and no badge
+     (empty top row) has two spacer rows with very different min-
+     content sizes. Once free space gets tight -- a short window, or
+     just a browser with slightly different font metrics wrapping the
+     caveat differently -- the two "equal" 1fr rows stop actually being
+     equal, and the word shifts off-center, landing at different
+     heights on the two cards ("Friend"/"Foe" misaligned). Hiding
+     card-name during the reveal (see .cards.answered .card-name above)
+     fixed an overlap this same root cause could also cause, but not
+     this misalignment -- it's a different symptom of the same
+     unreliable-under-content-pressure centering approach.
+     Fixed properly here by not centering the word via its neighbors at
+     all: it's positioned absolutely at the exact geometric center of
+     the card (top/left 50% + translate(-50%,-50%)), a position that
+     only depends on the card's own box -- never on whether a badge or
+     caveat happens to be present, how long the caveat text is, or how
+     a given browser wraps it. The badge and caveat are then pinned a
+     fixed distance above/below that same fixed center point (via their
+     own top/bottom: 50% + margin), so they float around the word
+     without ever being able to push it off center. */
   .result-overlay{
     position:absolute;
     inset:0;
     display:none;
-    grid-template-rows: 1fr auto 1fr;
-    justify-items: center;
     padding: 1rem;
     text-align:center;
     pointer-events:none;
     z-index: 30;
   }
-  .result-overlay.show{ display:grid; }
+  .result-overlay.show{ display:block; }
   .result-pick-badge{
+    position:absolute;
+    left:50%;
+    bottom:50%;
+    /* Gap above the word's own centerpoint -- see .result-word's
+       half-height note below; this only needs to clear the word's
+       top edge plus a small visual gap, not react to anything else on
+       the card. */
+    margin-bottom: 1.7rem;
+    transform: translateX(-50%);
     display:inline-block;
-    /* Explicit row (not just DOM order) -- when the badge OR the
-       caveat is hidden (display:none), grid auto-placement would
-       otherwise compact the remaining visible items into the first
-       rows instead of leaving row 2 (the word) where it belongs. This
-       is what actually caused the misalignment: with the badge hidden
-       on the Foe card, the word and caveat auto-placed into rows 1
-       and 2 instead of 2 and 3. */
-    grid-row: 1;
-    align-self: end;
-    margin-bottom: 0.5rem;
+    white-space: nowrap;
     padding: 0.2rem 0.6rem;
     border-radius: 999px;
     background: rgba(255,255,255,0.92);
@@ -1465,24 +1491,32 @@
     letter-spacing: 0.05em;
   }
   .result-word{
+    position:absolute;
+    top:50%;
+    left:50%;
     display:inline-block;
-    grid-row: 2;
-    align-self: center;
     color: rgba(255,255,255,0.94);
     font-weight: 800;
     font-size: 2.1rem;
     letter-spacing: 0.02em;
     text-shadow: 0 3px 14px rgba(0,0,0,0.6), 0 1px 4px rgba(0,0,0,0.7);
-    transform: scale(0.4);
     opacity: 0;
     animation: result-grow 0.6s cubic-bezier(.3,1.5,.6,1) forwards;
   }
   .result-caveat{
+    position:absolute;
+    left:50%;
+    top:50%;
+    /* Mirrors the badge's margin-bottom above -- a fixed gap below the
+       word's centerpoint, not tied to the word's actual rendered
+       height (which .result-word's own translate(-50%,-50%) already
+       accounts for) or to anything the OTHER card is showing. */
+    margin-top: 1.7rem;
+    transform: translateX(-50%);
+    max-width: calc(100% - 2rem); /* stays inside the card's own padding, same as before, so long text still wraps rather than overflowing the card edge */
     display:inline-flex;
-    grid-row: 3;
-    align-self: start;
-    margin-top: 0.5rem;
     align-items:center;
+    justify-content:center;
     gap: 0.3rem;
     color: rgba(255,255,255,0.96);
     font-weight: 700;
@@ -1495,13 +1529,13 @@
     animation: result-caveat-in 0.45s ease-out 0.5s forwards;
   }
   @keyframes result-grow{
-    0%{ transform: scale(0.4); opacity: 0; }
-    70%{ transform: scale(1.18); opacity: 1; }
-    100%{ transform: scale(1); opacity: 1; }
+    0%{ transform: translate(-50%,-50%) scale(0.4); opacity: 0; }
+    70%{ transform: translate(-50%,-50%) scale(1.18); opacity: 1; }
+    100%{ transform: translate(-50%,-50%) scale(1); opacity: 1; }
   }
   @keyframes result-caveat-in{
-    from{ opacity: 0; transform: translateY(6px); }
-    to{ opacity: 1; transform: translateY(0); }
+    from{ opacity: 0; transform: translateX(-50%) translateY(6px); }
+    to{ opacity: 1; transform: translateX(-50%) translateY(0); }
   }
 
   /* "Select one" (see #btn-ready in the markup) is a status readout
@@ -1814,6 +1848,12 @@
   <!-- ============ GAME OVER SCREEN ============ -->
   <section id="screen-gameover" class="screen hidden">
     <div class="placeholder-art">
+      <!-- Same background pattern as the play screen's images/background.jpg
+           (see .scene-bg) -- drop in images/gameover-background.jpg and it
+           lights up automatically, no other change needed. -->
+      <img class="scene-bg" src="images/gameover-background.jpg" alt=""
+           onload="this.classList.add('loaded'); this.closest('.placeholder-art').classList.add('has-bg');"
+           onerror="this.remove();">
       <span class="placeholder-tag">player collapsed, tongue out — art coming later</span>
     </div>
     <div class="start-content">
@@ -1830,6 +1870,12 @@
   <!-- ============ WIN / RESCUE SCREEN ============ -->
   <section id="screen-win" class="screen hidden">
     <div class="placeholder-art">
+      <!-- Same background pattern as the play screen's images/background.jpg
+           (see .scene-bg) -- drop in images/win-background.jpg and it
+           lights up automatically, no other change needed. -->
+      <img class="scene-bg" src="images/win-background.jpg" alt=""
+           onload="this.classList.add('loaded'); this.closest('.placeholder-art').classList.add('has-bg');"
+           onerror="this.remove();">
       <span class="placeholder-tag">helicopter rescue — art coming later</span>
     </div>
     <div class="start-content">
@@ -2784,12 +2830,13 @@
       closeModal(modalEncounter);
       // The helicopter's descent is normally already underway by now --
       // it starts immediately on the winning pick itself (see the
-      // runEnding block in selectCard()), so it's had the whole
-      // Friend/Foe reveal (RESULT_DISPLAY_MS) to play out and is done or
-      // nearly done. This is just a safety net for any caller that
-      // reaches endGame("won") directly, bypassing selectCard() (e.g.
-      // the debug hook's forceWin()) -- same reflow-before-transition
-      // approach as there, see its comment.
+      // runEnding block in selectCard()), and selectCard() itself
+      // doesn't call endGame("won") until the descent's own full
+      // duration (WIN_HELICOPTER_MS) has played out, so by this point
+      // it's done or effectively done. This is just a safety net for
+      // any caller that reaches endGame("won") directly, bypassing
+      // selectCard() (e.g. the debug hook's forceWin()) -- same
+      // reflow-before-transition approach as there, see its comment.
       if (!winHelicopter.classList.contains("descending")){
         playSound("rescue", "mp3");
         winHelicopter.classList.remove("hidden");
@@ -3527,6 +3574,23 @@
   // HEART_LOSE_DELAY_MS, halved).
   const GAME_OVER_START_DELAY_MS = HEART_LOSE_DELAY_MS + Math.round((RESULT_DISPLAY_MS - HEART_LOSE_DELAY_MS) / 2);
 
+  // The winning pick gets its own, much shorter reveal: the helicopter
+  // is already descending behind the modal (see the runEnding block
+  // below) by the time the reveal appears, but the modal's blurred
+  // backdrop makes that hard to actually see -- so instead of sitting
+  // through the usual RESULT_DISPLAY_MS, the reveal auto-closes after
+  // just WIN_REVEAL_MS, handing the (still frozen, see runEnding) play
+  // screen back so the descent is clearly visible against it.
+  const WIN_REVEAL_MS = 2000;
+
+  // How long the helicopter's own descent (see .win-helicopter's `top`
+  // transition in the CSS) takes from the winning pick to arrival --
+  // keep this in sync with that transition's duration. The Win screen
+  // only swaps in once this has fully played out, so the player always
+  // gets to watch the whole thing (not just the first WIN_REVEAL_MS of
+  // it) before moving on.
+  const WIN_HELICOPTER_MS = 8800;
+
   // Grows the "Friend"/"Foe" reveal in over ONE card's photo. Any
   // plant with a `caveat` field gets an extra line under its reveal --
   // a heads-up on a "Friend" (e.g. Downy Hawthorn's seeds), or the
@@ -3643,23 +3707,40 @@
     // have hit 0 here as a result of a WRONG pick above.
     // endGame("lost") closes the encounter modal itself, only once the
     // fade-to-black is done, so the result stays visible under the
-    // fade rather than being cut away first. endGame("won") does the
-    // same for the reveal on a winning pick.
-    setTimeout(() => {
-      if (correctCount >= WIN_TARGET){
+    // fade rather than being cut away first.
+    if (isFatalPick){
+      setTimeout(() => { endGame("lost"); }, GAME_OVER_START_DELAY_MS);
+    } else if (correctCount >= WIN_TARGET){
+      // Winning pick: give the reveal a much shorter beat than usual
+      // (WIN_REVEAL_MS) before auto-closing it -- the helicopter is
+      // already descending behind it (see above), and closing the
+      // modal early is what actually makes that descent visible
+      // instead of sitting under the modal's blur the whole time. The
+      // Win screen itself still only swaps in once the descent has
+      // fully played out (WIN_HELICOPTER_MS), so the player watches
+      // the whole thing rather than having it cut short.
+      setTimeout(() => {
+        if (myEncounterToken === encounterToken){
+          closeModal(modalEncounter);
+        }
+      }, WIN_REVEAL_MS);
+      setTimeout(() => {
         endGame("won");
-      } else if (heartsRemaining <= 0){
-        endGame("lost");
-      } else if (myEncounterToken === encounterToken){
-        // Only close/return-to-walking on the encounter's OWN behalf --
-        // if a newer encounter has since opened (or the game's been
-        // reset), encounterToken has moved on and this timer is stale;
-        // touching the modal now would yank whatever's showing NOW
-        // closed instead. See the encounterToken comment above.
-        closeModal(modalEncounter);
-        playWalkMusic();
-      }
-    }, isFatalPick ? GAME_OVER_START_DELAY_MS : RESULT_DISPLAY_MS);
+      }, WIN_HELICOPTER_MS);
+    } else {
+      setTimeout(() => {
+        if (myEncounterToken === encounterToken){
+          // Only close/return-to-walking on the encounter's OWN behalf
+          // -- if a newer encounter has since opened (or the game's
+          // been reset), encounterToken has moved on and this timer is
+          // stale; touching the modal now would yank whatever's
+          // showing NOW closed instead. See the encounterToken comment
+          // above.
+          closeModal(modalEncounter);
+          playWalkMusic();
+        }
+      }, RESULT_DISPLAY_MS);
+    }
   }
 
 })();

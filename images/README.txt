@@ -1,5 +1,6 @@
 Play-screen background + player + intro credits + rescue progress +
-ground rocks + hearts + win helicopter — ten image files
+ground rocks + hearts + win helicopter + Game Over/Win backgrounds —
+twelve image files
 
 Drop files into this folder with these exact names. Nothing else
 needs to change in the code -- each one lights up automatically as
@@ -47,6 +48,16 @@ soon as it's here.
                     of the screen once the player wins. Swap it out
                     for final art any time by replacing this file
                     with a new one under the same name. See below.
+
+  gameover-background.jpg   The full-screen background behind the
+                    "Game Over" screen (title + Try Again button) --
+                    same fill-the-whole-screen role as background.jpg,
+                    just for this screen instead of the play screen.
+
+  win-background.jpg   The full-screen background behind the
+                    "Rescued!" screen (title + Play Again button) --
+                    same role as gameover-background.jpg above, for
+                    the win screen instead.
 
 Specs:
 
@@ -148,7 +159,7 @@ Specs:
     with the subject filling most of the frame works best -- around
     500-800px on its longest side is a safe target.
   - Descends straight down from off the top of the screen to just
-    above the horizon line over about 2.2 seconds once the player
+    above the horizon line over about 8.8 seconds once the player
     wins, then the screen hands off to the "Rescued!" screen -- so a
     clear, readable silhouette from a slight top-down angle (as if
     glimpsed arriving overhead) works better than a straight side
@@ -156,6 +167,22 @@ Specs:
   - This one's already dropped in for you (using the placeholder art
     you shared) -- everything above just explains what a final
     replacement should match if you swap it out later.
+
+  gameover-background.jpg / win-background.jpg
+  - Format: JPG (same as background.jpg).
+  - Resolution: around 1920x1080 (16:9) is a good target, same
+    reasoning as background.jpg.
+  - Fills the whole screen behind the title text and button, which
+    sit on top of it -- so keep the busiest/most detailed part of the
+    image away from dead-center where "Game Over" / "Rescued!" and
+    the button will land, or make sure it still reads fine with text
+    over it (the title has its own drop shadow, so it stays readable
+    over most images, but very busy/light center art can still fight
+    with it).
+  - gameover-background.jpg: whatever mood fits "the forest got the
+    better of you" -- night/dusk forest, something a little bleak.
+  - win-background.jpg: whatever mood fits "you made it out of the
+    forest" -- daylight, a clearing, a sense of relief/rescue.
 
 Until these files exist:
   - background.jpg / player.png just show plain gradient/placeholder
@@ -176,6 +203,8 @@ Until these files exist:
     and hearts-remaining count keep working normally in the meantime.
   - helicopter.png doesn't apply here -- it's already included (see
     above).
+  - gameover-background.jpg / win-background.jpg just show their
+    existing gradient backgrounds in the meantime -- nothing breaks.
 
-You can delete this file once all ten images are in place (nine of
-them, anyway -- helicopter.png is already here).
+You can delete this file once all twelve images are in place (eleven
+of them, anyway -- helicopter.png is already here).
