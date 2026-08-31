@@ -7,6 +7,41 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ============================================================
+     ANALYTICS (PostHog) -- loaded as early as possible so it's
+     capturing from the very first paint (the credits screen), not
+     just once the game itself starts. This is PostHog's own standard
+     install snippet -- the only project-specific bits are the key and
+     api_host right below, both safe to have public/client-side (this
+     is the "Project API key", a write-only key meant to be exposed in
+     frontend code -- NOT the separate "personal API key" PostHog also
+     has, which IS secret and should never go in a file like this).
+
+     To swap this to a different PostHog project later (or point it at
+     a different region), only these two values need to change:
+       - the key ("phc_...")
+       - api_host (US Cloud: https://us.i.posthog.com,
+                   EU Cloud: https://eu.i.posthog.com)
+     Both are found on PostHog's own site under Project Settings ->
+     Project variables.
+
+     `autocapture` (clicks, pageviews) is on by default with no extra
+     code -- see the posthog.capture(...) calls further down in the
+     game's own script for the handful of custom events layered on
+     top of that (game started, plant identified, progress milestones,
+     won/lost), which is where the "how many people actually play"
+     and "where do they drop off" questions actually get answered from
+     -- autocapture alone can't tell those apart. -->
+<script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}p||((p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",p.onerror=function(){p=null},(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r));var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+
+    posthog.init('phc_u5j6Zo7EFJoa4RjmGpVNZSZbJJ9RN28oGJQysU3Lkprj', {
+        api_host: 'https://us.i.posthog.com',
+        defaults: '2026-05-30',
+    })
+</script>
+
 <style>
   /* ============================================================
      TOKENS — palette is fixed to the 3 brand colors given; every
@@ -2216,11 +2251,18 @@
     screenMission.classList.add("hidden");
     screenPlay.classList.remove("hidden");
     playWalkMusic();
+    sessionPlayStartTime = Date.now(); // ANALYTICS -- see its declaration above
   }
   function openModal(modal){ modal.classList.remove("hidden"); }
   function closeModal(modal){ modal.classList.add("hidden"); }
 
   document.getElementById("btn-start").addEventListener("click", goToMissionScreen);
+  // ANALYTICS -- a separate listener rather than folding this into
+  // goToMissionScreen itself, so the game's own logic and the tracking
+  // call stay easy to tell apart (and easy to remove later without
+  // touching game code) -- same pattern used for every other capture()
+  // call in this file, see "ANALYTICS EVENTS" further down.
+  document.getElementById("btn-start").addEventListener("click", () => posthog.capture("play_clicked"));
   document.getElementById("btn-mission-continue").addEventListener("click", goToPlayScreen);
 
   document.getElementById("btn-about").addEventListener("click", () => openModal(modalAbout));
@@ -2727,6 +2769,14 @@
   // walking after they've already lost (or won). Reset in resetGame().
   let runEnding = false;
 
+  // ANALYTICS -- when actual walking starts (goToPlayScreen), so
+  // endGame() can report how long a run lasted. Not the same moment as
+  // the "play_clicked" event below (that's the title screen button --
+  // there's still the Mission Intro screen in between); this is
+  // "started walking" specifically, since that's what "time spent
+  // playing" should actually mean.
+  let sessionPlayStartTime = null;
+
   function canWalk(){
     return !screenPlay.classList.contains("hidden")
         && !runEnding
@@ -2828,6 +2878,12 @@
 
     if (result === "won") {
       closeModal(modalEncounter);
+      // ANALYTICS -- "players who won" + contributes to "time spent
+      // playing" (paired with game_over's own time_spent_ms below,
+      // together covering every run regardless of outcome).
+      posthog.capture("game_won", {
+        time_spent_ms: sessionPlayStartTime ? Date.now() - sessionPlayStartTime : null,
+      });
       // The helicopter's descent is normally already underway by now --
       // it starts immediately on the winning pick itself (see the
       // runEnding block in selectCard()), and selectCard() itself
@@ -2847,6 +2903,18 @@
       screenWin.classList.remove("hidden");
       return;
     }
+
+    // ANALYTICS -- "where do players drop off" (paired with
+    // progress_milestone in selectCard -- correct_count_at_loss says
+    // how many of the WIN_TARGET plants they'd already gotten right)
+    // and "time spent playing" for a run that ends in a loss. Captured
+    // here, immediately, rather than inside the fade's setTimeout below
+    // -- the run is already decided at this point, no need to wait for
+    // the animation.
+    posthog.capture("game_over", {
+      correct_count_at_loss: correctCount,
+      time_spent_ms: sessionPlayStartTime ? Date.now() - sessionPlayStartTime : null,
+    });
 
     // "lost" -- fade whatever's still on screen (the walking scene,
     // or -- if this came from a wrong pick -- the encounter card's
@@ -3100,6 +3168,15 @@
     correctCount = 0;
     updateRescueProgress();
 
+    // ANALYTICS -- cleared here as the shared default for BOTH reset
+    // paths (see sessionPlayStartTime's declaration); startOver() sends
+    // the player back to the title screen, where it's fine for this to
+    // stay null until goToPlayScreen() sets it fresh next time they
+    // actually start walking -- tryAgain() re-enters play directly
+    // instead, so it sets its own fresh timestamp right after calling
+    // this (see there).
+    sessionPlayStartTime = null;
+
     seenPairs.clear();
     requireBothExplored = false;
     seenPhotoIndices = new Set();
@@ -3152,6 +3229,7 @@
     screenStart.classList.add("hidden");
     screenPlay.classList.remove("hidden");
     playWalkMusic();
+    sessionPlayStartTime = Date.now(); // ANALYTICS -- this path skips goToPlayScreen(), which normally sets this
   }
 
   btnStartOver.addEventListener("click", startOver);
@@ -3495,6 +3573,10 @@
     encounterToken += 1; // this is now the one true encounter -- see the comment by its declaration
     justAnswered = false; // fresh encounter, no pick-in-flight -- see the flag's declaration
 
+    // ANALYTICS -- "plants played": one event per encounter actually
+    // opened, regardless of whether the player goes on to pick.
+    posthog.capture("plant_encounter_opened", { pair_id: pair && pair.id });
+
     // The player's now actually opened a plant -- no need to keep
     // teaching that mechanic for the rest of this playthrough.
     if (!hasOpenedPlantOnce){
@@ -3656,12 +3738,25 @@
     // their own pick.
     currentCards.forEach((c) => revealCardResult(c, c === card));
 
+    // ANALYTICS -- "correct guesses" (filter this event on correct:true)
+    // and, separately, plain identification volume regardless of
+    // outcome. pair_id lets you see which plants trip people up most.
+    posthog.capture("plant_identified", {
+      correct: isCorrect,
+      pair_id: currentPlantSpot.pair && currentPlantSpot.pair.id,
+    });
+
     if (isCorrect){
       playSound("correct");
       hunger = 100;
       updateHungerUI();
       correctCount += 1;
       updateRescueProgress();
+      // ANALYTICS -- "where do players drop off": one event per
+      // correct pick reached (1 through WIN_TARGET), so a funnel built
+      // from milestone 1 -> 2 -> 3 -> 4 -> 5 shows exactly which step
+      // loses the most players, not just "won" vs. "didn't."
+      posthog.capture("progress_milestone", { milestone: correctCount });
     } else {
       playSound("wrong");
       setTimeout(() => { loseHeart(); }, HEART_LOSE_DELAY_MS);
@@ -3677,11 +3772,11 @@
       runEnding = true;
       // Kick the helicopter's descent off right now, on the winning
       // pick itself, rather than waiting for endGame("won") -- which
-      // only fires once the Friend/Foe reveal has finished playing out
-      // (see RESULT_DISPLAY_MS below). By the time that reveal ends,
-      // the ~2.2s descent (see .win-helicopter's `top` transition in
-      // the CSS) is already done or nearly done, so endGame("won") just
-      // hands off to the Win screen -- see its own comment.
+      // (for a win specifically) fires only once the descent's own
+      // full duration has played out, see WIN_HELICOPTER_MS and
+      // WIN_REVEAL_MS below. By the time endGame("won") runs, the
+      // descent is done, so it just hands off to the Win screen --
+      // see its own comment.
       //
       // playSound + un-hiding here, THEN forcing a synchronous reflow
       // before adding .descending on the next frame: doing the
