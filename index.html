@@ -86,6 +86,40 @@
     pointer-events: none;
   }
 
+  /* Global mute toggle -- see the HTML comment by #btn-mute for why
+     it's a fixed, body-level element rather than living inside any
+     one screen's own HUD. z-index sits above EVERY screen, including
+     the initial credits screen (700) -- see the CSS SCREENS section
+     below -- so it's reachable the instant the page loads, before
+     the player's even seen the title screen. Icon-only always (no
+     desktop label, unlike .btn-start-over) -- two icons layered in
+     the same spot, CSS swaps which one shows via .muted below. */
+  .btn-mute{
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 750;
+    pointer-events:auto;
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    display:grid;
+    place-items:center;
+    width: 38px;
+    height: 38px;
+    background: rgba(44,36,16,0.55);
+    border-radius: 999px;
+    transition: background 0.15s ease;
+  }
+  .btn-mute:hover{ background: rgba(44,36,16,0.75); }
+  /* Both icons occupy the SAME single grid cell (stacked on top of
+     each other) -- toggling which one is display:none swaps the icon
+     in place, no layout shift. */
+  .mute-icon{ grid-area: 1 / 1; }
+  .mute-icon-off{ display:none; }
+  .btn-mute.muted .mute-icon-on{ display:none; }
+  .btn-mute.muted .mute-icon-off{ display:block; }
+
   /* ============================================================
      SCREENS
      ============================================================ */
@@ -1456,7 +1490,7 @@
     text-shadow: 0 2px 6px rgba(0,0,0,0.5);
     background: rgba(20,16,6,0.65);
     padding: 0.35rem 0.7rem;
-    border-radius: 999px;
+    border-radius: 8px;
     opacity: 0;
     animation: result-caveat-in 0.45s ease-out 0.5s forwards;
   }
@@ -1869,6 +1903,26 @@
 
   <div class="build-tag">prototype · placeholders throughout</div>
 
+  <!-- Global mute toggle -- upper left, icon-only at every screen
+       size (unlike Pause/Start Over, which show a label alongside the
+       icon on desktop -- see .hud-btn-icon). Lives outside every
+       .screen section (a fixed, body-level element, same pattern as
+       .build-tag above) so it's reachable from the very first frame,
+       including through the initial credits screen -- see its
+       z-index in the CSS -- since that's exactly where music and
+       sound effects can first overlap. -->
+  <button id="btn-mute" class="btn-mute" aria-label="Mute" aria-pressed="false">
+    <svg class="mute-icon mute-icon-on" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M2 7v4h3l4 3V4L5 7H2z" fill="white"/>
+      <path d="M12 6.5c1 .8 1 4.2 0 5" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M14 4.5c2 1.8 2 7.2 0 9" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    </svg>
+    <svg class="mute-icon mute-icon-off" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M2 7v4h3l4 3V4L5 7H2z" fill="white"/>
+      <path d="M12 6.5l4 4M16 6.5l-4 4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </button>
+
   <div id="fade-overlay" class="fade-overlay" aria-hidden="true"></div>
 
 <script>
@@ -2198,6 +2252,7 @@
      (per explicit request), hence the optional second argument.
      ============================================================ */
   function playSound(name, ext){
+    if (isMuted) return; // see the mute toggle further below
     try {
       const audio = new Audio(`sounds/${name}.${ext || "m4a"}`);
       // Fails silently either way: file not there yet, OR the browser
@@ -2249,6 +2304,32 @@
   }
   function pauseMusicForOverlay(){ if (currentMusic) currentMusic.pause(); }
   function resumeMusicFromOverlay(){ if (currentMusic) currentMusic.play().catch(() => {}); }
+
+  /* ============================================================
+     MUTE -- one global toggle for everything audio: both music
+     tracks AND every one-shot sound effect from playSound() above.
+     Music uses the native .muted property on the two persistent
+     Audio elements (keeps playing/looping in the background, silent
+     either way, and resumes audible instantly on unmute with no
+     restart or position jump) -- one-shot effects are simpler still,
+     since playSound() just skips creating/playing a new Audio
+     altogether while muted (see its own isMuted check above). Not
+     persisted across a reload -- resets to unmuted each fresh visit,
+     same as every other bit of session state here.
+     ============================================================ */
+  let isMuted = false;
+  const btnMute = document.getElementById("btn-mute");
+  function applyMuteState(){
+    musicWalk.muted = isMuted;
+    musicChoice.muted = isMuted;
+    btnMute.classList.toggle("muted", isMuted);
+    btnMute.setAttribute("aria-pressed", String(isMuted));
+    btnMute.setAttribute("aria-label", isMuted ? "Unmute" : "Mute");
+  }
+  btnMute.addEventListener("click", () => {
+    isMuted = !isMuted;
+    applyMuteState();
+  });
 
   // The trail never runs out of plants -- ensurePlantsAhead() below
   // keeps generating more spots, spaced SPOT_SPACING world units
@@ -2487,6 +2568,15 @@
      ============================================================ */
   const ROCK_SPACING = 170; // world units between one rock and the next -- denser than plants (SPOT_SPACING), since these are just a motion cue, not something to read
   const ROCK_LANE_MIN = 0.1, ROCK_LANE_MAX = 0.9; // keep off the very edges of the trail
+  // Rocks and plants both depth-sort via the SAME translateZ formula
+  // (FAR_Z/NEAR_Z over the same normalized t), inside .stage's real 3D
+  // preserve-3d context -- so at matching progress a rock and a plant
+  // can land at (near enough) the same Z and the browser's true depth
+  // compositing can pick either one to render in front. This constant
+  // biases every rock a bit farther from the camera than a plant would
+  // be at that same t, so rocks always paint behind trees/plants,
+  // consistently, without needing DOM-order tricks.
+  const ROCK_Z_BIAS = -25;
   let rocks = [];
   let nextRockDistance = null;
 
@@ -2569,7 +2659,7 @@
 
       rock.el.style.left = edgeX + "%";
       rock.el.style.top  = lerp(FAR_TOP, NEAR_TOP, tClamped) + "%";
-      rock.el.style.setProperty("--z", lerp(FAR_Z, NEAR_Z, tClamped) + "px");
+      rock.el.style.setProperty("--z", (lerp(FAR_Z, NEAR_Z, tClamped) + ROCK_Z_BIAS) + "px");
     });
   }
 
@@ -2685,15 +2775,6 @@
   // see why they lost before the screen starts going dark.
   const FADE_MS = 650;
 
-  // How long the helicopter's descent (see .win-helicopter's `top`
-  // transition in the CSS) plays out on the play screen itself before
-  // handing off to the actual Win screen -- keep in sync with that
-  // transition's own duration. The player is already frozen well
-  // before this (see runEnding, set the instant the winning pick was
-  // made), so this is purely watching the helicopter arrive, not
-  // something the player could walk through.
-  const WIN_HELICOPTER_MS = 2200;
-
   function endGame(result){
     advancing = false;
     retreating = false;
@@ -2701,22 +2782,22 @@
 
     if (result === "won") {
       closeModal(modalEncounter);
-      // Optional rescue sting -- see sounds/README.txt. Fires right as
-      // the helicopter starts its descent, same "sting lines up with
-      // the moment that earns it" idea as game-over's own sound
-      // below. MP3 per explicit request. Missing file fails silently.
-      playSound("rescue", "mp3");
-      // Play out the helicopter's descent on the (now frozen, see
-      // runEnding) play screen first, THEN swap to the actual Win
-      // screen -- see WIN_HELICOPTER_MS above and resetGame() below,
-      // which puts .win-helicopter back to its off-screen starting
-      // state for the next playthrough.
-      winHelicopter.classList.remove("hidden");
-      winHelicopter.classList.add("descending");
-      setTimeout(() => {
-        screenPlay.classList.add("hidden");
-        screenWin.classList.remove("hidden");
-      }, WIN_HELICOPTER_MS);
+      // The helicopter's descent is normally already underway by now --
+      // it starts immediately on the winning pick itself (see the
+      // runEnding block in selectCard()), so it's had the whole
+      // Friend/Foe reveal (RESULT_DISPLAY_MS) to play out and is done or
+      // nearly done. This is just a safety net for any caller that
+      // reaches endGame("won") directly, bypassing selectCard() (e.g.
+      // the debug hook's forceWin()) -- same reflow-before-transition
+      // approach as there, see its comment.
+      if (!winHelicopter.classList.contains("descending")){
+        playSound("rescue", "mp3");
+        winHelicopter.classList.remove("hidden");
+        void winHelicopter.offsetWidth;
+        winHelicopter.classList.add("descending");
+      }
+      screenPlay.classList.add("hidden");
+      screenWin.classList.remove("hidden");
       return;
     }
 
@@ -2927,13 +3008,19 @@
   // mounts. Only does anything once real art exists at
   // images/credits.png -- in the placeholder state there's no <img>
   // left in the DOM to click (onerror removes it, see the markup), so
-  // there's nothing here to stumble onto by luck yet either. This
-  // listener fires before the click finishes bubbling up to
-  // screenCredits' own skipCredits() above -- both still happen on the
-  // same click, same as clicking anywhere else on the screen.
+  // there's nothing here to stumble onto by luck yet either. Unlike
+  // clicking anywhere else on the screen, this is ONLY meant to replay
+  // the sound -- e.stopPropagation() keeps it from also bubbling up to
+  // screenCredits' own skipCredits() above, which would otherwise
+  // fast-forward straight to the title screen (and start walk music)
+  // in the same click, stepping on the very sound this is meant to
+  // let you hear.
   const creditsImageEl = screenCredits.querySelector(".credits-image");
   if (creditsImageEl){
-    creditsImageEl.addEventListener("click", () => { playSound("credits-appear"); });
+    creditsImageEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playSound("credits-appear");
+    });
   }
   setTimeout(beginReveal, CREDITS_REVEAL_DELAY_MS);
   setTimeout(dismissCredits, CREDITS_TOTAL_MS);
@@ -3520,8 +3607,31 @@
     // is known to end the run -- see runEnding's own comment by
     // canWalk(). correctCount is already incremented above if this
     // pick was correct, so it's safe to check here.
-    if (isFatalPick || correctCount >= WIN_TARGET){
+    if (isFatalPick){
       runEnding = true;
+    } else if (correctCount >= WIN_TARGET){
+      runEnding = true;
+      // Kick the helicopter's descent off right now, on the winning
+      // pick itself, rather than waiting for endGame("won") -- which
+      // only fires once the Friend/Foe reveal has finished playing out
+      // (see RESULT_DISPLAY_MS below). By the time that reveal ends,
+      // the ~2.2s descent (see .win-helicopter's `top` transition in
+      // the CSS) is already done or nearly done, so endGame("won") just
+      // hands off to the Win screen -- see its own comment.
+      //
+      // playSound + un-hiding here, THEN forcing a synchronous reflow
+      // before adding .descending on the next frame: doing the
+      // display:none -> block flip and the position change in the same
+      // tick collapses into a single paint and the CSS transition never
+      // runs, so the helicopter just pops into place instead of
+      // animating. The reflow + rAF split gives the browser an actual
+      // "starting state" frame to transition away from.
+      playSound("rescue", "mp3");
+      winHelicopter.classList.remove("hidden");
+      void winHelicopter.offsetWidth;
+      requestAnimationFrame(() => {
+        winHelicopter.classList.add("descending");
+      });
     }
 
     // Let the result (and the heart-loss animation, if any) actually
