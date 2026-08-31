@@ -1,5 +1,5 @@
 Play-screen background + player + intro credits + rescue progress +
-ground rocks — seven image files
+ground rocks + hearts — nine image files
 
 Drop files into this folder with these exact names. Nothing else
 needs to change in the code -- each one lights up automatically as
@@ -33,6 +33,14 @@ soon as it's here.
   rock-big.png       The larger of the two decorative rocks. Same
                     placement behavior as rock-small.png, just a
                     bigger silhouette. See below.
+
+  heart-full.png     A full/uninjured heart -- shown in the HUD
+                    (upper left) and above the encounter cards for
+                    each life the player still has. See below.
+
+  heart-broken.png   The same heart, broken -- shown in place of
+                    heart-full.png for each life the player has
+                    already lost. See below.
 
 Specs:
 
@@ -111,6 +119,22 @@ Specs:
     dramatic side-lit hero shot -- they're background texture, not a
     focal point.
 
+  heart-full.png / heart-broken.png
+  - Format: PNG with a transparent background.
+  - Each shows inside a square box that scales with the heart size
+    used at that spot (a large ~54px box in the HUD/encounter modal
+    on desktop, smaller on a narrow phone width) using "contain", so
+    a simple square icon-style source works best -- around 300-500px
+    square is a safe target for either.
+  - Two SEPARATE files, not one image that gets recolored -- draw
+    heart-broken.png as its own distinct art (a visibly cracked/split
+    heart), not just a duller version of heart-full.png, since the
+    game also applies a grayscale filter on top of whichever one is
+    showing for a lost life.
+  - Same two files are reused in both places hearts show (the HUD,
+    upper left, and the small pair shown above the cards while
+    picking) -- no separate versions needed for each spot.
+
 Until these files exist:
   - background.jpg / player.png just show plain gradient/placeholder
     shapes in their place -- nothing breaks, it just looks unfinished.
@@ -125,5 +149,8 @@ Until these files exist:
   - rock-small.png / rock-big.png each show as a simple gray drawn
     pebble shape in their place -- nothing breaks, it just looks
     like a placeholder rock instead of real art.
+  - heart-full.png / heart-broken.png each fall back to the plain ♥
+    / 💔 text characters (same red/gray look as before) -- the HUD
+    and hearts-remaining count keep working normally in the meantime.
 
-You can delete this file once all seven images are in place.
+You can delete this file once all nine images are in place.
