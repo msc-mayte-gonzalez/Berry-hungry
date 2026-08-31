@@ -321,6 +321,12 @@
     padding: 2rem;
     text-align:center;
   }
+  .mission-copy{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 1.3rem;
+  }
   .mission-text{
     color: var(--white);
     font-weight: 700;
@@ -335,6 +341,24 @@
     display: block;
     margin-top: 0.9rem;
   }
+  /* Playtest feedback: the how-to-play mechanics weren't showing up
+     early enough. Same three lines as the walk screen's forest-hint
+     and the About modal's How to Play section, just deliberately
+     smaller/quieter than .mission-text above it -- this is a recap,
+     not the dramatic beat of the screen. */
+  .mission-howto{
+    display:flex;
+    flex-direction:column;
+    gap: 0.45rem;
+    color: var(--white);
+    font-weight: 600;
+    font-size: clamp(0.85rem, 2.6vw, 1rem);
+    line-height: 1.5;
+    max-width: 560px;
+    opacity: 0.9;
+    text-shadow: 0 3px 10px rgba(0,0,0,0.35);
+  }
+  .mission-howto p{ margin:0; }
   .mission-actions{ width: min(90vw, 340px); }
 
   /* ---------- Buttons ---------- */
@@ -521,6 +545,12 @@
     flex-direction: column;
     gap: 0.5rem;
   }
+  .about-howtoplay{
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .about-howtoplay .about-plain-text{ margin: 0; }
 
   /* ============================================================
      PLAY SCREEN — first-person forest with a 3D depth plane
@@ -795,12 +825,17 @@
     white-space: nowrap;
     pointer-events:none; /* purely decorative — never steals a tap from a plant */
   }
-  /* #hint-plant's copy got noticeably longer than the rest of the
-     forest-hint lines -- let just this one wrap instead of inheriting
-     the block's nowrap (which would bleed it off-screen on mobile). */
-  #hint-plant{
+  /* #hint-goal and #hint-plant's copy run noticeably longer than
+     #hint-walk -- let these two wrap instead of inheriting the block's
+     nowrap (which would bleed them off-screen on mobile). 500px is
+     wide enough that both sit on one line on desktop (their natural
+     width is ~465-480px) -- keeping the whole three-line block short
+     enough that it doesn't creep down into the plants/rocks passing
+     through the stage behind it; on narrow screens the 90vw cap takes
+     over and lets them wrap same as before. */
+  #hint-goal, #hint-plant{
     white-space: normal;
-    max-width: min(88vw, 420px);
+    max-width: min(90vw, 500px);
     text-align: center;
   }
 
@@ -1838,7 +1873,14 @@
       <span class="placeholder-tag">forest — art coming later</span>
     </div>
     <div class="mission-content">
-      <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. <span class="mission-text-question">Will you make it?</span></p>
+      <div class="mission-copy">
+        <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. <span class="mission-text-question">Will you make it?</span></p>
+        <div class="mission-howto">
+          <p>Hold ↑ / W to walk, ↓ / S to go back.</p>
+          <p>Eat 5 edible plants to get rescued — avoid the toxic ones.</p>
+          <p>Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</p>
+        </div>
+      </div>
       <div class="mission-actions">
         <button id="btn-mission-continue" class="btn btn-primary btn-block">Let's Go!</button>
       </div>
@@ -1870,6 +1912,13 @@
       <h3 class="about-section-heading">Prototype</h3>
       <p class="about-plain-text">Built in 2.5 days.</p>
 
+      <h3 class="about-section-heading">How to Play</h3>
+      <div class="about-howtoplay">
+        <p class="about-plain-text">Hold ↑ / W to walk, ↓ / S to go back.</p>
+        <p class="about-plain-text">Eat 5 edible plants to get rescued — avoid the toxic ones.</p>
+        <p class="about-plain-text">Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</p>
+      </div>
+
       <h3 class="about-section-heading">Credits</h3>
       <ul class="about-credits">
         <li>Idea, info collection, and prototype development by M. Gonzalez (Sr. UX Researcher) and an anonymous collaborator (a great 3D Environment Artist!)</li>
@@ -1890,6 +1939,7 @@
       <span class="placeholder-tag">forest — art coming later</span>
       <div class="forest-hint">
         <span id="hint-walk">Hold ↑ / W to walk, ↓ / S to go back</span>
+        <span id="hint-goal">Eat 5 edible plants to get rescued — avoid the toxic ones.</span>
         <span id="hint-plant">Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</span>
       </div>
 
@@ -2365,6 +2415,7 @@
   const galleryNavHint        = document.getElementById("gallery-nav-hint");
   const galleryTapHint        = document.getElementById("gallery-tap-hint");
   const hintWalk               = document.getElementById("hint-walk");
+  const hintGoal                = document.getElementById("hint-goal");
   const hintPlant              = document.getElementById("hint-plant");
   const playerSway              = document.getElementById("player-sway");
   const winHelicopter           = document.getElementById("win-helicopter");
@@ -2528,7 +2579,7 @@
      yet -- see the credits-appear note above playSound), Start Game
      is a real click, so it's guaranteed to work there.
      ============================================================ */
-  const MUSIC_VOLUME = 0.5; // 0-1 -- turn down further here if it fights with the sound effects
+  const MUSIC_VOLUME = 0.05; // 0-1 -- playtest feedback: music was drowning out the sound effects, dropped to 10% of the old 0.5
   const musicWalk = new Audio("music/walk.mp3");
   musicWalk.loop = true;
   musicWalk.volume = MUSIC_VOLUME;
@@ -3368,6 +3419,7 @@
     hasWalkedOnce = false;
     hasOpenedPlantOnce = false;
     hintWalk.classList.remove("hidden");
+    hintGoal.classList.remove("hidden");
     hintPlant.classList.remove("hidden");
 
     // Endless trail -- tear down every spot the last run generated and
@@ -3497,9 +3549,11 @@
   // playthrough -- reset alongside everything else in resetGame().
   let hasSeenGalleryHint = false;
 
-  // Same idea for the two forest-hint lines: each disappears the first
-  // time the player actually does the thing it's teaching (walks, or
-  // opens a plant) -- reset alongside everything else in resetGame().
+  // Same idea for the forest-hint lines: #hint-walk disappears the
+  // first time the player actually walks; #hint-goal and #hint-plant
+  // (the goal reminder and the "click a plant" mechanic it sits next
+  // to) disappear together the first time a plant is opened -- reset
+  // alongside everything else in resetGame().
   let hasWalkedOnce = false;
   let hasOpenedPlantOnce = false;
 
@@ -3763,6 +3817,7 @@
     // teaching that mechanic for the rest of this playthrough.
     if (!hasOpenedPlantOnce){
       hasOpenedPlantOnce = true;
+      hintGoal.classList.add("hidden");
       hintPlant.classList.add("hidden");
     }
 
