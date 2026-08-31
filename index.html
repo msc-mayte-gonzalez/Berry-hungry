@@ -795,6 +795,14 @@
     white-space: nowrap;
     pointer-events:none; /* purely decorative — never steals a tap from a plant */
   }
+  /* #hint-plant's copy got noticeably longer than the rest of the
+     forest-hint lines -- let just this one wrap instead of inheriting
+     the block's nowrap (which would bleed it off-screen on mobile). */
+  #hint-plant{
+    white-space: normal;
+    max-width: min(88vw, 420px);
+    text-align: center;
+  }
 
   /* ---------- Win moment: rescue helicopter ---------- */
   /* Screen-anchored, flat 2D overlay -- NOT part of .stage's 3D
@@ -819,10 +827,11 @@
     transition: top 8.8s cubic-bezier(0.28, 0.62, 0.35, 1);
   }
   .win-helicopter.hidden{ display:none; }
-  /* 20px short of the "true" 32% resting spot on purpose -- landing
-     right at 32% put the helicopter's skids past the horizon's ground
-     line, breaking the perspective (it read as sinking into the dirt). */
-  .win-helicopter.descending{ top: calc(32% - 20px); }
+  /* 50px short of the "true" 32% resting spot on purpose (20px, then
+     another 30px on top of that) -- landing right at 32% put the
+     helicopter's skids past the horizon's ground line, breaking the
+     perspective (it read as sinking into the dirt). */
+  .win-helicopter.descending{ top: calc(32% - 50px); }
   .win-helicopter .placeholder-tag{
     top: auto;
     bottom: -1.7rem;
@@ -1270,6 +1279,26 @@
     width: 100%;
     min-width: 0;
     justify-content:center;
+  }
+  /* Reading mode shows gallery-hint-row + btn-ready; selecting mode
+     shows btn-ready (now the bigger pulsing "Select one" label) +
+     btn-review; the answered/reveal state shows NONE of them. Those
+     are very different content heights, and this box used to just be
+     three plain siblings of .encounter-card-wrap -- so every mode
+     change resized the wrap's total height, and since the whole wrap
+     is vertically centered in the modal, that shifted the CARDS
+     themselves up or down too (most visibly: the reveal state, with
+     everything below the cards hidden, sat noticeably lower than
+     reading/selecting mode). Reserving a fixed height here, sized for
+     the tallest state (selecting mode), keeps the wrap's total height
+     -- and so the cards' own position -- identical across all three. */
+  .encounter-footer{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 0.5rem;
+    min-height: 112px;
+    justify-content:flex-start;
   }
   /* Counter ("3 / 6", cover counted as photo 1) plus a one-time "tap
      the cards" hint for the very first pair of the playthrough --
@@ -1847,6 +1876,7 @@
         <li>Supervised by H. Botones</li>
         <li>Music: <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=281" target="_blank" rel="noopener noreferrer">freesound_community</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
         <li>Sound effect: <a href="https://pixabay.com/users/universfield-28281460/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=352695" target="_blank" rel="noopener noreferrer">Universfield</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
+        <li>Sound effect: <a href="https://pixabay.com/users/shut_up_ghost-32917765/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=140921" target="_blank" rel="noopener noreferrer">Ghostie Graves</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
       </ul>
     </div>
   </div>
@@ -1860,7 +1890,7 @@
       <span class="placeholder-tag">forest — art coming later</span>
       <div class="forest-hint">
         <span id="hint-walk">Hold ↑ / W to walk, ↓ / S to go back</span>
-        <span id="hint-plant">Tap a plant to identify if friend or foe</span>
+        <span id="hint-plant">Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</span>
       </div>
 
       <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
@@ -2083,12 +2113,20 @@
       <div class="cards-stage">
         <div class="cards" id="cards-container"></div>
       </div>
-      <div id="gallery-hint-row" class="gallery-hint-row">
-        <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
-        <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
+      <!-- Fixed-height footer: reading mode, selecting mode, and the
+           answered/reveal state each show a different subset of what's
+           in here (or nothing at all, once answered) -- see
+           .encounter-footer's own comment in the CSS for why this is
+           its own reserved-height box instead of these three being
+           plain siblings of the cards like before. -->
+      <div class="encounter-footer">
+        <div id="gallery-hint-row" class="gallery-hint-row">
+          <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
+          <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
+        </div>
+        <button id="btn-ready" class="btn btn-primary btn-ready">Select one</button>
+        <button id="btn-review" class="btn-review hidden">Review plants again</button>
       </div>
-      <button id="btn-ready" class="btn btn-primary btn-ready">Select one</button>
-      <button id="btn-review" class="btn-review hidden">Review plants again</button>
     </div>
   </div>
 
