@@ -1,5 +1,5 @@
-Play-screen background + player + intro credits + rescue progress —
-five image files
+Play-screen background + player + intro credits + rescue progress +
+ground rocks — seven image files
 
 Drop files into this folder with these exact names. Nothing else
 needs to change in the code -- each one lights up automatically as
@@ -25,6 +25,14 @@ soon as it's here.
   rescue-goal.png    The helicopter icon fixed at the TOP of that
                     same track -- the thing the marker is climbing
                     toward. See below.
+
+  rock-small.png     The smaller of two decorative rocks scattered
+                    along the walking trail, moving toward the
+                    player as they walk. See below.
+
+  rock-big.png       The larger of the two decorative rocks. Same
+                    placement behavior as rock-small.png, just a
+                    bigger silhouette. See below.
 
 Specs:
 
@@ -87,6 +95,22 @@ Specs:
     similar) rather than detailed -- a source around 300-500px on its
     longest side is a safe target.
 
+  rock-small.png / rock-big.png
+  - Format: PNG with a transparent background.
+  - rock-small.png is scaled to fit inside a box about 56x38px;
+    rock-big.png inside a box about 108x70px -- both use "contain"
+    (no cropping/stretching), so keep each source at roughly that
+    same wide/flat aspect ratio (a rock lying on its side, not
+    upright) with the subject filling most of the frame. A source
+    around 400-600px on its longest side is a safe target for
+    either.
+  - These are scattered randomly and repeatedly along the ground the
+    whole walk, moving straight toward the player (not diagonally
+    outward like the trail plants), so keep them looking natural
+    from a top-down "lying on the trail" angle rather than a
+    dramatic side-lit hero shot -- they're background texture, not a
+    focal point.
+
 Until these files exist:
   - background.jpg / player.png just show plain gradient/placeholder
     shapes in their place -- nothing breaks, it just looks unfinished.
@@ -98,5 +122,8 @@ Until these files exist:
     square with a "?" -- same placeholder language as the trail
     plants -- and the progress track/label still work and update
     normally in the meantime.
+  - rock-small.png / rock-big.png each show as a simple gray drawn
+    pebble shape in their place -- nothing breaks, it just looks
+    like a placeholder rock instead of real art.
 
-You can delete this file once all five images are in place.
+You can delete this file once all seven images are in place.
