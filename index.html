@@ -302,6 +302,13 @@
       radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.08), transparent 55%),
       linear-gradient(160deg, #241f0c 0%, var(--ink) 45%, var(--olive-dark) 100%);
   }
+  /* Same "real photo/art sits over the gradient fallback" pattern as
+     the play screen's background.jpg (see .scene-bg/.has-bg above) --
+     images/title-background.jpg and images/mission-background.jpg use
+     the exact same mechanism, they just needed their own has-bg rule
+     since each screen's placeholder-tag is a separate element. */
+  #screen-start .placeholder-art.has-bg .placeholder-tag,
+  #screen-mission .placeholder-art.has-bg .placeholder-tag{ display:none; }
   .mission-content{
     position: relative;
     z-index: 2;
@@ -321,6 +328,12 @@
     line-height: 1.5;
     max-width: 640px;
     text-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  }
+  /* "Will you make it?" reads as its own beat, separated from the
+     setup sentence above it rather than run on at the end of it. */
+  .mission-text-question{
+    display: block;
+    margin-top: 0.9rem;
   }
   .mission-actions{ width: min(90vw, 340px); }
 
@@ -363,14 +376,28 @@
     background: rgba(26,26,28,0.88);
     backdrop-filter: blur(3px);
     display:flex;
-    align-items:center;
+    /* "safe center": centers the content when it fits (the normal
+       case), but falls back to top-aligned the moment it WOULDN'T fit
+       -- instead of a plain "center" splitting the overflow evenly
+       above and below, which pushes the top of the content off-screen
+       and out of reach. This used to be handled by forcing top-aligned
+       (align-items:flex-start) any time the window got short (see the
+       old max-height:760px rule this replaces) -- but that fired on
+       ANY short window, even when the content was plenty short enough
+       to fit and center properly, which is what was leaving the
+       encounter modal sitting oddly high with a lot of dead space
+       below it on an ordinary, just-not-tall browser window. "safe"
+       fixes both cases with one rule instead of guessing a width/
+       height threshold. (Supported in all current major browsers.) */
+    align-items: safe center;
     justify-content:center;
     padding: 1.2rem;
     /* When the modal's content is taller than the viewport (short
        laptop windows, landscape phones, etc.), let it scroll instead
        of silently overflowing off the top/bottom of the screen --
-       see the max-height query below for the primary fix, this is
-       just the safety net for anything that still doesn't fit. */
+       "safe center" above (falling back to top-aligned) is what makes
+       the top of that overflowing content reachable via this scroll in
+       the first place. */
     overflow-y: auto;
   }
   .modal-card{
@@ -792,7 +819,10 @@
     transition: top 8.8s cubic-bezier(0.28, 0.62, 0.35, 1);
   }
   .win-helicopter.hidden{ display:none; }
-  .win-helicopter.descending{ top: 32%; }
+  /* 20px short of the "true" 32% resting spot on purpose -- landing
+     right at 32% put the helicopter's skids past the horizon's ground
+     line, breaking the perspective (it read as sinking into the dirt). */
+  .win-helicopter.descending{ top: calc(32% - 20px); }
   .win-helicopter .placeholder-tag{
     top: auto;
     bottom: -1.7rem;
@@ -881,7 +911,13 @@
   .heart.heart-lost .heart-img-broken.loaded{ display:block; }
   .heart:not(.heart-lost):has(> .heart-img-full.loaded) .heart-glyph{ display:none; }
   .heart.heart-lost:has(> .heart-img-broken.loaded) .heart-glyph{ display:none; }
-  .heart.heart-lost{ filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5)) grayscale(1); }
+  /* brightness(1.5) on top of the grayscale is deliberate -- a plain
+     grayscale(1) on the 💔 emoji (the fallback glyph until
+     heart-broken.png exists) renders as a near-black charcoal, not a
+     "broken heart is gray" read. This lifts it to a clear mid-gray
+     instead, and applies the same way to heart-broken.png once
+     that's dropped in, for a consistent look either way. */
+  .heart.heart-lost{ filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5)) grayscale(1) brightness(1.5); }
   /* Losing a heart: shake first, then (in JS, once the shake ends)
      the icon swaps to the broken heart and this same transition
      carries it into the grayed-out .heart-lost state. */
@@ -1269,6 +1305,29 @@
     aspect-ratio: 3 / 4.3;
     perspective: 1000px;
   }
+  /* Bigger cards on desktop -- the whole card (not just the photo or
+     just the text), so the extra room benefits both rather than
+     trading one for the other. Gated on BOTH width and height: width
+     so this doesn't kick in on a narrow/tablet window and overflow the
+     two-card row, height so it doesn't fight with the short-viewport
+     rules further below (@media max-height:760px), which need the
+     card to stay small on a short-but-wide window regardless of how
+     much horizontal room there is. Verified against every real
+     identification caption in the plant data: at this card size,
+     .id-text can go back up to nearly its original 0.95rem (0.90rem
+     here, for a little safety margin) and still fit every one of them
+     in 2 lines -- the cramped 0.68rem/0.56rem sizing right below this
+     block is what those smaller breakpoints still need, not this one. */
+  @media (min-width: 760px) and (min-height: 761px){
+    .encounter-card-wrap{ max-width: 740px; }
+    .card{ max-width: 340px; }
+    /* .id-text's own font-size bump for this same breakpoint lives
+       right after its base rule below, not here -- CSS cascade order
+       for equal-specificity selectors follows SOURCE order regardless
+       of which one is wrapped in a media query, and .id-text's base
+       rule comes later in the file than this block, so a duplicate
+       declaration here would just lose to it. */
+  }
   /* The cover is slide 1 of the same gallery as the identification
      photos (see buildCard) -- one face, one set of slides, paged by
      tapping the cards. But the cover is still special: crossing the
@@ -1344,7 +1403,14 @@
   .id-photo.loaded{ display:block; }
   .id-photo-wrap.has-photo .placeholder-tag{ display:none; }
   .id-text{
-    font-size: 0.95rem;
+    /* Sized down from 0.95rem so the longest real caption (e.g. "Leaves
+       are dark green, slightly hairy, and often have a maroon spot.")
+       fits within the 2 lines this box reserves below, instead of
+       spilling to 3-4 and getting clipped by the card's own
+       overflow:hidden. Empirically checked against every identification
+       caption in the plant data at this size -- all of them fit in 2
+       lines at this card width. */
+    font-size: 0.68rem;
     line-height: 1.4;
     color: var(--ink);
     text-align:left;
@@ -1353,6 +1419,12 @@
     /* Reserve room for 2 lines even when the caption is only 1 --
        keeps the photo above it from jumping size between photos. */
     min-height: calc(1.4em * 2);
+  }
+  /* Bigger cards (see the .card rule above) mean more room for this
+     text too -- back up close to the original 0.95rem, still checked
+     against every real caption fitting 2 lines at this card's width. */
+  @media (min-width: 760px) and (min-height: 761px){
+    .id-text{ font-size: 0.90rem; }
   }
   /* Sources/credits are unique per photo, so the button lives on the
      photo itself (lower-right) and opens an inline panel over the
@@ -1548,7 +1620,28 @@
        accounts for) or to anything the OTHER card is showing. */
     margin-top: 1.7rem;
     transform: translateX(-50%);
-    max-width: calc(100% - 2rem); /* stays inside the card's own padding, same as before, so long text still wraps rather than overflowing the card edge */
+    /* Absolutely-positioned + "left:50%" + "width:auto" is a CSS trap:
+       per spec, when only `left` is set (not `right`) and width is
+       auto, the browser's shrink-to-fit sizing only gets to use the
+       space from the left offset to the containing block's edge as
+       "available width" -- roughly HALF the card's width here, since
+       left is 50% -- so long text was wrapping into 5-6 cramped lines
+       no matter how generous max-width was made. Setting an explicit
+       width (max-content, still clamped by max-width) sidesteps that
+       shrink-to-fit calculation entirely and lets the pill use the
+       real available width on both sides of center. */
+    width: max-content;
+    /* .result-overlay (this element's positioned ancestor) already has
+       its own 1rem padding reserving margin from the card's edge, so
+       adding another 2rem of margin here on top of that was leaving
+       real caveat text (e.g. "Fruit is highly toxic, may be fatal if
+       eaten") too narrow to fit without wrapping into 3+ lines. This
+       now uses the overlay's padding as the only inset, letting the
+       pill span almost the full card width -- still safe from being
+       clipped, since .card-face's overflow:hidden only affects ITS
+       OWN descendants, and this overlay is a sibling of .card-face,
+       not a child of it (see the layering note above .result-overlay). */
+    max-width: calc(100% + 1rem);
     display:inline-flex;
     align-items:center;
     justify-content:center;
@@ -1558,7 +1651,7 @@
     font-size: 0.95rem;
     text-shadow: 0 2px 6px rgba(0,0,0,0.5);
     background: rgba(20,16,6,0.65);
-    padding: 0.35rem 0.7rem;
+    padding: 0.35rem 0.6rem;
     border-radius: 8px;
     opacity: 0;
     animation: result-caveat-in 0.45s ease-out 0.5s forwards;
@@ -1594,16 +1687,21 @@
   }
   .btn-ready:disabled:active{ transform:none; }
   .btn-ready.cta-ready:disabled{
-    background: var(--amber);
-    color: var(--white);
+    background: transparent;
+    /* Not one of the 3 fixed brand colors -- a clear, warm yellow so
+       "Select one" reads as a distinct status callout against the
+       amber CTA button underneath it (see .btn-ready:disabled above
+       for the plain gray "locked" look this is switching away from). */
+    color: #ffd93d;
     box-shadow: none;
     border-radius: 8px;
     cursor: default;
+    font-size: 1.85rem;
     animation: cta-ready-pulse 1.6s ease-in-out infinite;
   }
   @keyframes cta-ready-pulse{
-    0%, 100%{ box-shadow: 0 0 0 0 rgba(235,155,0,0); }
-    50%{ box-shadow: 0 0 18px 6px rgba(235,155,0,0.65); }
+    0%, 100%{ text-shadow: 0 0 0 rgba(76,140,63,0); }
+    50%{ text-shadow: 0 0 16px rgba(76,140,63,0.95), 0 0 28px rgba(76,140,63,0.6); }
   }
 
   /* ============================================================
@@ -1619,8 +1717,24 @@
     #modal-encounter{ padding: 0.6rem; }
     .cards{ gap: 0.5rem; }
     .card{ max-width: 48vw; }
-    .id-text{ font-size: 0.86rem; }
-    .result-caveat{ font-size: 0.86rem; }
+    /* Also trims card-face's own padding a bit here specifically to
+       claw back extra width for .id-text below -- on the narrowest
+       phones there just isn't enough room to fit every caption in 2
+       lines at a size that's still comfortably readable, so this is a
+       best-effort: it gets the great majority of captions to 2 lines,
+       and caps the handful of longest ones at 3 (down from up to 4)
+       rather than shrinking text further to chase a strict 2-line rule
+       everywhere. */
+    .card-face{ padding: 0.7rem; }
+    .id-text{ font-size: 0.56rem; }
+    .result-caveat{
+      font-size: 0.86rem;
+      /* Two cards + gap already nearly fill a phone-width screen (see
+         the note above), so the desktop overflow allowance has to be
+         reined in here specifically -- otherwise the pill's right edge
+         can push past the viewport edge on the right-hand card. */
+      max-width: calc(100% + 0.7rem);
+    }
     .btn-ready{ min-width: 0; width: 100%; }
     /* Pause/Start Over shrink to icon-only circles to save space --
        the icon itself is already visible by default (see .hud-btn-icon
@@ -1636,17 +1750,13 @@
 
   /* Short viewport HEIGHT (a laptop browser window without much
      vertical room, a landscape phone, etc.) -- independent of width.
-     The encounter modal's content is centered as a column, so when it
-     doesn't fit, the overflow used to be split evenly above and below
-     the visible area, pushing the hearts and the × close button (the
-     first things in that column) off the top of the screen entirely.
-     Below this height, pin the modal to the top and shrink it instead
-     of centering it, and let it scroll for anything that still
-     doesn't fit -- so every control stays reachable no matter how
-     short the window gets. */
+     The "safe center" on .modal-overlay above already handles WHETHER
+     the content is top-aligned or centered (centered when it fits,
+     top-aligned the moment it wouldn't) -- these rules just shrink
+     things down to reclaim a bit more room once the window's this
+     short, on top of whatever alignment safe-center already picked. */
   @media (max-height: 760px){
     #modal-encounter{
-      align-items: flex-start;
       padding: 0.6rem;
     }
     .encounter-card-wrap{ gap: 0.7rem; }
@@ -1654,19 +1764,7 @@
     .encounter-hearts .heart{ font-size: 2.3rem; }
     .encounter-prompt{ font-size: clamp(1.1rem, 4vw, 1.4rem); }
     .card{ max-width: 190px; }
-    /* Same fix, same reason, for the About modal -- it never got this
-       rule even though it has the identical failure mode: a flex
-       overlay centered with align-items:center clips an overflowing
-       child at its TOP edge in a way overflow-y:auto can't reach (a
-       well-known centered-flex-overflow quirk), so on a short window
-       the close button and opening lines become unreachable no matter
-       how far you scroll. This is what "had to zoom out to 75%" was
-       actually working around -- zooming shrank the rendered content
-       below the trigger height. Pin to the top and shrink its own
-       padding instead, so it scrolls properly like the encounter
-       modal already does. */
     #modal-about{
-      align-items: flex-start;
       padding: 0.6rem;
     }
     #modal-about .modal-card{ padding: 1.3rem 1.4rem 1.2rem; }
@@ -1678,6 +1776,12 @@
   <!-- ============ START SCREEN ============ -->
   <section id="screen-start" class="screen">
     <div class="placeholder-art">
+      <!-- Same background pattern as the play screen's images/background.jpg
+           (see .scene-bg) -- drop in images/title-background.jpg and it
+           lights up automatically, no other change needed. -->
+      <img class="scene-bg" src="images/title-background.jpg" alt=""
+           onload="this.classList.add('loaded'); this.closest('.placeholder-art').classList.add('has-bg');"
+           onerror="this.remove();">
       <span class="placeholder-tag">background — art coming later</span>
     </div>
     <div class="start-content">
@@ -1696,10 +1800,16 @@
        Start Game and before the walk begins ============ -->
   <section id="screen-mission" class="screen hidden">
     <div class="placeholder-art">
+      <!-- Same background pattern as the play screen's images/background.jpg
+           (see .scene-bg) -- drop in images/mission-background.jpg and it
+           lights up automatically, no other change needed. -->
+      <img class="scene-bg" src="images/mission-background.jpg" alt=""
+           onload="this.classList.add('loaded'); this.closest('.placeholder-art').classList.add('has-bg');"
+           onerror="this.remove();">
       <span class="placeholder-tag">forest — art coming later</span>
     </div>
     <div class="mission-content">
-      <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. Will you make it?</p>
+      <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. <span class="mission-text-question">Will you make it?</span></p>
       <div class="mission-actions">
         <button id="btn-mission-continue" class="btn btn-primary btn-block">Let's Go!</button>
       </div>
@@ -2211,6 +2321,7 @@
   const cardsContainer     = cardsRow;
   const btnReady            = document.getElementById("btn-ready");
   const btnReview            = document.getElementById("btn-review");
+  const btnEncounterClose     = document.getElementById("btn-encounter-close");
   const encounterPrompt      = document.getElementById("encounter-prompt");
   const galleryHintRow        = document.getElementById("gallery-hint-row");
   const galleryNavHint        = document.getElementById("gallery-nav-hint");
@@ -2270,6 +2381,11 @@
   modalAbout.addEventListener("click", (e) => { if (e.target === modalAbout) closeModal(modalAbout); });
 
   document.getElementById("btn-encounter-close").addEventListener("click", () => {
+    // A fatal pick (heart just hit 0) is on its own one-way countdown
+    // straight to Game Over -- see lossPending's declaration. No manual
+    // exit back to the (frozen) walk scene during that window, so this
+    // is a deliberate no-op rather than a normal close.
+    if (lossPending) return;
     closeModal(modalEncounter);
     playWalkMusic();
   });
@@ -2298,6 +2414,10 @@
     if (justAnswered) { justAnswered = false; return; }
     if (mode !== "answered") return;
     if (e.target.closest(".btn-info")) return;
+    // Same fatal-pick lock as the close button above -- a tap on the
+    // backdrop/cards must not be able to dismiss the reveal early and
+    // flash the walk scene before Game Over takes over on its own.
+    if (lossPending) return;
     closeModal(modalEncounter);
     playWalkMusic();
   });
@@ -2769,6 +2889,19 @@
   // walking after they've already lost (or won). Reset in resetGame().
   let runEnding = false;
 
+  // Set alongside runEnding, but ONLY for the losing case -- see the
+  // close button and modalEncounter click listeners above. runEnding
+  // alone already stops movement even if the modal gets closed early,
+  // but closing it AT ALL on a fatal pick still visually flashes the
+  // (frozen) walk scene for however long is left until endGame("lost")
+  // fires, which reads as "going back to the walk" even though nothing
+  // is actually playable there anymore. This blocks the manual-dismiss
+  // paths entirely during that window, so a fatal pick's only way
+  // forward is the automatic Game Over transition. Reset in
+  // resetGame(); the win path never sets this, so its own early-dismiss
+  // (see WIN_REVEAL_MS) is untouched.
+  let lossPending = false;
+
   // ANALYTICS -- when actual walking starts (goToPlayScreen), so
   // endGame() can report how long a run lasted. Not the same moment as
   // the "play_clicked" event below (that's the title screen button --
@@ -2901,6 +3034,13 @@
       }
       screenPlay.classList.add("hidden");
       screenWin.classList.remove("hidden");
+      // Optional Win sting -- see sounds/README.txt. Fires the instant
+      // the "Rescued!" screen itself is swapped in -- separate from
+      // rescue.mp3 above, which plays much earlier (at the winning
+      // pick, as the helicopter starts its ~8.8s descent). This is the
+      // Win-screen equivalent of game-over.mp3 below. Missing file
+      // fails silently, same "nothing breaks yet" spirit as the rest.
+      playSound("win", "mp3");
       return;
     }
 
@@ -3154,6 +3294,10 @@
     advancing = false;
     retreating = false;
     runEnding = false;
+    lossPending = false;
+    // Undo the fatal-pick hide from selectCard() -- see lossPending's
+    // comment -- so the close button is back for the next run.
+    btnEncounterClose.classList.remove("hidden");
     // Invalidate any encounter-close timer still pending from the run
     // that just ended -- see the encounterToken comment near its
     // declaration.
@@ -3768,6 +3912,12 @@
     // pick was correct, so it's safe to check here.
     if (isFatalPick){
       runEnding = true;
+      lossPending = true;
+      // No manual way out of this reveal -- see lossPending's own
+      // comment. Hiding the close button (rather than just no-oping its
+      // click) also stops it from sitting there looking clickable when
+      // it isn't.
+      btnEncounterClose.classList.add("hidden");
     } else if (correctCount >= WIN_TARGET){
       runEnding = true;
       // Kick the helicopter's descent off right now, on the winning
