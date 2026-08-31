@@ -722,9 +722,14 @@
     transition: opacity 0.15s ease;
   }
   .hearts{ display:flex; gap: 0.5rem; }
+  /* Sized in em, tied to this element's own font-size, so the image
+     scales the exact same way the old bare glyph used to whenever
+     font-size changes (see the mobile .encounter-hearts override
+     below) -- no extra breakpoint-specific sizing needed. */
   .heart{
-    width:auto;
-    height:auto;
+    position:relative;
+    width: 1em;
+    height: 1em;
     background:none;
     box-shadow:none;
     border-radius:0;
@@ -737,6 +742,29 @@
     filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5));
     transition: filter 0.2s ease;
   }
+  /* Text fallback -- shows until the matching image (full or broken,
+     whichever the current state calls for) has actually loaded, via
+     the :has() rules below. Once real art exists for both states,
+     this glyph never shows again. */
+  .heart-glyph{ display:block; }
+  .heart-img{
+    display:none;
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit: contain;
+  }
+  /* Two images always sit in the DOM (full-heart, broken-heart);
+     which one is eligible to show depends on whether this heart is
+     currently lost, same idea as .rescue-marker's has-art swap but
+     with two art states instead of one. */
+  .heart-img-full.loaded{ display:block; }
+  .heart.heart-lost .heart-img-full{ display:none; }
+  .heart-img-broken.loaded{ display:none; }
+  .heart.heart-lost .heart-img-broken.loaded{ display:block; }
+  .heart:not(.heart-lost):has(> .heart-img-full.loaded) .heart-glyph{ display:none; }
+  .heart.heart-lost:has(> .heart-img-broken.loaded) .heart-glyph{ display:none; }
   .heart.heart-lost{ filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5)) grayscale(1); }
   /* Losing a heart: shake first, then (in JS, once the shake ends)
      the icon swaps to the broken heart and this same transition
@@ -826,10 +854,12 @@
     transition: background 0.15s ease;
   }
   .btn-start-over:hover{ background: rgba(44,36,16,0.75); }
-  /* Icon lives in the markup for both buttons at all times; which of
-     icon/label actually shows is purely a CSS swap at the mobile
-     breakpoint below, to save space on small screens. */
-  .hud-btn-icon{ display:none; }
+  /* Icon + label show together at every width now -- makes Pause and
+     Start Over visually distinct from each other (and from anything
+     else in the HUD) at a glance, not just readable by their text.
+     At the mobile breakpoint below, the label drops and the icon
+     becomes the whole button to save space -- see .hud-btn-label. */
+  .hud-btn-icon{ display:block; flex-shrink:0; }
 
   /* Rescue progress -- upper right, mirroring the vitals over on the
      upper left (see .hud-vitals above). A vertical version of the
@@ -1385,7 +1415,19 @@
     to{ opacity: 1; transform: translateY(0); }
   }
 
+  /* "Select one" (see #btn-ready in the markup) is a status readout
+     now, not a control -- picking already starts automatically the
+     instant the player lands back on the cover with everything
+     explored (see stepGalleryPhoto's auto-trigger in the script), so
+     a click here has nothing left to do. It's kept permanently
+     disabled either way (see updateReadyState) -- while locked it
+     reads "First explore both plants" in the plain gray disabled
+     look below; the moment it's ready it flips straight to "Select
+     one" (no separate "keep browsing" step in between) restyled
+     flat and square on purpose, specifically so it doesn't invite a
+     tap the way the pill-shaped, 3D-bordered buttons elsewhere do. */
   .btn-ready{ min-width: 240px; }
+  .btn-ready:active{ transform:none; }
   .btn-ready:disabled{
     background: #c5c5c3;
     color: var(--ink-soft);
@@ -1393,19 +1435,17 @@
     cursor: not-allowed;
   }
   .btn-ready:disabled:active{ transform:none; }
-  /* Once unlocked, "Select one" pulses to draw the eye -- this is now
-     the primary signal that picking is available (see
-     stepGalleryPhoto's auto-trigger), not something the player
-     necessarily has to tap themselves to get past. Still a real,
-     clickable button underneath -- tapping it works exactly like
-     landing back on the cover does -- it's just not the expected way
-     in any more. */
-  .btn-ready.cta-ready{
+  .btn-ready.cta-ready:disabled{
+    background: var(--amber);
+    color: var(--white);
+    box-shadow: none;
+    border-radius: 8px;
+    cursor: default;
     animation: cta-ready-pulse 1.6s ease-in-out infinite;
   }
   @keyframes cta-ready-pulse{
-    0%, 100%{ box-shadow: 0 6px 0 var(--amber-dark), var(--shadow); }
-    50%{ box-shadow: 0 6px 0 var(--amber-dark), var(--shadow), 0 0 18px 6px rgba(235,155,0,0.65); }
+    0%, 100%{ box-shadow: 0 0 0 0 rgba(235,155,0,0); }
+    50%{ box-shadow: 0 0 18px 6px rgba(235,155,0,0.65); }
   }
 
   /* ============================================================
@@ -1424,8 +1464,9 @@
     .id-text{ font-size: 0.86rem; }
     .result-caveat{ font-size: 0.86rem; }
     .btn-ready{ min-width: 0; width: 100%; }
-    /* Pause/Start Over shrink to icon-only circles to save space. */
-    .hud-btn-icon{ display:block; }
+    /* Pause/Start Over shrink to icon-only circles to save space --
+       the icon itself is already visible by default (see .hud-btn-icon
+       above), just drop the label here. */
     .hud-btn-label{ display:none; }
     .btn-start-over{
       width: 34px;
@@ -1595,8 +1636,20 @@
         <!-- Vitals, upper LEFT -- see .hud-vitals for why. -->
         <div class="hud-vitals">
           <div class="hearts" id="hearts">
-            <span class="heart">♥</span>
-            <span class="heart">♥</span>
+            <span class="heart">
+              <span class="heart-glyph" aria-hidden="true">♥</span>
+              <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
+                   onload="this.classList.add('loaded');" onerror="this.remove();">
+              <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
+                   onload="this.classList.add('loaded');" onerror="this.remove();">
+            </span>
+            <span class="heart">
+              <span class="heart-glyph" aria-hidden="true">♥</span>
+              <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
+                   onload="this.classList.add('loaded');" onerror="this.remove();">
+              <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
+                   onload="this.classList.add('loaded');" onerror="this.remove();">
+            </span>
           </div>
           <div class="hunger-bar">
             <span class="hunger-label" id="hunger-label">HUNGRY!</span>
@@ -1719,8 +1772,20 @@
     <div class="encounter-card-wrap">
       <button id="btn-encounter-close" class="encounter-close" aria-label="Close">×</button>
       <div class="encounter-hearts" id="encounter-hearts">
-        <span class="heart">♥</span>
-        <span class="heart">♥</span>
+        <span class="heart">
+          <span class="heart-glyph" aria-hidden="true">♥</span>
+          <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
+               onload="this.classList.add('loaded');" onerror="this.remove();">
+          <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
+               onload="this.classList.add('loaded');" onerror="this.remove();">
+        </span>
+        <span class="heart">
+          <span class="heart-glyph" aria-hidden="true">♥</span>
+          <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
+               onload="this.classList.add('loaded');" onerror="this.remove();">
+          <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
+               onload="this.classList.add('loaded');" onerror="this.remove();">
+        </span>
       </div>
       <h2 id="encounter-prompt" class="encounter-prompt hidden">Which plant would you eat?</h2>
       <div class="cards-stage">
@@ -2475,7 +2540,11 @@
         const lost = i >= heartsRemaining;
         el.classList.remove("heart-shake");
         el.classList.toggle("heart-lost", lost);
-        el.textContent = lost ? HEART_BROKEN : HEART_FULL;
+        // Text fallback only -- which image (if any) actually shows is
+        // driven purely by CSS off the .heart-lost class, see the
+        // .heart-img rules above.
+        const glyph = el.querySelector(".heart-glyph");
+        if (glyph) glyph.textContent = lost ? HEART_BROKEN : HEART_FULL;
       });
     });
   }
@@ -2513,7 +2582,8 @@
       el.classList.add("heart-shake");
       setTimeout(() => {
         el.classList.remove("heart-shake");
-        el.textContent = HEART_BROKEN;
+        const glyph = el.querySelector(".heart-glyph");
+        if (glyph) glyph.textContent = HEART_BROKEN;
         el.classList.add("heart-lost");
       }, HEART_SHAKE_MS);
     });
@@ -2916,12 +2986,6 @@
 
   const READY_LABEL  = "Select one";
   const LOCKED_LABEL = "First explore both plants";
-  // Shown once exploration is done but the gallery hasn't paged back
-  // around to the cover yet -- without this, "Select one" (and its
-  // pulse) would appear the instant the LAST unseen photo is viewed,
-  // while the cards are still showing that photo rather than the
-  // cover, which reads as a glitch/mismatch. See updateReadyState.
-  const REVIEWING_LABEL = "Keep browsing";
 
   // The cute card-flip that plays whenever a card's visible slide
   // crosses the line between the cover and an identification photo
@@ -2932,25 +2996,31 @@
   const FLIP_SWAP_MS = FLIP_MS / 2;
 
   // Returns whether the explore gate is still locked, and along the
-  // way updates btn-ready's label/style to match -- "Select one",
-  // pulsing yellow (.cta-ready, see the CSS), once it isn't. Callers
-  // that need to know whether picking has opened up (see
-  // stepGalleryPhoto's auto-trigger below) use the return value
-  // instead of re-deriving the same condition themselves.
+  // way updates btn-ready's label/style to match. btn-ready itself
+  // isn't a real control any more (see the CSS comment by
+  // .btn-ready) -- it's kept disabled at ALL times, both locked and
+  // ready, so there's nothing left to click. It just reads "First
+  // explore both plants" the whole time the gate is shut, then flips
+  // straight to "Select one" (flat, square, pulsing) the instant the
+  // player is both fully explored AND actually back looking at the
+  // cover -- no separate interim label while paging through the rest
+  // of the gallery. Callers that need to know whether picking has
+  // opened up (see stepGalleryPhoto's auto-trigger below) use the
+  // return value instead of re-deriving the same condition
+  // themselves.
   function updateReadyState(){
     const locked = requireBothExplored && seenPhotoIndices.size < galleryPhotoTotal;
-    // "Select one" (and its pulse) only shows once the player is
-    // actually looking at the cover again -- being unlocked mid-gallery
-    // (say, right after the last unseen photo) isn't enough on its
-    // own, otherwise the CTA flips to "Select one" while the cards are
-    // still showing a photo instead of the cover, which looks like a
-    // glitch. See REVIEWING_LABEL above and stepGalleryPhoto's
+    // Ready (not just unlocked) requires ALSO being back at the cover
+    // -- being unlocked mid-gallery (say, right after the last unseen
+    // photo) isn't enough on its own, otherwise "Select one" would
+    // show while the cards are still showing a photo instead of the
+    // cover, which looks like a glitch. See stepGalleryPhoto's
     // auto-trigger below, which fires at the same instant this
     // becomes true.
     const atCover = galleryPhotoIndex === 0;
     const ready = !locked && atCover;
-    btnReady.disabled = locked;
-    btnReady.textContent = locked ? LOCKED_LABEL : (atCover ? READY_LABEL : REVIEWING_LABEL);
+    btnReady.disabled = true;
+    btnReady.textContent = ready ? READY_LABEL : LOCKED_LABEL;
     btnReady.classList.toggle("cta-ready", ready);
     // Only counts as "explored" the moment every slide has actually
     // been seen -- closing the modal early and reopening it must NOT
@@ -3103,14 +3173,13 @@
     cardsRow.classList.add("selecting");
     encounterPrompt.classList.remove("hidden");
     galleryHintRow.classList.add("hidden");
-    // "Select one" stays up as a pulsing indicator (see .cta-ready in
-    // the CSS) instead of disappearing now that picking is possible --
-    // with "Review plants again" shown right below it, same DOM order
-    // as always. Getting here no longer needs a click on it (see
-    // stepGalleryPhoto's auto-trigger below, and the already-know-this-
-    // pair path in openEncounter) -- it's still a real button underneath
-    // and works exactly the same if tapped, just not the expected way in
-    // any more.
+    // "Select one" stays up as a pulsing status indicator (see
+    // .cta-ready in the CSS) instead of disappearing now that picking
+    // is possible -- with "Review plants again" shown right below it,
+    // same DOM order as always. Getting here happens automatically
+    // (see stepGalleryPhoto's auto-trigger below, and the
+    // already-know-this-pair path in openEncounter) -- picking a
+    // plant itself happens by tapping a card, not this label.
     updateReadyState();
     btnReview.classList.remove("hidden");
   }
@@ -3216,10 +3285,11 @@
     playChoiceMusic();
   }
 
-  btnReady.addEventListener("click", () => {
-    if (btnReady.disabled) return;
-    enterSelectingMode();
-  });
+  // No click handler on btnReady any more -- it's a permanently
+  // disabled status readout now (see updateReadyState/the CSS
+  // comment by .btn-ready), not something the player taps. Picking
+  // starts automatically once they're back at the cover with
+  // everything explored (see stepGalleryPhoto's auto-trigger above).
 
   btnReview.addEventListener("click", () => {
     enterReadingMode();
