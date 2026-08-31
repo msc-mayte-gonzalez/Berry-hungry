@@ -825,15 +825,12 @@
     white-space: nowrap;
     pointer-events:none; /* purely decorative — never steals a tap from a plant */
   }
-  /* #hint-goal and #hint-plant's copy run noticeably longer than
-     #hint-walk -- let these two wrap instead of inheriting the block's
-     nowrap (which would bleed them off-screen on mobile). 500px is
-     wide enough that both sit on one line on desktop (their natural
-     width is ~465-480px) -- keeping the whole three-line block short
-     enough that it doesn't creep down into the plants/rocks passing
-     through the stage behind it; on narrow screens the 90vw cap takes
-     over and lets them wrap same as before. */
-  #hint-goal, #hint-plant{
+  /* #hint-goal's copy runs noticeably longer than #hint-walk -- let it
+     wrap instead of inheriting the block's nowrap (which would bleed
+     it off-screen on mobile). 500px is wide enough that it sits on one
+     line on desktop (its natural width is ~465px); on narrow screens
+     the 90vw cap takes over and lets it wrap. */
+  #hint-goal{
     white-space: normal;
     max-width: min(90vw, 500px);
     text-align: center;
@@ -1245,9 +1242,64 @@
   }
   .encounter-prompt{
     color: var(--white);
-    font-size: clamp(1.3rem, 5vw, 1.7rem);
     text-align:center;
+    /* Reserves room for the close button (38px wide, offset -6px past
+       the top-right corner -- see .encounter-close) on narrow screens,
+       where the hearts are invisible-but-reserved during reading mode
+       (see enterReadingMode) and this prompt sits right at the top of
+       the wrap instead. "First, let's learn about 2 similar plants"
+       wraps to 2 lines on a phone-width screen and its second line was
+       running right under the × otherwise. */
+    padding: 0 2.75rem;
+    /* The reading and selecting blocks below are stacked in the same
+       grid cell (rather than one replacing the other) so this
+       container's height is always the taller of the two, at any
+       viewport -- see .encounter-prompt-invisible for how the
+       non-active one is hidden without leaving the layout. */
+    display:grid;
+  }
+  .encounter-prompt-reading, .encounter-prompt-selecting{
+    grid-area: 1 / 1;
+  }
+  /* Hides whichever of reading/selecting isn't the current stage --
+     visibility (not display:none) so it still occupies its grid cell
+     and keeps #encounter-prompt's height stable across the switch;
+     see the CSS comment on #encounter-prompt above and
+     .encounter-hearts-invisible's comment for the same pattern used
+     on the hearts. */
+  .encounter-prompt-invisible{ visibility: hidden; }
+  /* Reading-stage copy -- same size/weight the single prompt line
+     always used. */
+  .encounter-prompt-reading{
+    font-size: clamp(1.3rem, 5vw, 1.7rem);
     text-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  }
+  /* Selecting-stage copy -- two lines now: a small recap line, then
+     the actual question, bigger and pulsing to draw the eye now that
+     "Select one" (see the old .cta-ready CTA) isn't sitting below the
+     cards doing that job any more. */
+  .encounter-prompt-selecting{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 0.35rem;
+  }
+  .encounter-prompt-sub{
+    font-size: clamp(0.95rem, 3vw, 1.15rem);
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 3px 10px rgba(0,0,0,0.4);
+  }
+  .encounter-prompt-main{
+    font-size: clamp(1.35rem, 5.4vw, 1.8rem);
+    font-weight: 800;
+    color: #ffd93d;
+    animation: encounter-prompt-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes encounter-prompt-pulse{
+    0%, 100%{ text-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 0 rgba(255,255,255,0); }
+    50%{ text-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 16px rgba(255,255,255,0.95), 0 0 28px rgba(255,255,255,0.65); }
   }
   /* The .heart glyphs here are styled identically to the HUD's (same
      base .heart rule) -- shown above the cards, separated from them
@@ -1263,6 +1315,16 @@
     z-index: 16;
     pointer-events:none;
   }
+  /* Reading mode hides the hearts (see enterReadingMode/
+     enterSelectingMode), but via visibility rather than display:none
+     -- this keeps its box (and the gap around it) reserved in
+     .encounter-card-wrap's flex column, so the cards below it don't
+     jump position the moment the hearts actually appear at the start
+     of selecting mode. Same "reserve the space, don't remove it"
+     principle as .encounter-footer's min-height, just done with
+     visibility here since this element's size never varies (unlike
+     the footer, whose content genuinely differs in height). */
+  .encounter-hearts-invisible{ visibility: hidden; }
   body:has(#modal-encounter:not(.hidden)) .hud-vitals{
     opacity: 0;
   }
@@ -1315,25 +1377,32 @@
     min-width: 0;
     justify-content:center;
   }
-  /* Reading mode shows gallery-hint-row + btn-ready; selecting mode
-     shows btn-ready (now the bigger pulsing "Select one" label) +
-     btn-review; the answered/reveal state shows NONE of them. Those
-     are very different content heights, and this box used to just be
-     three plain siblings of .encounter-card-wrap -- so every mode
-     change resized the wrap's total height, and since the whole wrap
-     is vertically centered in the modal, that shifted the CARDS
+  /* Reading mode shows gallery-hint-row; selecting mode shows
+     btn-review instead; the answered/reveal state shows neither.
+     Those are different content heights, and this box used to just be
+     plain siblings of .encounter-card-wrap -- so every mode change
+     resized the wrap's total height, and since the whole wrap is
+     vertically centered in the modal, that shifted the CARDS
      themselves up or down too (most visibly: the reveal state, with
      everything below the cards hidden, sat noticeably lower than
      reading/selecting mode). Reserving a fixed height here, sized for
-     the tallest state (selecting mode), keeps the wrap's total height
-     -- and so the cards' own position -- identical across all three. */
+     the taller of the two states, keeps the wrap's total height -- and
+     so the cards' own position -- identical across all three. (Also
+     deliberately snug now that "Select one" is gone -- playtest
+     feedback asked for "Review plants again" to sit close to the
+     cards, not floating in a tall reserved box.) */
   .encounter-footer{
     display:flex;
     flex-direction:column;
     align-items:center;
     gap: 0.5rem;
-    min-height: 112px;
+    min-height: 44px;
     justify-content:flex-start;
+    /* Pulls it in tighter than .encounter-card-wrap's own 1.4rem gap --
+       playtest feedback asked for "Review plants again" to sit close
+       to the cards now that "Select one" isn't there to fill the
+       space between them. */
+    margin-top: -0.7rem;
   }
   /* Counter ("3 / 6", cover counted as photo 1) plus a one-time "tap
      the cards" hint for the very first pair of the playthrough --
@@ -1427,8 +1496,10 @@
   }
   .card-name{
     font-size: 1rem;
+    font-weight: 700;
     color: var(--ink);
     text-align:center;
+    flex-shrink: 0;
   }
   /* Back of card: ONE real-life photo shown at a time. Which photo is
      showing is shared across BOTH cards (see galleryPhotoIndex) --
@@ -1730,44 +1801,6 @@
     to{ opacity: 1; transform: translateX(-50%) translateY(0); }
   }
 
-  /* "Select one" (see #btn-ready in the markup) is a status readout
-     now, not a control -- picking already starts automatically the
-     instant the player lands back on the cover with everything
-     explored (see stepGalleryPhoto's auto-trigger in the script), so
-     a click here has nothing left to do. It's kept permanently
-     disabled either way (see updateReadyState) -- while locked it
-     reads "First explore both plants" in the plain gray disabled
-     look below; the moment it's ready it flips straight to "Select
-     one" (no separate "keep browsing" step in between) restyled
-     flat and square on purpose, specifically so it doesn't invite a
-     tap the way the pill-shaped, 3D-bordered buttons elsewhere do. */
-  .btn-ready{ min-width: 240px; }
-  .btn-ready:active{ transform:none; }
-  .btn-ready:disabled{
-    background: #c5c5c3;
-    color: var(--ink-soft);
-    box-shadow: none;
-    cursor: not-allowed;
-  }
-  .btn-ready:disabled:active{ transform:none; }
-  .btn-ready.cta-ready:disabled{
-    background: transparent;
-    /* Not one of the 3 fixed brand colors -- a clear, warm yellow so
-       "Select one" reads as a distinct status callout against the
-       amber CTA button underneath it (see .btn-ready:disabled above
-       for the plain gray "locked" look this is switching away from). */
-    color: #ffd93d;
-    box-shadow: none;
-    border-radius: 8px;
-    cursor: default;
-    font-size: 1.85rem;
-    animation: cta-ready-pulse 1.6s ease-in-out infinite;
-  }
-  @keyframes cta-ready-pulse{
-    0%, 100%{ text-shadow: 0 0 0 rgba(76,140,63,0); }
-    50%{ text-shadow: 0 0 16px rgba(76,140,63,0.95), 0 0 28px rgba(76,140,63,0.6); }
-  }
-
   /* ============================================================
      RESPONSIVE
      ============================================================ */
@@ -1799,7 +1832,6 @@
          can push past the viewport edge on the right-hand card. */
       max-width: calc(100% + 0.7rem);
     }
-    .btn-ready{ min-width: 0; width: 100%; }
     /* Pause/Start Over shrink to icon-only circles to save space --
        the icon itself is already visible by default (see .hud-btn-icon
        above), just drop the label here. */
@@ -1826,7 +1858,9 @@
     .encounter-card-wrap{ gap: 0.7rem; }
     .encounter-hearts{ margin-bottom: 0; }
     .encounter-hearts .heart{ font-size: 2.3rem; }
-    .encounter-prompt{ font-size: clamp(1.1rem, 4vw, 1.4rem); }
+    .encounter-prompt-reading{ font-size: clamp(1.1rem, 4vw, 1.4rem); }
+    .encounter-prompt-sub{ font-size: clamp(0.82rem, 2.6vw, 0.98rem); }
+    .encounter-prompt-main{ font-size: clamp(1.15rem, 4.6vw, 1.5rem); }
     .card{ max-width: 190px; }
     #modal-about{
       padding: 0.6rem;
@@ -1892,6 +1926,15 @@
     <div class="modal-card">
       <button id="btn-about-close" class="modal-close" aria-label="Close">×</button>
       <h2>About This Game</h2>
+
+      <h3 class="about-section-heading">How to Play</h3>
+      <div class="about-howtoplay">
+        <p class="about-plain-text">Hold ↑ / W to walk, ↓ / S to go back.</p>
+        <p class="about-plain-text">Eat 5 edible plants to get rescued — avoid the toxic ones.</p>
+        <p class="about-plain-text">Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</p>
+      </div>
+
+      <h3 class="about-section-heading">Disclaimer</h3>
       <div class="disclaimer-box">
         <p>This game is for educational purposes only. It does not replace hands-on foraging training.</p>
         <p class="disclaimer-strong">Never eat a plant unless you can identify it with certainty.</p>
@@ -1912,13 +1955,6 @@
       <h3 class="about-section-heading">Prototype</h3>
       <p class="about-plain-text">Built in 2.5 days.</p>
 
-      <h3 class="about-section-heading">How to Play</h3>
-      <div class="about-howtoplay">
-        <p class="about-plain-text">Hold ↑ / W to walk, ↓ / S to go back.</p>
-        <p class="about-plain-text">Eat 5 edible plants to get rescued — avoid the toxic ones.</p>
-        <p class="about-plain-text">Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</p>
-      </div>
-
       <h3 class="about-section-heading">Credits</h3>
       <ul class="about-credits">
         <li>Idea, info collection, and prototype development by M. Gonzalez (Sr. UX Researcher) and an anonymous collaborator (a great 3D Environment Artist!)</li>
@@ -1938,9 +1974,8 @@
            onerror="this.remove();">
       <span class="placeholder-tag">forest — art coming later</span>
       <div class="forest-hint">
-        <span id="hint-walk">Hold ↑ / W to walk, ↓ / S to go back</span>
-        <span id="hint-goal">Eat 5 edible plants to get rescued — avoid the toxic ones.</span>
-        <span id="hint-plant">Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</span>
+        <span id="hint-walk">Hold ↑ / W to walk, ↓ / S to go back.</span>
+        <span id="hint-goal">Eat 5 edible plants to get rescued. Avoid the toxic ones.</span>
       </div>
 
       <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
@@ -2143,7 +2178,16 @@
   <div id="modal-encounter" class="modal-overlay hidden">
     <div class="encounter-card-wrap">
       <button id="btn-encounter-close" class="encounter-close" aria-label="Close">×</button>
-      <div class="encounter-hearts" id="encounter-hearts">
+      <!-- Invisible (not display:none) until choice mode actually
+           starts (see enterSelectingMode/.encounter-hearts-invisible)
+           -- playtest feedback: showing the hearts while the player
+           was still just learning about the two plants made it look
+           like a choice was already being made, when reading mode is
+           purely informational. Kept in the layout (rather than
+           display:none) so its reserved space doesn't shift the cards
+           below it when it appears -- see the CSS comment by
+           .encounter-hearts-invisible. -->
+      <div class="encounter-hearts encounter-hearts-invisible" id="encounter-hearts">
         <span class="heart">
           <span class="heart-glyph" aria-hidden="true">♥</span>
           <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
@@ -2159,22 +2203,35 @@
                onload="this.classList.add('loaded');" onerror="this.remove();">
         </span>
       </div>
-      <h2 id="encounter-prompt" class="encounter-prompt hidden">Which plant would you eat?</h2>
+      <!-- Two different prompts for the two different stages (see
+           enterReadingMode/enterSelectingMode) -- both are always laid
+           out, stacked on top of each other (see #encounter-prompt's
+           CSS grid), with only one actually visible at a time (see
+           .encounter-prompt-invisible). Stacking them like this rather
+           than swapping via display:none means #encounter-prompt's own
+           height is always the taller of the two, at any viewport --
+           so switching stages never shifts the cards below it. -->
+      <div id="encounter-prompt" class="encounter-prompt hidden">
+        <p id="encounter-prompt-reading" class="encounter-prompt-reading">First, let&rsquo;s learn about 2 similar plants</p>
+        <div id="encounter-prompt-selecting" class="encounter-prompt-selecting encounter-prompt-invisible">
+          <p class="encounter-prompt-sub">Now that you know about both plants</p>
+          <p class="encounter-prompt-main">Which plant would you eat?</p>
+        </div>
+      </div>
       <div class="cards-stage">
         <div class="cards" id="cards-container"></div>
       </div>
-      <!-- Fixed-height footer: reading mode, selecting mode, and the
-           answered/reveal state each show a different subset of what's
-           in here (or nothing at all, once answered) -- see
-           .encounter-footer's own comment in the CSS for why this is
-           its own reserved-height box instead of these three being
-           plain siblings of the cards like before. -->
+      <!-- Fixed-height footer: reading mode and selecting mode each
+           show a different subset of what's in here (or nothing at
+           all, once answered) -- see .encounter-footer's own comment
+           in the CSS for why this is its own reserved-height box
+           instead of these being plain siblings of the cards like
+           before. -->
       <div class="encounter-footer">
         <div id="gallery-hint-row" class="gallery-hint-row">
           <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
           <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
         </div>
-        <button id="btn-ready" class="btn btn-primary btn-ready">Select one</button>
         <button id="btn-review" class="btn-review hidden">Review plants again</button>
       </div>
     </div>
@@ -2407,16 +2464,16 @@
   const ground              = stage.querySelector(".ground");
   const cardsRow           = document.getElementById("cards-container");
   const cardsContainer     = cardsRow;
-  const btnReady            = document.getElementById("btn-ready");
   const btnReview            = document.getElementById("btn-review");
   const btnEncounterClose     = document.getElementById("btn-encounter-close");
   const encounterPrompt      = document.getElementById("encounter-prompt");
+  const encounterPromptReading   = document.getElementById("encounter-prompt-reading");
+  const encounterPromptSelecting = document.getElementById("encounter-prompt-selecting");
   const galleryHintRow        = document.getElementById("gallery-hint-row");
   const galleryNavHint        = document.getElementById("gallery-nav-hint");
   const galleryTapHint        = document.getElementById("gallery-tap-hint");
   const hintWalk               = document.getElementById("hint-walk");
   const hintGoal                = document.getElementById("hint-goal");
-  const hintPlant              = document.getElementById("hint-plant");
   const playerSway              = document.getElementById("player-sway");
   const winHelicopter           = document.getElementById("win-helicopter");
   const heartsEl              = document.getElementById("hearts");
@@ -3420,7 +3477,6 @@
     hasOpenedPlantOnce = false;
     hintWalk.classList.remove("hidden");
     hintGoal.classList.remove("hidden");
-    hintPlant.classList.remove("hidden");
 
     // Endless trail -- tear down every spot the last run generated and
     // start the generator fresh (progress is already reset to 0 above,
@@ -3550,15 +3606,11 @@
   let hasSeenGalleryHint = false;
 
   // Same idea for the forest-hint lines: #hint-walk disappears the
-  // first time the player actually walks; #hint-goal and #hint-plant
-  // (the goal reminder and the "click a plant" mechanic it sits next
-  // to) disappear together the first time a plant is opened -- reset
+  // first time the player actually walks; #hint-goal (the goal
+  // reminder) disappears the first time a plant is opened -- reset
   // alongside everything else in resetGame().
   let hasWalkedOnce = false;
   let hasOpenedPlantOnce = false;
-
-  const READY_LABEL  = "Select one";
-  const LOCKED_LABEL = "First explore both plants";
 
   // The cute card-flip that plays whenever a card's visible slide
   // crosses the line between the cover and an identification photo
@@ -3568,33 +3620,15 @@
   const FLIP_MS = 600;
   const FLIP_SWAP_MS = FLIP_MS / 2;
 
-  // Returns whether the explore gate is still locked, and along the
-  // way updates btn-ready's label/style to match. btn-ready itself
-  // isn't a real control any more (see the CSS comment by
-  // .btn-ready) -- it's kept disabled at ALL times, both locked and
-  // ready, so there's nothing left to click. It just reads "First
-  // explore both plants" the whole time the gate is shut, then flips
-  // straight to "Select one" (flat, square, pulsing) the instant the
-  // player is both fully explored AND actually back looking at the
-  // cover -- no separate interim label while paging through the rest
-  // of the gallery. Callers that need to know whether picking has
-  // opened up (see stepGalleryPhoto's auto-trigger below) use the
-  // return value instead of re-deriving the same condition
-  // themselves.
+  // Returns whether the explore gate is still locked. There's no
+  // "Select one"/"First explore both plants" status button any more
+  // (playtest feedback: it wasn't needed once the two stages -- reading
+  // vs. choosing -- read clearly on their own, see enterReadingMode/
+  // enterSelectingMode) -- this just tracks the gate itself. Callers
+  // that need to know whether picking has opened up (see
+  // stepGalleryPhoto's auto-trigger below) use the return value.
   function updateReadyState(){
     const locked = requireBothExplored && seenPhotoIndices.size < galleryPhotoTotal;
-    // Ready (not just unlocked) requires ALSO being back at the cover
-    // -- being unlocked mid-gallery (say, right after the last unseen
-    // photo) isn't enough on its own, otherwise "Select one" would
-    // show while the cards are still showing a photo instead of the
-    // cover, which looks like a glitch. See stepGalleryPhoto's
-    // auto-trigger below, which fires at the same instant this
-    // becomes true.
-    const atCover = galleryPhotoIndex === 0;
-    const ready = !locked && atCover;
-    btnReady.disabled = true;
-    btnReady.textContent = ready ? READY_LABEL : LOCKED_LABEL;
-    btnReady.classList.toggle("cta-ready", ready);
     // Only counts as "explored" the moment every slide has actually
     // been seen -- closing the modal early and reopening it must NOT
     // skip the gate next time, so this can't happen back in
@@ -3629,7 +3663,6 @@
                onerror="this.remove();">
           <span class="placeholder-tag">cover — 2D render coming soon</span>
         </div>
-        <h3 class="card-name">${plant.name}</h3>
       </div>
     `;
 
@@ -3653,8 +3686,17 @@
       </div>
     `).join("");
 
+    // The name sits ABOVE the photo now, as its own persistent header
+    // outside the sliding gallery -- it's the same plant across every
+    // slide of this card (cover included), so it doesn't need to be
+    // rebuilt per slide the way the photo/id-text do. Playtest
+    // feedback: while paging through a gallery of identification
+    // photos, players lost track of which plant (of the two cards)
+    // they were even looking at -- this keeps the name in view on
+    // every slide, not just the cover.
     card.innerHTML = `
       <div class="card-face">
+        <h3 class="card-name">${plant.name}</h3>
         <div class="id-slides">${coverSlideHtml}${idPointsHtml}</div>
       </div>
       <div class="result-overlay">
@@ -3723,11 +3765,16 @@
   function enterReadingMode(){
     mode = "reading";
     cardsRow.classList.remove("selecting");
-    // Stays visible in reading mode too now -- without it, it's not
-    // clear WHY the player is paging through photos at all.
+    // Hearts stay hidden through this whole stage -- playtest feedback:
+    // showing them while the player is still just learning about the
+    // two plants made it look like a choice was already underway, when
+    // reading mode is purely informational (see enterSelectingMode,
+    // which is the only place they come back).
+    encounterHeartsEl.classList.add("encounter-hearts-invisible");
     encounterPrompt.classList.remove("hidden");
+    encounterPromptReading.classList.remove("encounter-prompt-invisible");
+    encounterPromptSelecting.classList.add("encounter-prompt-invisible");
     btnReview.classList.add("hidden");
-    btnReady.classList.remove("hidden");
     galleryHintRow.classList.remove("hidden");
     updateReadyState();
   }
@@ -3744,15 +3791,20 @@
     });
     updateGalleryCounter();
     cardsRow.classList.add("selecting");
+    // The hearts only appear now that an actual choice is imminent --
+    // see enterReadingMode's comment for why they're hidden up to this
+    // point. They then stay visible through the reveal too (selectCard
+    // doesn't touch this class), since a wrong pick's heart-break
+    // animation needs somewhere to play.
+    encounterHeartsEl.classList.remove("encounter-hearts-invisible");
     encounterPrompt.classList.remove("hidden");
+    encounterPromptReading.classList.add("encounter-prompt-invisible");
+    encounterPromptSelecting.classList.remove("encounter-prompt-invisible");
     galleryHintRow.classList.add("hidden");
-    // "Select one" stays up as a pulsing status indicator (see
-    // .cta-ready in the CSS) instead of disappearing now that picking
-    // is possible -- with "Review plants again" shown right below it,
-    // same DOM order as always. Getting here happens automatically
-    // (see stepGalleryPhoto's auto-trigger below, and the
-    // already-know-this-pair path in openEncounter) -- picking a
-    // plant itself happens by tapping a card, not this label.
+    // Getting here happens automatically (see stepGalleryPhoto's
+    // auto-trigger below, and the already-know-this-pair path in
+    // openEncounter) -- picking a plant happens by tapping a card, not
+    // a button.
     updateReadyState();
     btnReview.classList.remove("hidden");
   }
@@ -3818,7 +3870,6 @@
     if (!hasOpenedPlantOnce){
       hasOpenedPlantOnce = true;
       hintGoal.classList.add("hidden");
-      hintPlant.classList.add("hidden");
     }
 
     cardsRow.classList.remove("selecting", "answered");
@@ -3863,11 +3914,9 @@
     playChoiceMusic();
   }
 
-  // No click handler on btnReady any more -- it's a permanently
-  // disabled status readout now (see updateReadyState/the CSS
-  // comment by .btn-ready), not something the player taps. Picking
-  // starts automatically once they're back at the cover with
-  // everything explored (see stepGalleryPhoto's auto-trigger above).
+  // Picking starts automatically once the player is back at the cover
+  // with everything explored (see stepGalleryPhoto's auto-trigger
+  // above) -- there's no "Select one" button to click any more.
 
   btnReview.addEventListener("click", () => {
     enterReadingMode();
@@ -3956,7 +4005,6 @@
     cardsRow.classList.remove("selecting");
     cardsRow.classList.add("answered");
     btnReview.classList.add("hidden");
-    btnReady.classList.add("hidden"); // was left up as the "Select one" indicator through selecting mode -- see enterSelectingMode
 
     // This trail spot is done -- walking back to it later shouldn't
     // let the player re-answer it (see the click handler where
