@@ -33,7 +33,12 @@ one plays automatically as soon as it's here.
                         "change photo" action to the player. MP3, not
                         M4A like the other short effects above --
                         that was a deliberate, separate choice (you
-                        already have this one).
+                        already have this one). Played at 1/5 volume
+                        in the code (it fires often in quick
+                        succession while paging, so it's turned down
+                        rather than adding up) -- search for
+                        card-flip in index.html if you want to adjust
+                        that number yourself.
 
   game-over.mp3          Plays the instant the Game Over screen
                         appears (running out of hearts) -- not the

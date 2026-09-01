@@ -325,7 +325,7 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap: 1.3rem;
+    gap: 5rem; /* playtest feedback: more breathing room between "Will you make it?" and the how-to-play recap below it */
   }
   .mission-text{
     color: var(--white);
@@ -847,14 +847,15 @@
   /* Screen-anchored, flat 2D overlay -- NOT part of .stage's 3D
      perspective plane (unlike the plants/rocks), since it's simply
      dropping in from the top of the screen rather than approaching
-     down the trail. Idle off-screen above until the winning pick adds
-     .descending (see runEnding in the script), at which point the
-     `top` transition below carries it down to just above FAR_TOP -- the
-     same vertical % the trail's own far edge sits at (see the script's
-     FAR_TOP constant), i.e. "the horizon line" the player's been
-     walking toward the whole game. Duration kept in sync with
-     WIN_HELICOPTER_MS in the script, which waits out the full descent
-     before swapping to the Win screen. */
+     down the trail. Idle off-screen above until the rescue timer
+     reaches RESCUE_DURATION_MS and triggerRescueWin() adds .descending
+     (see the script), at which point the `top` transition below
+     carries it down to just above FAR_TOP -- the same vertical % the
+     trail's own far edge sits at (see the script's FAR_TOP constant),
+     i.e. "the horizon line" the player's been walking toward the whole
+     game. Duration kept in sync with WIN_HELICOPTER_MS in the script,
+     which waits out the full descent before swapping to the Win
+     screen. */
   .win-helicopter{
     position:absolute;
     left:50%;
@@ -1123,11 +1124,12 @@
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
     border: 2px solid rgba(255,255,255,0.65);
   }
-  /* Fills from the bottom as correctCount climbs toward WIN_TARGET --
-     same "how close am I" read as the hunger track's gradient, just
-     vertical and green-only since this one only ever moves one way
-     (good). Kept in sync with .rescue-marker's `bottom` by
-     updateRescueProgress() in the script below. */
+  /* Fills from the bottom as the rescue timer (rescueElapsedMs) climbs
+     toward RESCUE_DURATION_MS -- same "how close am I" read as the
+     hunger track's gradient, just vertical and green-only since this
+     one only ever moves one way (good). Kept in sync with
+     .rescue-marker's `bottom` by updateRescueProgress() in the script
+     below, called every walking frame from tick(). */
   .rescue-track-fill{
     position:absolute;
     left:0; right:0; bottom:0;
@@ -1989,6 +1991,7 @@
           <li><span class="about-link-region">Quebec:</span> <a href="https://gourmetsauvage.ca/en/" target="_blank" rel="noopener noreferrer">Gourmet Sauvage</a></li>
           <li><span class="about-link-region">United States:</span> <a href="https://wildfoodadventures.com/" target="_blank" rel="noopener noreferrer">Wild Food Adventures</a></li>
           <li><span class="about-link-region">United States:</span> <a href="http://www.foragersharvest.com/" target="_blank" rel="noopener noreferrer">Forager's Harvest</a></li>
+          <li><span class="about-link-region">Book:</span> Sam Thayer's Field Guide to Edible Wild Plants: Of Eastern and Central North America, by Samuel Thayer (<a href="https://www.indigo.ca/products/sam-thayers-field-guide-to-edible-wild-plants" target="_blank" rel="noopener noreferrer">book</a>)</li>
         </ul>
       </div>
 
@@ -1999,8 +2002,8 @@
       <ul class="about-credits">
         <li>Idea, info collection, and prototype development by M. Gonzalez (Sr. UX Researcher) and an anonymous collaborator (a great 3D Environment Artist!)</li>
         <li>Supervised by H. Botones</li>
-        <li>Music: <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=281" target="_blank" rel="noopener noreferrer">freesound_community</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
-        <li>Sound effect: <a href="https://pixabay.com/users/universfield-28281460/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=352695" target="_blank" rel="noopener noreferrer">Universfield</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
+        <li>Music: <a href="https://pixabay.com/users/nathan-180-56136572/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=547010" target="_blank" rel="noopener noreferrer">Nathan-180</a> via <a href="https://pixabay.com/music//?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=547010" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
+        <li>Sound effect: <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=102978" target="_blank" rel="noopener noreferrer">freesound_community</a> via <a href="https://pixabay.com//?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=102978" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
         <li>Sound effect: <a href="https://pixabay.com/users/shut_up_ghost-32917765/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=140921" target="_blank" rel="noopener noreferrer">Ghostie Graves</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
       </ul>
     </div>
@@ -2037,11 +2040,13 @@
         </div>
       </div>
 
-      <!-- Win moment: once the player reaches WIN_TARGET, a helicopter
-           descends from off the top of the screen down to just above
-           the horizon (see .win-helicopter / endGame("won") in the
-           script) -- hidden the rest of the time. Drop the art in as
-           images/helicopter.png; nothing else needs to change. -->
+      <!-- Win moment: once the rescue timer reaches RESCUE_DURATION_MS
+           (30 seconds of active walking time -- see triggerRescueWin()
+           in the script), a helicopter descends from off the top of
+           the screen down to just above the horizon (see
+           .win-helicopter / endGame("won")) -- hidden the rest of the
+           time. Drop the art in as images/helicopter.png; nothing else
+           needs to change. -->
       <div class="win-helicopter hidden" id="win-helicopter">
         <img class="win-helicopter-img" src="images/helicopter.png" alt=""
              onload="this.classList.add('loaded'); this.closest('.win-helicopter').classList.add('has-art');"
@@ -2096,13 +2101,15 @@
 
         <!-- Rescue progress, upper RIGHT -- how close the player is to
              WINNING, which wasn't shown anywhere before (only losing
-             had any feedback). A vertical track: the marker climbs
-             from the bottom as correct picks add up, the helicopter
-             goal sits fixed at the top, reached at WIN_TARGET correct
-             picks (see updateRescueProgress in the script below). Drop
-             in images/rescue-marker.png and images/rescue-goal.png to
-             replace the amber "?" placeholders -- see
-             images/README.txt. -->
+             had any feedback). A vertical track: the marker climbs on
+             its own the whole time the player is actively walking
+             (paused while a card/Pause/About modal is open), reaching
+             the fixed helicopter goal at the top after
+             RESCUE_DURATION_MS -- 30 seconds -- of that active-walking
+             time (see updateRescueProgress/triggerRescueWin in the
+             script below). Drop in images/rescue-marker.png and
+             images/rescue-goal.png to replace the amber "?"
+             placeholders -- see images/README.txt. -->
         <div class="rescue-progress" id="rescue-progress">
           <div class="rescue-goal" id="rescue-goal">
             <img class="rescue-goal-img" src="images/rescue-goal.png" alt="Rescue helicopter"
@@ -2117,7 +2124,7 @@
                    onerror="this.remove();">
             </div>
           </div>
-          <div class="rescue-label" id="rescue-label">0 / 5</div>
+          <div class="rescue-label" id="rescue-label">0 / 30s</div>
         </div>
       </div>
     </div>
@@ -2702,10 +2709,15 @@
      Most of these are M4A -- game-over and rescue are MP3 instead
      (per explicit request), hence the optional second argument.
      ============================================================ */
-  function playSound(name, ext){
+  function playSound(name, ext, volume){
     if (isMuted) return; // see the mute toggle further below
     try {
       const audio = new Audio(`sounds/${name}.${ext || "m4a"}`);
+      // Optional per-call volume (0-1), defaulting to full -- e.g.
+      // card-flip.mp3 fires often in quick succession while paging the
+      // gallery, so it's turned down (see that call site) to sit
+      // underneath everything else instead of adding up.
+      audio.volume = volume == null ? 1 : volume;
       // Fails silently either way: file not there yet, OR the browser
       // blocking autoplay until the player's interacted with the page
       // at all (very first sound of a session -- see sounds/README.txt).
@@ -3166,9 +3178,10 @@
   // advancing/retreating flag pair to hold.
   let lastTime = null;
 
-  // Set the instant a pick is known to end the run -- the fatal heart,
-  // or the pick that reaches WIN_TARGET -- see selectCard. This is
-  // NOT the same thing as the encounter modal being open: the reveal
+  // Set the instant the run is known to be ending -- either a fatal
+  // heart (see selectCard) or the rescue timer reaching
+  // RESCUE_DURATION_MS (see triggerRescueWin). This is NOT the same
+  // thing as the encounter modal being open: the reveal
   // can be dismissed early (the "x", or tapping to dismiss once
   // mode is "answered" -- see modalEncounter's click listener), which
   // only closes the modal, not the run. Without this flag, an early
@@ -3188,8 +3201,9 @@
   // is actually playable there anymore. This blocks the manual-dismiss
   // paths entirely during that window, so a fatal pick's only way
   // forward is the automatic Game Over transition. Reset in
-  // resetGame(); the win path never sets this, so its own early-dismiss
-  // (see WIN_REVEAL_MS) is untouched.
+  // resetGame(); the win path never sets this at all -- it's triggered
+  // by the rescue timer while walking, with no encounter modal open to
+  // begin with, so there's no early-dismiss path for it to guard.
   let lossPending = false;
 
   // ANALYTICS -- when actual walking starts (goToPlayScreen), so
@@ -3243,21 +3257,61 @@
   /* ============================================================
      RESCUE PROGRESS -- how close the player is to WINNING (the flip
      side of hearts/hunger, which only ever showed how close they were
-     to LOSING). Correctly identifying the "Friend" plant WIN_TARGET
-     times reaches the helicopter and wins the run -- see selectCard's
-     isCorrect branch below for where correctCount actually increments
-     and the win check that follows it.
+     to LOSING). UPDATED: this used to be "5 correct picks"; playtest
+     feedback asked for the rescue marker to move on its own instead,
+     so it's now purely time-based -- RESCUE_DURATION_MS of accumulated
+     ACTIVE WALKING time (see tick() below, where rescueElapsedMs only
+     advances inside the same canWalk() branch that drives forward
+     progress) is what wins the run. Opening a card encounter, the
+     Pause menu, or the About modal all freeze it exactly like they
+     freeze walking, since canWalk() is false for all three, and it
+     resumes the instant the player's back on the walk screen. Picking
+     correctly is no longer required to win, though it still refills
+     hunger and correctCount is still tracked for analytics.
      ============================================================ */
-  const WIN_TARGET = 5;
+  const RESCUE_DURATION_MS = 30000; // 30 seconds of active walking time to be rescued
   let correctCount = 0;
+  let rescueElapsedMs = 0;
 
-  // Moves the marker up the track and updates the "X / 5" label --
-  // called on init, on every correct pick, and on resetGame().
+  // Moves the marker up the track and updates the "Xs / 30s" label --
+  // called every walking frame from tick(), plus on init and
+  // resetGame(). Reaching RESCUE_DURATION_MS is checked separately, in
+  // tick() itself (see there) via triggerRescueWin() below, since it
+  // can happen mid-walk rather than only right after a pick.
   function updateRescueProgress(){
-    const pct = clamp((correctCount / WIN_TARGET) * 100, 0, 100);
+    const pct = clamp((rescueElapsedMs / RESCUE_DURATION_MS) * 100, 0, 100);
     rescueTrackFill.style.height = pct + "%";
     rescueMarker.style.bottom = pct + "%";
-    rescueLabel.textContent = Math.min(correctCount, WIN_TARGET) + " / " + WIN_TARGET;
+    const elapsedS = Math.min(Math.floor(rescueElapsedMs / 1000), RESCUE_DURATION_MS / 1000);
+    rescueLabel.textContent = elapsedS + " / " + (RESCUE_DURATION_MS / 1000) + "s";
+  }
+
+  // Starts the same helicopter-descent sequence a winning pick used to
+  // kick off directly inside selectCard() -- now triggered from here
+  // instead, the instant rescueElapsedMs reaches RESCUE_DURATION_MS
+  // during an ordinary walking frame (see tick()). No card modal is
+  // open at this point (canWalk() requires it to be, for the timer to
+  // even be advancing), so unlike the old pick-triggered version
+  // there's no modal to close first -- just start the descent and,
+  // once it's fully played out, hand off to the Win screen.
+  function triggerRescueWin(){
+    runEnding = true;
+    // playSound + un-hiding here, THEN forcing a synchronous reflow
+    // before adding .descending on the next frame: doing the
+    // display:none -> block flip and the position change in the same
+    // tick collapses into a single paint and the CSS transition never
+    // runs, so the helicopter just pops into place instead of
+    // animating. The reflow + rAF split gives the browser an actual
+    // "starting state" frame to transition away from.
+    playSound("rescue", "mp3");
+    winHelicopter.classList.remove("hidden");
+    void winHelicopter.offsetWidth;
+    requestAnimationFrame(() => {
+      winHelicopter.classList.add("descending");
+    });
+    setTimeout(() => {
+      endGame("won");
+    }, WIN_HELICOPTER_MS);
   }
 
   // Animated version -- used whenever a heart is actually lost during
@@ -3336,8 +3390,8 @@
 
     // ANALYTICS -- "where do players drop off" (paired with
     // progress_milestone in selectCard -- correct_count_at_loss says
-    // how many of the WIN_TARGET plants they'd already gotten right)
-    // and "time spent playing" for a run that ends in a loss. Captured
+    // how many correct picks they'd already made before losing) and
+    // "time spent playing" for a run that ends in a loss. Captured
     // here, immediately, rather than inside the fade's setTimeout below
     // -- the run is already decided at this point, no need to wait for
     // the animation.
@@ -3442,11 +3496,26 @@
       if (canWalk()){
         // Forward progress is now automatic, always-on -- the trail is
         // endless, so winning was already about the rescue-progress
-        // goal (5 correct picks), not reaching a fixed distance.
+        // goal (now 30 seconds of active walking time, see
+        // RESCUE_DURATION_MS), not reaching a fixed distance.
         progress = clamp(progress + WALK_SPEED * dt, 0, Infinity);
         ensurePlantsAhead();
         ensureRocksAhead();
         updateRocks();
+
+        // Rescue timer -- only advances while genuinely walking (this
+        // is the exact same canWalk() gate as forward progress right
+        // above), so opening a card encounter, the Pause menu, or the
+        // About modal all pause it automatically, and it resumes the
+        // instant the player's back on the walk screen. See
+        // triggerRescueWin() above.
+        if (!runEnding){
+          rescueElapsedMs += dt * 1000;
+          updateRescueProgress();
+          if (rescueElapsedMs >= RESCUE_DURATION_MS){
+            triggerRescueWin();
+          }
+        }
 
         if (slideDir !== 0){
           playerX = clamp(playerX + slideDir * PLAYER_SLIDE_SPEED * dt, PLAYER_X_MIN, PLAYER_X_MAX);
@@ -3471,12 +3540,25 @@
 
   window.addEventListener("keydown", (e) => {
     const key = e.key.toLowerCase();
+    // While the gallery's reading stage is open, the same ←/→ (or A/D)
+    // keys page it instead of steering the player -- steering wouldn't
+    // do anything useful while the walk is paused for the encounter
+    // anyway (see stepGalleryPhoto, same paths the chevrons/card taps
+    // use). `mode === "reading"` alone isn't reliable proof the modal
+    // is actually open (it's also just `mode`'s own default value
+    // before any encounter has ever happened), so check the modal's
+    // own hidden state too. One step per press (ignore key-repeat) to
+    // match the discrete tap/chevron behavior instead of rapid-firing
+    // pages for as long as the key is held.
+    const galleryOpen = mode === "reading" && !modalEncounter.classList.contains("hidden");
     if (key === "arrowleft" || key === "a"){
       e.preventDefault();
-      slidingLeft = true;
+      if (galleryOpen) { if (!e.repeat) stepGalleryPhoto(-1); }
+      else slidingLeft = true;
     } else if (key === "arrowright" || key === "d"){
       e.preventDefault();
-      slidingRight = true;
+      if (galleryOpen) { if (!e.repeat) stepGalleryPhoto(1); }
+      else slidingRight = true;
     }
   });
   window.addEventListener("keyup", (e) => {
@@ -3609,6 +3691,7 @@
     updateHeartsUI();
 
     correctCount = 0;
+    rescueElapsedMs = 0;
     updateRescueProgress();
 
     // ANALYTICS -- cleared here as the shared default for BOTH reset
@@ -3985,7 +4068,7 @@
     // page-to-page step and the cover-crossing 3D flip (card.showPhoto
     // decides on its own whether this particular step crosses the
     // cover; the player hears the same "page turned" cue either way).
-    playSound("card-flip", "mp3");
+    playSound("card-flip", "mp3", 0.2); // 1/5 volume -- fires often while paging, shouldn't dominate
     seenPhotoIndices.add(galleryPhotoIndex);
     const locked = updateReadyState();
     updateGalleryCounter();
@@ -4114,21 +4197,13 @@
   // HEART_LOSE_DELAY_MS, halved).
   const GAME_OVER_START_DELAY_MS = HEART_LOSE_DELAY_MS + Math.round((RESULT_DISPLAY_MS - HEART_LOSE_DELAY_MS) / 2);
 
-  // The winning pick gets its own, much shorter reveal: the helicopter
-  // is already descending behind the modal (see the runEnding block
-  // below) by the time the reveal appears, but the modal's blurred
-  // backdrop makes that hard to actually see -- so instead of sitting
-  // through the usual RESULT_DISPLAY_MS, the reveal auto-closes after
-  // just WIN_REVEAL_MS, handing the (still frozen, see runEnding) play
-  // screen back so the descent is clearly visible against it.
-  const WIN_REVEAL_MS = 2000;
-
   // How long the helicopter's own descent (see .win-helicopter's `top`
-  // transition in the CSS) takes from the winning pick to arrival --
-  // keep this in sync with that transition's duration. The Win screen
-  // only swaps in once this has fully played out, so the player always
-  // gets to watch the whole thing (not just the first WIN_REVEAL_MS of
-  // it) before moving on.
+  // transition in the CSS) takes from the moment the rescue timer
+  // reaches RESCUE_DURATION_MS (see triggerRescueWin(), up by
+  // updateRescueProgress) to arrival -- keep this in sync with that
+  // transition's duration. The Win screen only swaps in once this has
+  // fully played out, so the player always gets to watch the whole
+  // descent before moving on.
   const WIN_HELICOPTER_MS = 8800;
 
   // Grows the "Friend"/"Foe" reveal in over ONE card's photo. Any
@@ -4209,10 +4284,11 @@
       updateHungerUI();
       correctCount += 1;
       updateRescueProgress();
-      // ANALYTICS -- "where do players drop off": one event per
-      // correct pick reached (1 through WIN_TARGET), so a funnel built
-      // from milestone 1 -> 2 -> 3 -> 4 -> 5 shows exactly which step
-      // loses the most players, not just "won" vs. "didn't."
+      // ANALYTICS -- one event per correct pick made (1, 2, 3, ...).
+      // UPDATED: winning is no longer capped at a fixed pick count (see
+      // RESCUE_DURATION_MS), so this is now open-ended rather than a
+      // fixed 1-through-5 funnel -- still useful for "how many correct
+      // IDs does a typical run rack up" and general engagement.
       posthog.capture("progress_milestone", { milestone: correctCount });
     } else {
       playSound("wrong");
@@ -4221,8 +4297,10 @@
 
     // Freeze movement right now, synchronously, the moment this pick
     // is known to end the run -- see runEnding's own comment by
-    // canWalk(). correctCount is already incremented above if this
-    // pick was correct, so it's safe to check here.
+    // canWalk(). UPDATED: winning is no longer decided by a pick at
+    // all -- it's now purely time-based (see triggerRescueWin() and
+    // the rescue-timer check in tick()) -- so the only way a single
+    // pick can end the run here is the fatal-heart case below.
     if (isFatalPick){
       runEnding = true;
       lossPending = true;
@@ -4231,60 +4309,16 @@
       // click) also stops it from sitting there looking clickable when
       // it isn't.
       btnEncounterClose.classList.add("hidden");
-    } else if (correctCount >= WIN_TARGET){
-      runEnding = true;
-      // Kick the helicopter's descent off right now, on the winning
-      // pick itself, rather than waiting for endGame("won") -- which
-      // (for a win specifically) fires only once the descent's own
-      // full duration has played out, see WIN_HELICOPTER_MS and
-      // WIN_REVEAL_MS below. By the time endGame("won") runs, the
-      // descent is done, so it just hands off to the Win screen --
-      // see its own comment.
-      //
-      // playSound + un-hiding here, THEN forcing a synchronous reflow
-      // before adding .descending on the next frame: doing the
-      // display:none -> block flip and the position change in the same
-      // tick collapses into a single paint and the CSS transition never
-      // runs, so the helicopter just pops into place instead of
-      // animating. The reflow + rAF split gives the browser an actual
-      // "starting state" frame to transition away from.
-      playSound("rescue", "mp3");
-      winHelicopter.classList.remove("hidden");
-      void winHelicopter.offsetWidth;
-      requestAnimationFrame(() => {
-        winHelicopter.classList.add("descending");
-      });
     }
 
     // Let the result (and the heart-loss animation, if any) actually
     // register, then hand the player back to the field -- unless that
-    // was the last heart (run over) or this pick just reached
-    // WIN_TARGET (run won), in which case a transition starts instead.
-    // Checked in this order because they're mutually exclusive -- a
-    // correct pick never costs a heart, so heartsRemaining can only
-    // have hit 0 here as a result of a WRONG pick above.
-    // endGame("lost") closes the encounter modal itself, only once the
-    // fade-to-black is done, so the result stays visible under the
-    // fade rather than being cut away first.
+    // was the last heart (run over), in which case a transition starts
+    // instead. endGame("lost") closes the encounter modal itself, only
+    // once the fade-to-black is done, so the result stays visible
+    // under the fade rather than being cut away first.
     if (isFatalPick){
       setTimeout(() => { endGame("lost"); }, GAME_OVER_START_DELAY_MS);
-    } else if (correctCount >= WIN_TARGET){
-      // Winning pick: give the reveal a much shorter beat than usual
-      // (WIN_REVEAL_MS) before auto-closing it -- the helicopter is
-      // already descending behind it (see above), and closing the
-      // modal early is what actually makes that descent visible
-      // instead of sitting under the modal's blur the whole time. The
-      // Win screen itself still only swaps in once the descent has
-      // fully played out (WIN_HELICOPTER_MS), so the player watches
-      // the whole thing rather than having it cut short.
-      setTimeout(() => {
-        if (myEncounterToken === encounterToken){
-          closeModal(modalEncounter);
-        }
-      }, WIN_REVEAL_MS);
-      setTimeout(() => {
-        endGame("won");
-      }, WIN_HELICOPTER_MS);
     } else {
       setTimeout(() => {
         if (myEncounterToken === encounterToken){
