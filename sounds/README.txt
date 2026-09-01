@@ -1,4 +1,4 @@
-Sound effects — seven files
+Sound effects — eight files
 
 Drop files into this folder (sounds/, same level as images/) with
 these exact names. Nothing else needs to change in the code -- each
@@ -24,6 +24,17 @@ one plays automatically as soon as it's here.
   wrong.m4a              Plays the instant the player picks the FOE
                         card (the poisonous one) in an encounter.
 
+  card-flip.mp3          Plays every time the player pages the
+                        gallery -- tapping a card, tapping the gap
+                        between them, or the ‹ › chevrons beside the
+                        "x / N" counter. Covers both an ordinary page
+                        (photo to photo) and the moment it flips back
+                        across the cover, since both are the same
+                        "change photo" action to the player. MP3, not
+                        M4A like the other short effects above --
+                        that was a deliberate, separate choice (you
+                        already have this one).
+
   game-over.mp3          Plays the instant the Game Over screen
                         appears (running out of hearts) -- not the
                         Win screen, just the loss state. A short
@@ -47,8 +58,8 @@ one plays automatically as soon as it's here.
                         outcome). Also MP3, also a short sting, also
                         doesn't need to loop.
 
-Format: game-over.mp3, rescue.mp3, and win.mp3 are MP3. Everything
-else above is M4A (AAC) -- all current major browsers (Chrome,
+Format: card-flip.mp3, game-over.mp3, rescue.mp3, and win.mp3 are
+MP3. Everything else above is M4A (AAC) -- all current major browsers (Chrome,
 Firefox, Safari, Edge) play both formats natively through the same
 audio code this game already uses, so whichever format you've
 already got a given sound in -- straight out of GarageBand, Voice
@@ -69,7 +80,11 @@ in the wrong format first.
 
 Keep them short and punchy -- these are one-shot sound effects, not
 music. A few hundred milliseconds to a couple of seconds is normal
-for correct/wrong/hunger-low/game-over/rescue/win. credits-appear.m4a can
+for correct/wrong/card-flip/hunger-low/game-over/rescue/win.
+card-flip.mp3 especially -- it can fire several times in quick
+succession as the player pages through a gallery, so a quick tick/
+click/whoosh reads much better there than anything with a long tail.
+credits-appear.m4a can
 run a little longer if it's meant to underscore the whole logo card,
 but even that only needs to cover roughly its 2.2-second fade in/
 hold/fade out (see index.html's CREDITS_FADE_MS/CREDITS_HOLD_MS
@@ -94,4 +109,4 @@ it.
 
 Until these files exist, playing a sound just fails silently --
 nothing breaks, nothing errors, the game plays exactly the same
-minus the sound. You can delete this file once all seven are in place.
+minus the sound. You can delete this file once all eight are in place.

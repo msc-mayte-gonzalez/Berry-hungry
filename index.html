@@ -825,11 +825,18 @@
     white-space: nowrap;
     pointer-events:none; /* purely decorative — never steals a tap from a plant */
   }
-  /* #hint-goal's copy runs noticeably longer than #hint-walk -- let it
-     wrap instead of inheriting the block's nowrap (which would bleed
-     it off-screen on mobile). 500px is wide enough that it sits on one
-     line on desktop (its natural width is ~465px); on narrow screens
-     the 90vw cap takes over and lets it wrap. */
+  /* Both lines run long enough now (the walk line spells out eating/
+     avoiding too, not just movement) that neither should inherit the
+     block's nowrap above -- that would bleed either one off-screen on
+     mobile. Let both wrap, with a cap wide enough to still sit on one
+     line on desktop for #hint-goal (natural width ~465px) and two
+     comfortable lines for the longer #hint-walk; on narrow screens the
+     vw cap takes over and lets both wrap further. */
+  #hint-walk{
+    white-space: normal;
+    max-width: min(92vw, 620px);
+    text-align: center;
+  }
   #hint-goal{
     white-space: normal;
     max-width: min(90vw, 500px);
@@ -1358,11 +1365,14 @@
     z-index: 20;
   }
 
-  /* Photo paging now happens by tapping the cards themselves (or the
-     gap between them -- see cardsContainer's click handler) rather
-     than dedicated chevron buttons; that also meant the buttons no
-     longer had to steal horizontal space from the cards, which is
-     what let the cards shrink back to full size below. */
+  /* Photo paging happens by tapping the cards themselves (or the gap
+     between them -- see cardsContainer's click handler), same as
+     before, rather than through dedicated full-height chevron buttons
+     -- those used to steal horizontal space from the cards, which is
+     what let the cards grow back to full size below. Small prev/next
+     chevrons DO exist again (see .gallery-nav-btn), but only beside
+     the tiny counter text in the footer, not beside the cards, so they
+     don't reopen that space problem. */
   .cards-stage{
     display:flex;
     flex-direction:column;
@@ -1404,14 +1414,21 @@
        space between them. */
     margin-top: -0.7rem;
   }
-  /* Counter ("3 / 6", cover counted as photo 1) plus a one-time "tap
-     the cards" hint for the very first pair of the playthrough --
-     sits centered under the cards now that there's no chevron column
-     for it to live beside. */
+  /* Counter row ("‹ 3 / 6 ›", cover counted as photo 1) on top, plus a
+     one-time "click the cards" hint on its own line below for the very
+     first pair of the playthrough -- stacked so the counter always
+     sits at the same spot whether or not the hint line is showing
+     underneath it, rather than the two crowding onto one row. */
   .gallery-hint-row{
     display:flex;
+    flex-direction:column;
     align-items:center;
-    gap: 0.6rem;
+    gap: 0.35rem;
+  }
+  .gallery-nav-row{
+    display:flex;
+    align-items:center;
+    gap: 0.5rem;
   }
   .gallery-nav-hint{
     font-size: 0.68rem;
@@ -1421,6 +1438,31 @@
     text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     white-space: nowrap;
   }
+  /* Small on purpose -- tapping a card (or the gap between them) still
+     pages the gallery too (see cardsContainer's click handler), so
+     these exist for players who look for explicit prev/next controls
+     rather than as the primary way to page. Sized to sit comfortably
+     beside the small counter text, not to steal space from the cards
+     the way the old full-height chevrons used to (see the note by
+     .cards-stage). */
+  .gallery-nav-btn{
+    appearance:none;
+    border:none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    color: var(--white);
+    font-size: 0.85rem;
+    font-weight: 800;
+    line-height: 1;
+    padding:0;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .gallery-nav-btn:hover{ background: rgba(255,255,255,0.32); }
   .gallery-tap-hint{
     font-size: 1rem;
     font-weight: 700;
@@ -1910,9 +1952,8 @@
       <div class="mission-copy">
         <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. <span class="mission-text-question">Will you make it?</span></p>
         <div class="mission-howto">
-          <p>Hold ↑ / W to walk, ↓ / S to go back.</p>
-          <p>Eat 5 edible plants to get rescued — avoid the toxic ones.</p>
-          <p>Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</p>
+          <p>Use ← / → or A / D to move and eat edible plants while avoiding toxic ones.</p>
+          <p>Learn to tell them apart, then keep choosing the right ones.</p>
         </div>
       </div>
       <div class="mission-actions">
@@ -1929,9 +1970,8 @@
 
       <h3 class="about-section-heading">How to Play</h3>
       <div class="about-howtoplay">
-        <p class="about-plain-text">Hold ↑ / W to walk, ↓ / S to go back.</p>
-        <p class="about-plain-text">Eat 5 edible plants to get rescued — avoid the toxic ones.</p>
-        <p class="about-plain-text">Click a plant to find out if it&rsquo;s an edible friend or a toxic foe.</p>
+        <p class="about-plain-text">Use ← / → or A / D to move and eat edible plants while avoiding toxic ones.</p>
+        <p class="about-plain-text">Learn to tell them apart, then keep choosing the right ones.</p>
       </div>
 
       <h3 class="about-section-heading">Disclaimer</h3>
@@ -1974,8 +2014,8 @@
            onerror="this.remove();">
       <span class="placeholder-tag">forest — art coming later</span>
       <div class="forest-hint">
-        <span id="hint-walk">Hold ↑ / W to walk, ↓ / S to go back.</span>
-        <span id="hint-goal">Eat 5 edible plants to get rescued. Avoid the toxic ones.</span>
+        <span id="hint-walk">Use ← / → or A / D to move and eat edible plants while avoiding toxic ones.</span>
+        <span id="hint-goal">Learn to tell them apart, then keep choosing the right ones.</span>
       </div>
 
       <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
@@ -1988,7 +2028,7 @@
            inner wrapper rather than .player-fp itself, so it can
            animate its own transform without fighting the outer
            translateX(-50%) that keeps the whole thing centered. -->
-      <div class="player-fp">
+      <div class="player-fp" id="player-fp">
         <div class="player-sway" id="player-sway">
           <img class="player-img" src="images/player.png" alt=""
                onload="this.classList.add('loaded'); this.closest('.player-fp').classList.add('has-player');"
@@ -2229,8 +2269,12 @@
            before. -->
       <div class="encounter-footer">
         <div id="gallery-hint-row" class="gallery-hint-row">
-          <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
-          <span id="gallery-tap-hint" class="gallery-tap-hint">Tap the cards to see more</span>
+          <div class="gallery-nav-row">
+            <button type="button" id="btn-gallery-prev" class="gallery-nav-btn" aria-label="Previous photo">‹</button>
+            <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
+            <button type="button" id="btn-gallery-next" class="gallery-nav-btn" aria-label="Next photo">›</button>
+          </div>
+          <span id="gallery-tap-hint" class="gallery-tap-hint">Click cards to see more</span>
         </div>
         <button id="btn-review" class="btn-review hidden">Review plants again</button>
       </div>
@@ -2472,9 +2516,12 @@
   const galleryHintRow        = document.getElementById("gallery-hint-row");
   const galleryNavHint        = document.getElementById("gallery-nav-hint");
   const galleryTapHint        = document.getElementById("gallery-tap-hint");
+  const btnGalleryPrev        = document.getElementById("btn-gallery-prev");
+  const btnGalleryNext        = document.getElementById("btn-gallery-next");
   const hintWalk               = document.getElementById("hint-walk");
   const hintGoal                = document.getElementById("hint-goal");
   const playerSway              = document.getElementById("player-sway");
+  const playerFp                 = document.getElementById("player-fp");
   const winHelicopter           = document.getElementById("win-helicopter");
   const heartsEl              = document.getElementById("hearts");
   const encounterHeartsEl      = document.getElementById("encounter-hearts");
@@ -2569,11 +2616,14 @@
   });
 
   /* ============================================================
-     WALKING — hold ArrowUp/W to advance, ArrowDown/S to retreat,
-     only while held, so stopping to look around is just letting go.
-     Holding both at once cancels out rather than picking a winner.
-     Retreating is there so a plant the player walked past without
-     tapping isn't gone for good -- they can just back up to it.
+     WALKING — the player now advances down the trail automatically
+     (no held key needed), and instead steers SIDEWAYS with
+     ArrowLeft/A and ArrowRight/D, only while held. Holding both at
+     once cancels out rather than picking a winner, same idea as the
+     old advance/retreat pair. There's no more manual retreat -- a
+     plant that passes without being caught is just gone (playtest
+     feedback: catching should be a light, low-stakes "step into its
+     path," not something you get punished for missing).
 
      Each plant has a fixed distance "down the trail". As the
      player's progress climbs toward that distance, t goes from
@@ -2583,14 +2633,61 @@
      margin — so plants track the path's angle but sit beside it,
      never on top of it. Depth (--z) is interpolated too, so the
      existing perspective scaling on .stage does the rest.
+
+     Catching a plant (see updatePlants() below) compares that same
+     on-screen edgeX to the player's own sideways position, playerX
+     -- close enough, while it's approaching, and the encounter opens
+     automatically, same as a click used to. The plant button's click
+     handler is left in place too, so a direct tap/click still works
+     as a fallback either way.
      ============================================================ */
   const TRAIL_TOP    = { left: 41, right: 59 };  // ground's clip-path, far edge (%)
   const TRAIL_BOTTOM = { left: 4,  right: 96 };  // ground's clip-path, near edge (%)
   const SIDE_MARGIN = 6;      // % — how far beside the trail edge a plant sits
   const VIEW_RANGE  = 480;    // world units from "just visible" to "at the player"
-  const WALK_SPEED  = 110;    // world units per second while advancing
+  const WALK_SPEED  = 110;    // world units per second, now constant/automatic
   const FAR_TOP = 38, NEAR_TOP = 84;   // vertical screen % range
   const FAR_Z   = -380, NEAR_Z = -10;  // depth range, matches the old static values
+
+  // Player's own sideways position, as a screen %, independent of the
+  // stage's perspective math above -- clamped to a comfortable range
+  // (not the full 2-98% edge a plant's own art can sweep toward) so the
+  // player's own on-screen body never slides all the way to the corners.
+  // A plant's OWN landing spot (see PLANT_LANDING below) is deliberately
+  // capped at this same range, not the screen edge -- otherwise the
+  // player could never actually reach where an arriving plant ends up.
+  const PLAYER_X_MIN = 28, PLAYER_X_MAX = 72;
+  const PLAYER_SLIDE_SPEED = 90; // % per second while held
+
+  // Where a plant's own edgeX ends up at t=1 ("fully arrived") -- kept
+  // equal to the player's own reach (not the screen edge a plant's art
+  // used to sweep out toward) so a fully-committed player can actually
+  // line up with it once it gets there, instead of it visually
+  // overshooting past anywhere the player could ever stand.
+  const PLANT_LANDING = { left: PLAYER_X_MIN, right: PLAYER_X_MAX };
+
+  // CATCH_TOLERANCE is the max gap between the player's X and a plant's
+  // current edgeX that still counts as "caught." CATCH_T_MIN is how far
+  // into a plant's approach (0 = just crested the horizon, 1 = fully
+  // arrived at PLANT_LANDING, up to 1.3 = about to fade out/pass by) it
+  // has to be before it's catchable AT ALL. Playtest feedback: even
+  // gating this at a fraction of the approach still caught plants that
+  // read as "too early" -- a player already leaning a side would trap
+  // one well before it looked like it had actually gotten there. So
+  // this is now pinned at a full 1: a plant can only be caught once
+  // it's physically reached the bottom of the line (PLANT_LANDING, the
+  // same spot its edgeX sits frozen at all the way through t=1.3 -- see
+  // updatePlants()), not partway through the approach. Catching is now
+  // "the plant has arrived AND the player is standing right there,"
+  // full stop -- nothing else opens the encounter on its own anymore.
+  // CATCH_TOLERANCE stays small enough that a CENTERED player
+  // (playerX's own default, 50) still never catches anything by
+  // accident even once a plant HAS arrived -- only actually leaning to
+  // the correct side and being there when it lands does.
+  const CATCH_TOLERANCE = 10;    // %
+  const CATCH_T_MIN = 1;         // fraction of the approach (VIEW_RANGE) -- 1 = fully arrived
+  let playerX = 50;
+  let slidingLeft = false, slidingRight = false;
 
   function lerp(a, b, t){ return a + (b - a) * t; }
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
@@ -2617,16 +2714,19 @@
   }
 
   /* ============================================================
-     BACKGROUND MUSIC -- two looping tracks: one for walking the
-     trail, one for the encounter ("which plant would you eat?")
-     screen. Drop files into a music/ folder (same level as images/
-     and sounds/) named exactly music/walk.mp3 and music/choice.mp3
-     and each one plays automatically, no code changes needed -- see
-     music/README.txt. Missing files fail silently, same as the
-     sound effects above. currentMusic tracks whichever track is
-     logically "the one that should be playing" so Pause can stop it
-     and Resume can bring back the RIGHT one, even if that happened
-     mid-encounter.
+     BACKGROUND MUSIC -- a single looping track for the whole play
+     screen. Drop a file into a music/ folder (same level as images/
+     and sounds/) named exactly music/walk.mp3 and it plays
+     automatically, no code changes needed -- see music/README.txt.
+     Missing file fails silently, same as the sound effects above.
+     currentMusic tracks whether it's logically "the one that should
+     be playing" so Pause can stop it and Resume can bring it back.
+     Playtest feedback: swapping to a separate track the instant an
+     encounter opened (and back again on close) read as an
+     interruption -- walk.mp3 now just keeps playing straight through
+     opening/closing encounters, picking, all of it. The three
+     encounter sound EFFECTS (card-flip/correct/wrong -- see
+     playSound calls) layer on top of it instead of a music swap.
      Walk music is meant to start the instant the Berry Hungry start
      screen appears (i.e. as soon as the credits reveal, whether that
      happens automatically or via the click-to-skip), see
@@ -2640,9 +2740,6 @@
   const musicWalk = new Audio("music/walk.mp3");
   musicWalk.loop = true;
   musicWalk.volume = MUSIC_VOLUME;
-  const musicChoice = new Audio("music/choice.mp3");
-  musicChoice.loop = true;
-  musicChoice.volume = MUSIC_VOLUME;
   let currentMusic = null;
   function switchMusic(track){
     if (currentMusic && currentMusic !== track) currentMusic.pause();
@@ -2650,32 +2747,29 @@
     track.play().catch(() => {}); // missing file, or no user interaction yet -- fail silently
   }
   function playWalkMusic(){ switchMusic(musicWalk); }
-  function playChoiceMusic(){ switchMusic(musicChoice); }
   function stopAllMusic(){
     musicWalk.pause();
-    musicChoice.pause();
     currentMusic = null;
   }
   function pauseMusicForOverlay(){ if (currentMusic) currentMusic.pause(); }
   function resumeMusicFromOverlay(){ if (currentMusic) currentMusic.play().catch(() => {}); }
 
   /* ============================================================
-     MUTE -- one global toggle for everything audio: both music
-     tracks AND every one-shot sound effect from playSound() above.
-     Music uses the native .muted property on the two persistent
-     Audio elements (keeps playing/looping in the background, silent
-     either way, and resumes audible instantly on unmute with no
-     restart or position jump) -- one-shot effects are simpler still,
-     since playSound() just skips creating/playing a new Audio
-     altogether while muted (see its own isMuted check above). Not
-     persisted across a reload -- resets to unmuted each fresh visit,
-     same as every other bit of session state here.
+     MUTE -- one global toggle for everything audio: the music track
+     AND every one-shot sound effect from playSound() above. Music
+     uses the native .muted property on the persistent Audio element
+     (keeps playing/looping in the background, silent either way, and
+     resumes audible instantly on unmute with no restart or position
+     jump) -- one-shot effects are simpler still, since playSound()
+     just skips creating/playing a new Audio altogether while muted
+     (see its own isMuted check above). Not persisted across a reload
+     -- resets to unmuted each fresh visit, same as every other bit of
+     session state here.
      ============================================================ */
   let isMuted = false;
   const btnMute = document.getElementById("btn-mute");
   function applyMuteState(){
     musicWalk.muted = isMuted;
-    musicChoice.muted = isMuted;
     btnMute.classList.toggle("muted", isMuted);
     btnMute.setAttribute("aria-pressed", String(isMuted));
     btnMute.setAttribute("aria-label", isMuted ? "Unmute" : "Mute");
@@ -2766,7 +2860,7 @@
   // walking (see ensurePlantsAhead below).
   let plantSpotCounter = 0;
   function createPlantSpot(distance, side){
-    const plant = { distance, side, pair: nextPair(), answered: false };
+    const plant = { distance, side, pair: nextPair(), answered: false, encounterOpened: false };
     updatePlantArt(plant); // no button yet -- this just no-ops safely
 
     const btn = document.createElement("button");
@@ -2834,7 +2928,12 @@
     plant.el.setAttribute("aria-label", "Already identified");
   }
 
-  function updatePlants(){
+  // checkCatches: true only when called from the real per-frame game
+  // loop (tick()) -- gates the catch-detection side effect (opening an
+  // encounter) so calling updatePlants() for a plain redraw (resetGame,
+  // initial setup, etc.) never has the side effect of auto-opening a
+  // modal.
+  function updatePlants(checkCatches){
     // Each plant has its own fixed on-screen window, based purely on
     // its own distance -- not on which plant currently happens to be
     // "nearest." It's invisible until it crests the horizon (remaining
@@ -2861,6 +2960,13 @@
       return true;
     });
 
+    // Guards against catching two plants in the same frame (only
+    // possible in the rare moment two windows overlap) -- the first
+    // catch opens the encounter modal, which itself stops any further
+    // catching next frame via canWalk(), but this stops it within the
+    // SAME forEach pass too.
+    let caughtThisFrame = false;
+
     plants.forEach((plant) => {
       const remaining = plant.distance - progress;      // >0 ahead, <0 behind
 
@@ -2882,13 +2988,48 @@
         : (t < FADE_IN_SPAN ? clamp(t / FADE_IN_SPAN, 0, 1) : "1");
 
       const tClamped = Math.min(t, 1);
+      // Starts at the same horizon position as before (TRAIL_TOP +/-
+      // SIDE_MARGIN), but now LANDS at PLANT_LANDING instead of
+      // sweeping all the way out to the trail's own bottom edge -- see
+      // PLANT_LANDING's comment for why (the player has to be able to
+      // actually reach it once it arrives).
       const edgeX = side === "left"
-        ? lerp(TRAIL_TOP.left,  TRAIL_BOTTOM.left,  tClamped) - SIDE_MARGIN
-        : lerp(TRAIL_TOP.right, TRAIL_BOTTOM.right, tClamped) + SIDE_MARGIN;
+        ? lerp(TRAIL_TOP.left  - SIDE_MARGIN, PLANT_LANDING.left,  tClamped)
+        : lerp(TRAIL_TOP.right + SIDE_MARGIN, PLANT_LANDING.right, tClamped);
 
       plant.el.style.left = clamp(edgeX, 2, 98) + "%";
       plant.el.style.top  = lerp(FAR_TOP, NEAR_TOP, tClamped) + "%";
       plant.el.style.setProperty("--z", lerp(FAR_Z, NEAR_Z, tClamped) + "px");
+
+      // CATCHING -- "trap" a plant by sliding into its path as it
+      // approaches, instead of clicking it. Gated on t >= CATCH_T_MIN
+      // (see its own comment) -- with CATCH_T_MIN pinned at 1, that
+      // means the plant must have actually reached the bottom of the
+      // line (its landing spot) before the player's own position even
+      // gets checked. Both conditions -- arrived AND player right there
+      // -- have to be true in the SAME frame; being early (leaning the
+      // right way before it lands) no longer catches it by itself. No
+      // penalty at all for never lining up in time -- it just passes
+      // by, same as any plant always could before this if nobody
+      // happened to click it.
+      //
+      // encounterOpened (not just answered) gates this too: once a
+      // plant's card modal has been shown at all -- even if the player
+      // backs out without picking via the close button -- it won't
+      // auto-catch again. Otherwise, since closing the modal doesn't
+      // move the player away from it, the very next frame would see the
+      // exact same overlap and reopen it immediately (reshuffling which
+      // card gets which plant each time, since that's randomized per
+      // open) -- which read as the close button not working at all. A
+      // direct click can still reopen it deliberately; only the passive
+      // auto-catch is blocked once it's been seen.
+      if (
+        checkCatches && !caughtThisFrame && !plant.answered && !plant.encounterOpened &&
+        t >= CATCH_T_MIN && Math.abs(edgeX - playerX) <= CATCH_TOLERANCE
+      ){
+        caughtThisFrame = true;
+        openEncounter(plant);
+      }
     });
 
     // Scroll the ground's grid lines to match, so the floor reads
@@ -3018,8 +3159,11 @@
   }
 
   let progress = 0;
-  let advancing = false;
-  let retreating = false;
+  // slidingLeft/slidingRight (sideways input) and playerX (the
+  // player's own screen position) are declared up near
+  // PLAYER_X_MIN/PLAYER_SLIDE_SPEED above, next to the constants that
+  // govern them -- forward progress is automatic now, there's no more
+  // advancing/retreating flag pair to hold.
   let lastTime = null;
 
   // Set the instant a pick is known to end the run -- the fatal heart,
@@ -3151,8 +3295,8 @@
   const FADE_MS = 650;
 
   function endGame(result){
-    advancing = false;
-    retreating = false;
+    slidingLeft = false;
+    slidingRight = false;
     stopAllMusic(); // neither the Win nor Game Over screen has its own track
 
     if (result === "won") {
@@ -3267,14 +3411,13 @@
     const dt = (now - lastTime) / 1000;
     lastTime = now;
 
-    // Opposite keys held together cancel out (dir 0) instead of one
-    // arbitrarily winning. Computed unconditionally (not just inside
-    // the canWalk() branch below) so the walking-sway toggle right
-    // after it always reflects reality -- including turning back off
-    // the instant a modal opens mid-stride, when canWalk() itself
-    // would otherwise skip straight past this.
-    const dir = (advancing ? 1 : 0) - (retreating ? 1 : 0);
-    playerSway.classList.toggle("walking", canWalk() && dir !== 0);
+    // Sideways movement only now -- opposite keys held together still
+    // cancel out (slideDir 0) rather than picking a winner. Computed
+    // unconditionally (not just inside the canWalk() branch below) so
+    // the walking-sway toggle right after it always reflects reality,
+    // including turning back off the instant a modal opens mid-slide.
+    const slideDir = (slidingRight ? 1 : 0) - (slidingLeft ? 1 : 0);
+    playerSway.classList.toggle("walking", canWalk());
 
     if (canWalk()){
       const wasStarving = hunger <= 0;
@@ -3296,22 +3439,30 @@
         }
       }
 
-      if (canWalk() && dir !== 0){
-        progress = clamp(progress + dir * WALK_SPEED * dt, 0, Infinity);
-        // The trail is endless -- winning is no longer about reaching a
-        // fixed distance, it's about the rescue-progress goal (5
-        // correct picks, tracked in selectCard/updateRescueProgress).
-        // Keep generating spots ahead as the player keeps walking.
+      if (canWalk()){
+        // Forward progress is now automatic, always-on -- the trail is
+        // endless, so winning was already about the rescue-progress
+        // goal (5 correct picks), not reaching a fixed distance.
+        progress = clamp(progress + WALK_SPEED * dt, 0, Infinity);
         ensurePlantsAhead();
-        updatePlants();
         ensureRocksAhead();
         updateRocks();
-        // The player's now actually moved -- no need to keep teaching
-        // the controls for the rest of this playthrough.
-        if (!hasWalkedOnce){
-          hasWalkedOnce = true;
-          hintWalk.classList.add("hidden");
+
+        if (slideDir !== 0){
+          playerX = clamp(playerX + slideDir * PLAYER_SLIDE_SPEED * dt, PLAYER_X_MIN, PLAYER_X_MAX);
+          playerFp.style.left = playerX + "%";
+          // The player's now actually steered -- no need to keep
+          // teaching the controls for the rest of this playthrough.
+          if (!hasWalkedOnce){
+            hasWalkedOnce = true;
+            hintWalk.classList.add("hidden");
+          }
         }
+
+        // Always redraw with catch-checking on -- a plant can now be
+        // caught by simply holding a side steady while it approaches,
+        // not just at the instant a key is pressed.
+        updatePlants(true);
       }
     }
     requestAnimationFrame(tick);
@@ -3320,21 +3471,21 @@
 
   window.addEventListener("keydown", (e) => {
     const key = e.key.toLowerCase();
-    if (key === "arrowup" || key === "w"){
+    if (key === "arrowleft" || key === "a"){
       e.preventDefault();
-      advancing = true;
-    } else if (key === "arrowdown" || key === "s"){
+      slidingLeft = true;
+    } else if (key === "arrowright" || key === "d"){
       e.preventDefault();
-      retreating = true;
+      slidingRight = true;
     }
   });
   window.addEventListener("keyup", (e) => {
     const key = e.key.toLowerCase();
-    if (key === "arrowup" || key === "w") advancing = false;
-    else if (key === "arrowdown" || key === "s") retreating = false;
+    if (key === "arrowleft" || key === "a") slidingLeft = false;
+    else if (key === "arrowright" || key === "d") slidingRight = false;
   });
-  // Letting go of the window (alt-tab, etc.) should stop the walk too.
-  window.addEventListener("blur", () => { advancing = false; retreating = false; });
+  // Letting go of the window (alt-tab, etc.) should stop the slide too.
+  window.addEventListener("blur", () => { slidingLeft = false; slidingRight = false; });
 
   ensurePlantsAhead();
   updatePlants();
@@ -3437,8 +3588,10 @@
      ============================================================ */
   function resetGame(){
     progress = 0;
-    advancing = false;
-    retreating = false;
+    slidingLeft = false;
+    slidingRight = false;
+    playerX = 50;
+    playerFp.style.left = playerX + "%";
     runEnding = false;
     lossPending = false;
     // Undo the fatal-pick hide from selectCard() -- see lossPending's
@@ -3828,6 +3981,11 @@
     currentCards.forEach((card) => {
       if (typeof card.showPhoto === "function") card.showPhoto(galleryPhotoIndex);
     });
+    // One shared sound for every photo change -- covers both the plain
+    // page-to-page step and the cover-crossing 3D flip (card.showPhoto
+    // decides on its own whether this particular step crosses the
+    // cover; the player hears the same "page turned" cue either way).
+    playSound("card-flip", "mp3");
     seenPhotoIndices.add(galleryPhotoIndex);
     const locked = updateReadyState();
     updateGalleryCounter();
@@ -3838,12 +3996,23 @@
     // Once unlocked AND the player has cycled all the way back around
     // to the cover, selecting mode now starts automatically -- no
     // click on "Select one" required, just finishing the review loop.
-    // Only ever fires from a forward step landing exactly back on the
-    // cover, since galleryPhotoIndex only ever increases (wrapping).
-    if (!locked && galleryPhotoIndex === 0){
+    // Only fires on a FORWARD step landing exactly back on the cover
+    // (delta > 0) -- now that the chevrons (see btn-gallery-prev/next
+    // below) allow stepping BACKWARD too, a backward step landing on
+    // the cover must just show the cover, not also force selecting
+    // mode on the player.
+    if (!locked && galleryPhotoIndex === 0 && delta > 0){
       enterSelectingMode();
     }
   }
+
+  // Explicit prev/next chevrons beside the counter -- an alternative to
+  // tapping a card for players who look for dedicated controls. Same
+  // stepGalleryPhoto() as every other paging path, so it's a no-op
+  // outside reading mode and gets the same sound/hint/auto-advance
+  // behavior as tapping a card.
+  btnGalleryPrev.addEventListener("click", () => stepGalleryPhoto(-1));
+  btnGalleryNext.addEventListener("click", () => stepGalleryPhoto(1));
 
   // Tapping in the gap BETWEEN the two cards also pages the gallery,
   // same as tapping a card. Each card's own click handler (see
@@ -3858,6 +4027,7 @@
   function openEncounter(plant){
     const pair = plant.pair;
     currentPlantSpot = plant;
+    plant.encounterOpened = true; // see this flag's own comment in updatePlants()'s catch check
     encounterToken += 1; // this is now the one true encounter -- see the comment by its declaration
     justAnswered = false; // fresh encounter, no pick-in-flight -- see the flag's declaration
 
@@ -3910,8 +4080,10 @@
       enterSelectingMode();
     }
 
+    // Walk music just keeps playing straight through -- no track swap
+    // on open any more (see the BACKGROUND MUSIC comment up by
+    // musicWalk's declaration).
     openModal(modalEncounter);
-    playChoiceMusic();
   }
 
   // Picking starts automatically once the player is back at the cover
@@ -3928,7 +4100,7 @@
   // player actually gets to read the result, including the caveat
   // line explaining what makes a "Foe" plant dangerous, not just
   // glimpse it.
-  const RESULT_DISPLAY_MS = 6935; // was 10402 -- cut by 1/3 (10402 * 2/3)
+  const RESULT_DISPLAY_MS = 3468; // was 6935 -- cut in half again (playtest feedback: still too slow to auto-close)
 
   // On a wrong pick, let the "Foe" reveal register on its own first --
   // the heart only starts shaking once the word has had a moment to
