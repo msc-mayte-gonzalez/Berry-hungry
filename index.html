@@ -383,7 +383,7 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap: 4rem; /* UPDATED: was 2.2rem */
+    gap: 1.5rem; /* UPDATED: was 4rem -- brings "Will you make it?" back close to Let's Go! */
   }
   .mission-text{
     color: var(--white);
@@ -708,6 +708,9 @@
     transform: translate(-50%, -50%) translateZ(var(--z, 0px));
     transition: filter 0.15s ease;
     animation: bob 2.6s ease-in-out infinite;
+    /* UPDATED: see .rock's own comment on ROCK_Z_BIAS/z-index for why
+       this is here -- plants always paint above rocks now, full stop. */
+    z-index: 2;
   }
   .plant-block:hover{ filter: brightness(1.08); }
   .plant-block:active{ filter: brightness(0.94); }
@@ -768,6 +771,20 @@
     display:flex;
     align-items:center;
     justify-content:center;
+    /* UPDATED: was relying purely on ROCK_Z_BIAS (translateZ) plus
+       .stage's real 3D preserve-3d depth-sort to keep rocks behind
+       plants -- reported as still sometimes painting IN FRONT of a
+       tree/plant despite that (browsers don't always true-sort large
+       overlapping flat sprites by a small Z difference within a
+       preserve-3d context; it can fall back to DOM/paint order for
+       close calls). An explicit z-index is a hard, reliable rule
+       instead of a probabilistic one: elements with their own z-index
+       inside a 3D context are layered by that FIRST, before any
+       remaining 3D sort -- so every rock now paints below every plant,
+       always, regardless of their individual --z depth. ROCK_Z_BIAS
+       is left in place too (still correct for rock-vs-rock ordering
+       among themselves, and doesn't hurt anything here). */
+    z-index: 1;
   }
   .rock-small{ width: 56px; height: 38px; }
   .rock-big{ width: 108px; height: 70px; }
@@ -1442,6 +1459,15 @@
     width: 100%;
     min-width: 0;
     justify-content:center;
+    /* UPDATED: blocks text selection on the cards -- a drag across the
+       card-name/id-text was highlighting them blue AND, since the
+       gallery also pages on a click of the cards (see
+       cardsContainer's click handler / buildCard), a selection drag
+       could end up paging the photo too, which felt like a
+       misfire. Inherited by everything inside (card name, id text,
+       etc.), so a single rule here covers it all. */
+    -webkit-user-select: none;
+    user-select: none;
   }
   /* Reading mode shows gallery-hint-row; selecting mode shows
      btn-review instead; the answered/reveal state shows neither.
@@ -1563,21 +1589,14 @@
      two-card row, height so it doesn't fight with the short-viewport
      rules further below (@media max-height:760px), which need the
      card to stay small on a short-but-wide window regardless of how
-     much horizontal room there is. Verified against every real
-     identification caption in the plant data: at this card size,
-     .id-text can go back up to nearly its original 0.95rem (0.90rem
-     here, for a little safety margin) and still fit every one of them
-     in 2 lines -- the cramped 0.68rem/0.56rem sizing right below this
-     block is what those smaller breakpoints still need, not this one. */
+     much horizontal room there is. UPDATED: .id-text no longer gets a
+     bump at this breakpoint -- its base size (1.1rem, see its own
+     rule) is now bigger than the old bump ever was, so there's nothing
+     left for this breakpoint to add; the cramped 0.56rem sizing
+     further below is still its own separate narrow-screen override. */
   @media (min-width: 760px) and (min-height: 761px){
     .encounter-card-wrap{ max-width: 740px; }
     .card{ max-width: 340px; }
-    /* .id-text's own font-size bump for this same breakpoint lives
-       right after its base rule below, not here -- CSS cascade order
-       for equal-specificity selectors follows SOURCE order regardless
-       of which one is wrapped in a media query, and .id-text's base
-       rule comes later in the file than this block, so a duplicate
-       declaration here would just lose to it. */
   }
   /* The cover is slide 1 of the same gallery as the identification
      photos (see buildCard) -- one face, one set of slides, paged by
@@ -1663,7 +1682,7 @@
        overflow:hidden. Empirically checked against every identification
        caption in the plant data at this size -- all of them fit in 2
        lines at this card width. */
-    font-size: 0.68rem;
+    font-size: 1.1rem; /* UPDATED: was 0.68rem, per request -- NOTE: this is bigger than the old "bigger cards" desktop bump below used to be, so the 2-line reservation this box gets (min-height, right below) may no longer fit the longest captions without clipping (.card-face has overflow:hidden) -- worth an eye on the longest real captions if that comes up. */
     line-height: 1.4;
     color: var(--ink);
     text-align:left;
@@ -1673,12 +1692,13 @@
        keeps the photo above it from jumping size between photos. */
     min-height: calc(1.4em * 2);
   }
-  /* Bigger cards (see the .card rule above) mean more room for this
-     text too -- back up close to the original 0.95rem, still checked
-     against every real caption fitting 2 lines at this card's width. */
-  @media (min-width: 760px) and (min-height: 761px){
-    .id-text{ font-size: 0.90rem; }
-  }
+  /* REMOVED the old desktop "bigger cards" bump to 0.90rem here -- now
+     that the base size above (1.1rem) is bigger than that bump ever
+     was, keeping it would have made the text SHRINK on wider desktop
+     layouts instead of growing, which is backwards. The base size now
+     applies everywhere except the narrow-screen override further down
+     (@media max-width, .id-text{ font-size: 0.56rem }), which still
+     makes sense as its own independent shrink for cramped phones. */
   /* Sources/credits are unique per photo, so the button lives on the
      photo itself (lower-right) and opens an inline panel over the
      photo -- semi-transparent so the photo stays visible behind it. */
@@ -3223,12 +3243,17 @@
   const ROCK_LANE_MIN = 0.1, ROCK_LANE_MAX = 0.9; // keep off the very edges of the trail
   // Rocks and plants both depth-sort via the SAME translateZ formula
   // (FAR_Z/NEAR_Z over the same normalized t), inside .stage's real 3D
-  // preserve-3d context -- so at matching progress a rock and a plant
-  // can land at (near enough) the same Z and the browser's true depth
-  // compositing can pick either one to render in front. This constant
-  // biases every rock a bit farther from the camera than a plant would
-  // be at that same t, so rocks always paint behind trees/plants,
-  // consistently, without needing DOM-order tricks.
+  // preserve-3d context, so within EACH group (rock-vs-rock,
+  // plant-vs-plant) nearer ones correctly paint over farther ones.
+  // This constant used to also be the only thing keeping rocks behind
+  // plants ACROSS the two groups -- but that relied on the browser's
+  // 3D depth compositing correctly sorting two large overlapping flat
+  // sprites from a small Z difference, which isn't reliable (reported:
+  // rocks still occasionally painting in front of a tree). Cross-group
+  // ordering is now a hard rule instead, via z-index on .rock/
+  // .plant-block themselves (see their own CSS) -- every plant paints
+  // above every rock, always. This bias is kept only for its original,
+  // still-valid within-group purpose.
   const ROCK_Z_BIAS = -25;
   let rocks = [];
   let nextRockDistance = null;
@@ -3446,6 +3471,14 @@
   // once it's fully played out, hand off to the Win screen.
   function triggerRescueWin(){
     runEnding = true;
+    // UPDATED: the walk music cuts out and a dedicated helicopter cue
+    // takes over the instant the helicopter actually starts falling --
+    // was still playing walk.mp3 for the whole ~8.8s descent, only
+    // stopping later once endGame("won") itself ran (endGame() calls
+    // stopAllMusic() unconditionally, but that's WIN_HELICOPTER_MS
+    // later than this moment -- too late for what was asked here).
+    stopAllMusic();
+    playSound("helicopter", "mp3");
     // playSound + un-hiding here, THEN forcing a synchronous reflow
     // before adding .descending on the next frame: doing the
     // display:none -> block flip and the position change in the same
@@ -3564,6 +3597,11 @@
       // selectCard() (e.g. the debug hook's forceWin()) -- same
       // reflow-before-transition approach as there, see its comment.
       if (!winHelicopter.classList.contains("descending")){
+        // UPDATED: same helicopter cue as triggerRescueWin() -- walk
+        // music is already stopped by this point (see stopAllMusic()
+        // at the very top of endGame()), so this fallback only needs
+        // the sound cue itself, not another stopAllMusic() call.
+        playSound("helicopter", "mp3");
         playSound("rescue", "mp3");
         winHelicopter.classList.remove("hidden");
         void winHelicopter.offsetWidth;

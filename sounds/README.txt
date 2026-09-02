@@ -1,4 +1,4 @@
-Sound effects — eight files
+Sound effects — nine files
 
 Drop files into this folder (sounds/, same level as images/) with
 these exact names. Nothing else needs to change in the code -- each
@@ -47,6 +47,18 @@ one plays automatically as soon as it's here.
                         loop. MP3, not M4A like the others above --
                         that was a deliberate, separate choice.
 
+  helicopter.mp3          Plays at that exact same moment as rescue.mp3
+                        below -- the instant the helicopter first
+                        appears and starts its ~8.8-second descent --
+                        and that's also the moment walk.mp3 (the
+                        background music) stops (see index.html's
+                        triggerRescueWin()). Like every other sound
+                        effect here it plays once, it does NOT loop --
+                        so if you want it to cover the whole ~8.8s
+                        descent, use a file that's roughly that long
+                        (or longer; it just won't repeat if it runs
+                        out early). MP3.
+
   rescue.mp3             Plays the instant the WINNING pick is made --
                         the moment the helicopter first appears and
                         starts its ~8.8-second descent, well BEFORE
@@ -63,8 +75,8 @@ one plays automatically as soon as it's here.
                         outcome). Also MP3, also a short sting, also
                         doesn't need to loop.
 
-Format: card-flip.mp3, game-over.mp3, rescue.mp3, and win.mp3 are
-MP3. Everything else above is M4A (AAC) -- all current major browsers (Chrome,
+Format: card-flip.mp3, game-over.mp3, helicopter.mp3, rescue.mp3, and
+win.mp3 are MP3. Everything else above is M4A (AAC) -- all current major browsers (Chrome,
 Firefox, Safari, Edge) play both formats natively through the same
 audio code this game already uses, so whichever format you've
 already got a given sound in -- straight out of GarageBand, Voice
@@ -114,4 +126,4 @@ it.
 
 Until these files exist, playing a sound just fails silently --
 nothing breaks, nothing errors, the game plays exactly the same
-minus the sound. You can delete this file once all eight are in place.
+minus the sound. You can delete this file once all nine are in place.
