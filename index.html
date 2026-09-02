@@ -1091,22 +1091,27 @@
     0%, 100%{ background: var(--white); box-shadow: var(--shadow); }
     50%{ background: var(--wrong); box-shadow: var(--shadow), 0 0 10px 3px rgba(192,67,58,0.9); }
   }
+  /* UPDATED: used to be its own small white pill (0.6rem, ink-on-white,
+     letter-spaced, boxed) -- now matches .encounter-prompt-sub's
+     ("Try to guess") plain-text style exactly, no background, so it
+     reads as part of the same UI language wherever it shows up (both
+     here on the HUD and again as #encounter-hunger-label inside the
+     encounter modal's vitals row). */
   .hunger-label{
-    font-size: 0.6rem;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    color: var(--ink);
-    background: var(--white);
-    padding: 0.16rem 0.42rem;
-    border-radius: 999px;
+    font-size: clamp(0.95rem, 3vw, 1.15rem);
+    font-weight: 600;
+    color: var(--white-soft);
+    text-shadow: 0 3px 10px rgba(0,0,0,0.4);
     white-space: nowrap;
-    box-shadow: var(--shadow);
   }
   /* Static swap once hunger is dangerously low -- no flashing here,
-     the track/slider above do the flashing instead. */
+     the track/slider above do the flashing instead. UPDATED: was a
+     background color swap (ink-on-white -> white-on-wrong); now that
+     there's no background to swap, the danger cue is a text-color
+     swap to --wrong instead, keeping everything else (size/weight/
+     shadow) identical to the non-alarm state. */
   .hunger-label.alarm{
-    color: var(--white);
-    background: var(--wrong);
+    color: var(--wrong);
   }
 
   .hud-top-actions{
@@ -1456,15 +1461,20 @@
   body:has(#modal-encounter:not(.hidden)) .hud-vitals{
     opacity: 0;
   }
+  /* UPDATED: now matches .encounter-prompt-sub's ("Try to guess") text
+     style exactly (weight/size/color/shadow) instead of its own
+     bolder/bigger/solid-white treatment -- keeps the underline, since
+     that's still the only thing marking this as clickable. */
   .btn-review{
     appearance:none;
     border:none;
     background:none;
     cursor:pointer;
     font-family: inherit;
-    font-weight: 700;
-    font-size: 1.05rem;
-    color: var(--white);
+    font-weight: 600;
+    font-size: clamp(0.95rem, 3vw, 1.15rem);
+    color: var(--white-soft);
+    text-shadow: 0 3px 10px rgba(0,0,0,0.4);
     text-decoration: underline;
     text-underline-offset: 3px;
     padding: 0.5rem 0.8rem;
@@ -1777,7 +1787,7 @@
     inset: 0;
     background: rgba(24,22,20,0.72);
     color: var(--white);
-    font-size: 0.6rem; /* was 0.62rem -- now matches .hunger-label/.rescue-label/.result-pick-badge's identical tiny-label size */
+    font-size: 0.6rem; /* was 0.62rem -- now matches .rescue-label/.result-pick-badge's identical tiny-label size (was also .hunger-label's size, but that's since moved to the bigger "Try to guess"-matched style, see .hunger-label's own comment) */
     line-height: 1.42;
     font-weight: 600;
     padding: 0.6rem;
@@ -1915,7 +1925,7 @@
     background: rgba(255,255,255,0.92);
     color: var(--ink);
     font-weight: 800;
-    font-size: 0.6rem; /* was 0.62rem -- now matches .hunger-label/.rescue-label/.id-source-panel's identical tiny-label size */
+    font-size: 0.6rem; /* was 0.62rem -- now matches .rescue-label/.id-source-panel's identical tiny-label size (was also .hunger-label's size, but that's since moved to the bigger "Try to guess"-matched style, see .hunger-label's own comment) */
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
