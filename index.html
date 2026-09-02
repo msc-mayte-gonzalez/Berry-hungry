@@ -283,6 +283,16 @@
     text-transform: uppercase;
     color: var(--amber-tint);
     text-shadow:none;
+    /* UPDATED: the Game Over screen's subtitle is now a full sentence
+       (was a short ~30-char badge-style phrase, same length as the Win
+       screen's still-short "you made it out of the forest") -- without
+       a cap, 0.35em letter-spacing on a sentence this long could run
+       wider than the viewport. Centered, self-aligned in the flex
+       column, and wraps normally instead of relying on the container
+       to size around it. */
+    max-width: 480px;
+    align-self: center;
+    line-height: 1.6;
   }
   /* UPDATED: a soft, blurred dark patch behind the win/lose subtitle
      ("you made it out of the forest" / "the forest got the better of
@@ -397,7 +407,7 @@
      setup sentence above it rather than run on at the end of it. */
   .mission-text-question{
     display: block;
-    margin-top: 0.9rem;
+    margin-top: 40px; /* UPDATED: was 0.9rem */
   }
   .mission-actions{ width: min(90vw, 340px); }
 
@@ -898,11 +908,12 @@
     transition: top 8.8s cubic-bezier(0.28, 0.62, 0.35, 1);
   }
   .win-helicopter.hidden{ display:none; }
-  /* 50px short of the "true" 32% resting spot on purpose (20px, then
-     another 30px on top of that) -- landing right at 32% put the
-     helicopter's skids past the horizon's ground line, breaking the
-     perspective (it read as sinking into the dirt). */
-  .win-helicopter.descending{ top: calc(32% - 50px); }
+  /* 90px short of the "true" 32% resting spot on purpose (20px, then
+     30px, then another 40px on top of that -- descends 40px less than
+     before, per request) -- landing right at 32% put the helicopter's
+     skids past the horizon's ground line, breaking the perspective (it
+     read as sinking into the dirt). */
+  .win-helicopter.descending{ top: calc(32% - 90px); }
   .win-helicopter .placeholder-tag{
     top: auto;
     bottom: -1.7rem;
@@ -918,6 +929,38 @@
   }
   .win-helicopter-img.loaded{ display:block; }
   .win-helicopter.has-art .placeholder-tag{ display:none; }
+
+  /* "I'm hungry!" walking-scene warning -- same bold/uppercase/
+     drop-shadow treatment as .gallery-tap-hint (see its own comment
+     on the encounter modal's cards), just smaller and kept to one
+     line since this overlays the actual walking scene rather than
+     the cards. Faded in/out (not display:none) via the "visible"
+     class, toggled from JS -- see updateHungerUI(). */
+  .hunger-warning{
+    position:absolute;
+    top: 40%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 11;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: rgba(255,255,255,0.92);
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.65)) drop-shadow(0 2px 4px rgba(0,0,0,0.55));
+    pointer-events:none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .hunger-warning.visible{ opacity: 1; }
+  /* Hidden behind the encounter modal, same as the HUD's own hearts/
+     hunger bar (.hud-vitals, see its own body:has() rule) -- the
+     modal's backdrop already covers the scene, but this keeps it from
+     showing through if that backdrop is ever made less opaque. */
+  body:has(#modal-encounter:not(.hidden)) .hunger-warning{
+    opacity: 0;
+  }
 
   /* ---------- HUD: hearts, hunger, start over ---------- */
   .hud{
@@ -2004,6 +2047,18 @@
       padding: 0.6rem;
     }
     #modal-about .modal-card{ padding: 1.3rem 1.4rem 1.2rem; }
+    /* UPDATED: the Mission screen's panel<->CTA gap (6rem), its own
+       internal gap (1.5rem), and "Will you make it?"'s margin-top
+       (40px) are all deliberately generous per explicit request -- but
+       on a short viewport (a small phone in portrait, a laptop browser
+       without much vertical room) that generosity was pushing the
+       Let's Go! button below the fold, off-screen and unreachable
+       (this screen doesn't scroll). These reclaim just enough room to
+       keep it on-screen without touching the normal-height values
+       above at all. */
+    .mission-content{ gap: 2.5rem; }
+    .mission-cta{ gap: 1rem; }
+    .mission-text-question{ margin-top: 16px; }
   }
 </style>
 </head>
@@ -2052,7 +2107,7 @@
       <div class="mission-howto-panel">
         <h3 class="mission-howto-heading">How to Play</h3>
         <ul class="mission-howto-list">
-          <li>Use ← / → or A / D to move and encounter plants. Edible plants are friends — eat them to refill your hunger bar.</li>
+          <li>Use ← / → or A / D to move and encounter plants. Edible plants are friends: eat them to refill your hunger bar.</li>
           <li>Toxic plants are foes. Eating one costs you a big chunk of hunger instead of refilling it.</li>
           <li>Learn to tell them apart, and choose wisely with every encounter.</li>
           <li>Keep eating! If your hunger bar runs out, you lose a heart.</li>
@@ -2081,7 +2136,7 @@
            (.about-plain-text) -- content also mirrored on the Mission
            screen's cream instructions panel (.mission-howto-panel). -->
       <ul class="about-howtoplay">
-        <li>Use ← / → or A / D to move and encounter plants. Edible plants are friends — eat them to refill your hunger bar.</li>
+        <li>Use ← / → or A / D to move and encounter plants. Edible plants are friends: eat them to refill your hunger bar.</li>
         <!-- UPDATED: originally drafted as "eat one and you lose a heart,"
              which described the OLD mechanic -- under the current hybrid
              (see WRONG_PICK_HUNGER_PENALTY/applyHungerPenalty in the
@@ -2115,12 +2170,14 @@
       </div>
 
       <h3 class="about-section-heading">Prototype</h3>
-      <p class="about-plain-text">Built in 2.5 days.</p>
+      <p class="about-plain-text">Built in 2.5 days, tested in 1, improved in 2 based on feedback.</p>
 
       <h3 class="about-section-heading">Credits</h3>
       <ul class="about-credits">
-        <li>Idea, info collection, and prototype development by M. Gonzalez (Sr. UX Researcher) and an anonymous collaborator (a great 3D Environment Artist!)</li>
-        <li>Supervised by H. Botones</li>
+        <li>Idea, info collection, user research, design, and prompting by M. Gonzalez (Sr. UX Researcher).</li>
+        <li>Art by anonymous collaborator (a great 3D Environment Artist, I wish I could tell you who!).</li>
+        <li>Built with Claude.</li>
+        <li>Supervision by H. Botones (our hedgehog).</li>
         <li>Music: <a href="https://pixabay.com/users/nathan-180-56136572/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=547010" target="_blank" rel="noopener noreferrer">Nathan-180</a> via <a href="https://pixabay.com/music//?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=547010" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
         <li>Sound effect: <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=102978" target="_blank" rel="noopener noreferrer">freesound_community</a> via <a href="https://pixabay.com//?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=102978" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
         <li>Sound effect: <a href="https://pixabay.com/users/shut_up_ghost-32917765/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=140921" target="_blank" rel="noopener noreferrer">Ghostie Graves</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
@@ -2174,6 +2231,19 @@
              onerror="this.remove();">
         <span class="placeholder-tag">helicopter — drop images/helicopter.png in to show it here</span>
       </div>
+
+      <!-- "I'm hungry!" warning -- shows above the player, roughly
+           where the trees are on screen, in sync with the same
+           "hunger just crossed into the danger zone" moment that
+           triggers the hunger-low sound cue (see updateHungerUI() in
+           the script, which toggles the "visible" class here in the
+           same spot it plays that sound). Stays up for as long as
+           hunger stays in the danger zone, same as the HUD bar's own
+           red "alarm" flash -- not a one-time hint. Same bold/
+           uppercase/drop-shadow treatment as .gallery-tap-hint ("Click
+           cards to see more"), just one line and screen-anchored here
+           instead of overlaid on the cards. -->
+      <span class="hunger-warning" id="hunger-warning">I&rsquo;m hungry!</span>
 
       <!-- HUD -->
       <div class="hud">
@@ -2287,7 +2357,7 @@
     <div class="start-content">
       <h1 class="game-title">
         Game Over
-        <span class="title-sub">the forest got the better of you</span>
+        <span class="title-sub">Hunger can make toxic plants look edible. Good thing this is only a game!</span>
       </h1>
       <div class="start-actions">
         <button id="btn-gameover-again" class="btn btn-primary btn-block">Try Again</button>
@@ -2672,6 +2742,7 @@
   const playerSway              = document.getElementById("player-sway");
   const playerFp                 = document.getElementById("player-fp");
   const winHelicopter           = document.getElementById("win-helicopter");
+  const hungerWarningEl        = document.getElementById("hunger-warning");
   const heartsEl              = document.getElementById("hearts");
   const encounterVitalsEl      = document.getElementById("encounter-vitals");
   const encounterHeartsEl      = document.getElementById("encounter-hearts");
@@ -2865,8 +2936,8 @@
      for the full list, format, and when each one fires. Missing
      files fail silently (caught below), same "nothing breaks, it
      just doesn't play yet" spirit as the image placeholders.
-     Most of these are M4A -- game-over and rescue are MP3 instead
-     (per explicit request), hence the optional second argument.
+     Most of these are M4A -- game-over, helicopter, and win are MP3
+     instead (per explicit request), hence the optional second argument.
      ============================================================ */
   function playSound(name, ext, volume){
     if (isMuted) return; // see the mute toggle further below
@@ -2915,17 +2986,69 @@
      restarting it.
      ============================================================ */
   const MUSIC_VOLUME = 0.05; // 0-1 -- playtest feedback: music was drowning out the sound effects, dropped to 10% of the old 0.5
+  // UPDATED: how long the walk music takes to gradually fade to
+  // silence once the helicopter starts falling -- see
+  // fadeOutWalkMusic()/triggerRescueWin() below. A quick fade rather
+  // than an abrupt cut, so the new helicopter.mp3 cue gets to "shine"
+  // as asked, instead of the music just vanishing under it.
+  const HELICOPTER_MUSIC_FADE_MS = 1500;
   const musicWalk = new Audio("music/walk.mp3");
   musicWalk.loop = true;
   musicWalk.volume = MUSIC_VOLUME;
   let currentMusic = null;
+  // Set while a fade (see fadeOutWalkMusic) is actively ticking the
+  // volume down, so a second fade call (shouldn't normally happen, but
+  // cheap to guard) cancels and restarts cleanly instead of the two
+  // fighting over musicWalk.volume.
+  let musicFadeInterval = null;
   function switchMusic(track){
+    // UPDATED: once the run is ending (win OR loss -- see runEnding),
+    // nothing should be able to start walk music back up underneath
+    // the win/loss transition. This closes a real race that was
+    // reported: an encounter modal's own RESULT_DISPLAY_MS-delayed
+    // playWalkMusic() call (see selectCard()) could still land AFTER
+    // triggerRescueWin() had already stopped/faded it, silently
+    // restarting it right as the helicopter sound was supposed to take
+    // over. Scoped to the walk track specifically (via playWalkMusic()
+    // below), not this lower-level function, so nothing else that might
+    // call switchMusic() directly is affected.
     if (currentMusic && currentMusic !== track) currentMusic.pause();
     currentMusic = track;
     track.play().catch(() => {}); // missing file, or no user interaction yet -- fail silently
   }
-  function playWalkMusic(){ switchMusic(musicWalk); }
+  function playWalkMusic(){
+    if (runEnding) return; // see switchMusic()'s comment above
+    switchMusic(musicWalk);
+  }
+  // Gradually ramps musicWalk's volume down to 0 over `durationMs`,
+  // then pauses it and restores its volume back to MUSIC_VOLUME (so
+  // the NEXT playthrough's walk music starts at full volume again,
+  // not silently at 0 from the last fade). Used when the helicopter
+  // starts its descent -- see triggerRescueWin() -- as a softer
+  // alternative to stopAllMusic()'s instant cut, so the new
+  // helicopter.mp3 cue gets to "shine" instead of just replacing a cut
+  // that already happened.
+  function fadeOutWalkMusic(durationMs){
+    if (musicFadeInterval) clearInterval(musicFadeInterval);
+    const steps = 20;
+    const stepMs = durationMs / steps;
+    const startVolume = musicWalk.volume;
+    let step = 0;
+    musicFadeInterval = setInterval(() => {
+      step += 1;
+      musicWalk.volume = Math.max(0, startVolume * (1 - step / steps));
+      if (step >= steps){
+        clearInterval(musicFadeInterval);
+        musicFadeInterval = null;
+        musicWalk.pause();
+        musicWalk.volume = MUSIC_VOLUME;
+        if (currentMusic === musicWalk) currentMusic = null;
+      }
+    }, stepMs);
+  }
   function stopAllMusic(){
+    if (musicFadeInterval){ clearInterval(musicFadeInterval); musicFadeInterval = null; }
+    musicWalk.volume = MUSIC_VOLUME; // undo any fade-in-progress before the next playthrough
     musicWalk.pause();
     currentMusic = null;
   }
@@ -3471,13 +3594,18 @@
   // once it's fully played out, hand off to the Win screen.
   function triggerRescueWin(){
     runEnding = true;
-    // UPDATED: the walk music cuts out and a dedicated helicopter cue
-    // takes over the instant the helicopter actually starts falling --
-    // was still playing walk.mp3 for the whole ~8.8s descent, only
-    // stopping later once endGame("won") itself ran (endGame() calls
-    // stopAllMusic() unconditionally, but that's WIN_HELICOPTER_MS
-    // later than this moment -- too late for what was asked here).
-    stopAllMusic();
+    // UPDATED: the walk music gradually fades to silence (instead of
+    // cutting off instantly) and a dedicated helicopter cue takes over
+    // right as the helicopter starts falling -- was still playing
+    // walk.mp3 for the whole ~8.8s descent before, only stopping once
+    // endGame("won") itself ran (endGame() calls stopAllMusic()
+    // unconditionally, but that's WIN_HELICOPTER_MS later than this
+    // moment -- too late for what was asked here). runEnding is
+    // already true by this point (just above), which is also what
+    // stops playWalkMusic() from being able to undo this fade if some
+    // other, unrelated call happens to land after it (see
+    // switchMusic()'s own comment).
+    fadeOutWalkMusic(HELICOPTER_MUSIC_FADE_MS);
     playSound("helicopter", "mp3");
     // playSound + un-hiding here, THEN forcing a synchronous reflow
     // before adding .descending on the next frame: doing the
@@ -3486,7 +3614,6 @@
     // runs, so the helicopter just pops into place instead of
     // animating. The reflow + rAF split gives the browser an actual
     // "starting state" frame to transition away from.
-    playSound("rescue", "mp3");
     winHelicopter.classList.remove("hidden");
     void winHelicopter.offsetWidth;
     requestAnimationFrame(() => {
@@ -3602,7 +3729,6 @@
         // at the very top of endGame()), so this fallback only needs
         // the sound cue itself, not another stopAllMusic() call.
         playSound("helicopter", "mp3");
-        playSound("rescue", "mp3");
         winHelicopter.classList.remove("hidden");
         void winHelicopter.offsetWidth;
         winHelicopter.classList.add("descending");
@@ -3610,11 +3736,12 @@
       screenPlay.classList.add("hidden");
       screenWin.classList.remove("hidden");
       // Optional Win sting -- see sounds/README.txt. Fires the instant
-      // the "Rescued!" screen itself is swapped in -- separate from
-      // rescue.mp3 above, which plays much earlier (at the winning
-      // pick, as the helicopter starts its ~8.8s descent). This is the
-      // Win-screen equivalent of game-over.mp3 below. Missing file
-      // fails silently, same "nothing breaks yet" spirit as the rest.
+      // the "Rescued!" screen itself is swapped in -- helicopter.mp3
+      // above plays much earlier (at the winning pick, as the
+      // helicopter starts its ~8.8s descent); this is the separate
+      // Win-screen cue, the Win-screen equivalent of game-over.mp3
+      // below. Missing file fails silently, same "nothing breaks yet"
+      // spirit as the rest.
       playSound("win", "mp3");
       return;
     }
@@ -3689,6 +3816,12 @@
     const alarm = hunger <= 25;
     if (alarm && !hungerAlarmActive) playSound("hunger-low");
     hungerAlarmActive = alarm;
+    // "I'm hungry!" warning over the walking scene -- toggled right
+    // here, the same spot/condition that fires the hunger-low sound
+    // above, so it appears at that exact moment and stays up for as
+    // long as hunger stays in the danger zone (see .hunger-warning's
+    // own CSS for the fade + the modal-hidden override).
+    hungerWarningEl.classList.toggle("visible", alarm);
     // Drives BOTH copies of the hunger bar from this one call -- the
     // HUD's own (#hunger-*) and the mirrored one inside the encounter
     // modal (#encounter-hunger-*, added per request so picking right/
