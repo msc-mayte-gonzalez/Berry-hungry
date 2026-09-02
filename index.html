@@ -6,7 +6,7 @@
 <title>Berry Hungry — Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 
 <!-- ============================================================
      ANALYTICS (PostHog) -- loaded as early as possible so it's
@@ -50,6 +50,12 @@
      ============================================================ */
   :root{
     --white:      #ffffff;
+    /* Shared "soft white" for text that sits directly on top of photos/
+       scene art with a drop-shadow or text-shadow for contrast -- this
+       used to be 4 separate hand-typed opacities (0.85/0.92/0.94/0.96)
+       with no functional reason to differ; consolidated to the one
+       value that already had the most callers. */
+    --white-soft: rgba(255,255,255,0.92);
     --amber:      #eb9b00;
     --amber-dark: #b97c00;
     --amber-tint: #fff1d6;
@@ -177,7 +183,7 @@
     position:absolute;
     top: 14px;
     left: 14px;
-    font-size: 0.66rem;
+    font-size: 0.68rem; /* was 0.66rem -- now matches .build-tag/.gallery-nav-hint's identical small-tag size */
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -947,7 +953,7 @@
     letter-spacing: 0.03em;
     text-transform: uppercase;
     white-space: nowrap;
-    color: rgba(255,255,255,0.92);
+    color: var(--white-soft);
     filter: drop-shadow(0 4px 10px rgba(0,0,0,0.65)) drop-shadow(0 2px 4px rgba(0,0,0,0.55));
     pointer-events:none;
     opacity: 0;
@@ -1120,7 +1126,7 @@
     gap: 0.4rem;
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 0.82rem;
+    font-size: 0.85rem; /* was 0.82rem -- now matches .gallery-nav-btn/.btn-info's identical small-button size */
     letter-spacing: 0.02em;
     color: var(--white);
     background: rgba(44,36,16,0.55);
@@ -1378,7 +1384,7 @@
   .encounter-prompt-sub{
     font-size: clamp(0.95rem, 3vw, 1.15rem);
     font-weight: 600;
-    color: rgba(255,255,255,0.85);
+    color: var(--white-soft);
     text-shadow: 0 3px 10px rgba(0,0,0,0.4);
   }
   .encounter-prompt-main{
@@ -1386,7 +1392,7 @@
     isolation: isolate;
     font-size: 2.3rem; /* UPDATED: was clamp(1.35rem, 5.4vw, 1.8rem) */
     font-weight: 800;
-    color: #ffd93d;
+    color: var(--amber); /* was a hand-picked #ffd93d yellow -- now matches the palette's amber */
     animation: encounter-prompt-pulse 1.6s ease-in-out infinite;
   }
   @keyframes encounter-prompt-pulse{
@@ -1613,7 +1619,7 @@
     text-align: center;
     line-height: 1.15;
     white-space: normal;
-    color: rgba(255,255,255,0.92);
+    color: var(--white-soft);
     filter: drop-shadow(0 4px 10px rgba(0,0,0,0.65)) drop-shadow(0 2px 4px rgba(0,0,0,0.55));
     pointer-events: none;
   }
@@ -1771,7 +1777,7 @@
     inset: 0;
     background: rgba(24,22,20,0.72);
     color: var(--white);
-    font-size: 0.62rem;
+    font-size: 0.6rem; /* was 0.62rem -- now matches .hunger-label/.rescue-label/.result-pick-badge's identical tiny-label size */
     line-height: 1.42;
     font-weight: 600;
     padding: 0.6rem;
@@ -1783,7 +1789,7 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    font-size: 0.58rem;
+    font-size: 0.6rem; /* was 0.58rem -- now matches the same tiny-label size as the rest of this cluster */
     margin-bottom: 0.2rem;
   }
   /* Each source gets its own bullet, with generous 1.5 line-height so
@@ -1909,7 +1915,7 @@
     background: rgba(255,255,255,0.92);
     color: var(--ink);
     font-weight: 800;
-    font-size: 0.62rem;
+    font-size: 0.6rem; /* was 0.62rem -- now matches .hunger-label/.rescue-label/.id-source-panel's identical tiny-label size */
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -1918,7 +1924,7 @@
     top:50%;
     left:50%;
     display:inline-block;
-    color: rgba(255,255,255,0.94);
+    color: var(--white-soft);
     font-weight: 800;
     font-size: 2.1rem;
     letter-spacing: 0.02em;
@@ -1962,7 +1968,7 @@
     align-items:center;
     justify-content:center;
     gap: 0.3rem;
-    color: rgba(255,255,255,0.96);
+    color: var(--white-soft);
     font-weight: 700;
     font-size: 0.95rem;
     text-shadow: 0 2px 6px rgba(0,0,0,0.5);
