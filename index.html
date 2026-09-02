@@ -309,23 +309,62 @@
      since each screen's placeholder-tag is a separate element. */
   #screen-start .placeholder-art.has-bg .placeholder-tag,
   #screen-mission .placeholder-art.has-bg .placeholder-tag{ display:none; }
+  /* UPDATED: two-column layout -- the How to Play panel on the left,
+     the "Oh no, you just got lost..." copy + Let's Go! CTA on the
+     right (was a single centered column with the how-to-play recap
+     stacked as plain text below the mission copy). flex-wrap lets the
+     two columns stack (panel on top) on narrow viewports instead of
+     needing a separate breakpoint. */
   .mission-content{
     position: relative;
     z-index: 2;
     height: 100%;
     display:flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items:center;
     justify-content:center;
-    gap: 2.2rem;
+    gap: 2.5rem;
     padding: 2rem;
     text-align:center;
   }
-  .mission-copy{
+  /* The cream instructions rectangle -- same How to Play content as the
+     About modal (see .about-howtoplay), same cream tint as the About
+     modal's own disclaimer box (--amber-tint) so the two read as the
+     same kind of "info panel" language across the game. */
+  .mission-howto-panel{
+    flex: 1 1 340px;
+    max-width: 420px;
+    background: var(--amber-tint);
+    color: var(--ink);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 1.6rem 1.75rem;
+    text-align: left;
+  }
+  .mission-howto-heading{
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin: 0 0 0.9rem;
+  }
+  .mission-howto-list{
+    display:flex;
+    flex-direction:column;
+    gap: 0.7rem;
+    font-weight: 600;
+    font-size: clamp(0.85rem, 2.2vw, 0.95rem);
+    line-height: 1.5;
+    margin: 0;
+    padding: 0 0 0 1.15rem; /* room for the list's own bullets */
+  }
+  .mission-howto-list li{ margin:0; }
+  .mission-cta{
+    flex: 1 1 320px;
+    max-width: 480px;
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap: 5rem; /* playtest feedback: more breathing room between "Will you make it?" and the how-to-play recap below it */
+    gap: 2.2rem;
   }
   .mission-text{
     color: var(--white);
@@ -341,24 +380,6 @@
     display: block;
     margin-top: 0.9rem;
   }
-  /* Playtest feedback: the how-to-play mechanics weren't showing up
-     early enough. Same three lines as the walk screen's forest-hint
-     and the About modal's How to Play section, just deliberately
-     smaller/quieter than .mission-text above it -- this is a recap,
-     not the dramatic beat of the screen. */
-  .mission-howto{
-    display:flex;
-    flex-direction:column;
-    gap: 0.45rem;
-    color: var(--white);
-    font-weight: 600;
-    font-size: clamp(0.85rem, 2.6vw, 1rem);
-    line-height: 1.5;
-    max-width: 560px;
-    opacity: 0.9;
-    text-shadow: 0 3px 10px rgba(0,0,0,0.35);
-  }
-  .mission-howto p{ margin:0; }
   .mission-actions{ width: min(90vw, 340px); }
 
   /* ---------- Buttons ---------- */
@@ -549,8 +570,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    margin: 0;
+    padding-left: 1.15rem; /* room for the list's own bullets, same as .about-links */
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
   }
-  .about-howtoplay .about-plain-text{ margin: 0; }
+  .about-howtoplay li{ margin: 0; }
 
   /* ============================================================
      PLAY SCREEN — first-person forest with a 3D depth plane
@@ -808,40 +834,9 @@
   .player-fp.has-player{ background:none; box-shadow:none; }
   .player-fp.has-player .placeholder-tag{ display:none; }
 
-  .forest-hint{
-    position:absolute;
-    left: 50%;
-    top: 42%;
-    transform: translateX(-50%);
-    z-index: 12;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap: 0.3rem;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--white);
-    text-shadow: 0 2px 6px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.4);
-    white-space: nowrap;
-    pointer-events:none; /* purely decorative — never steals a tap from a plant */
-  }
-  /* Both lines run long enough now (the walk line spells out eating/
-     avoiding too, not just movement) that neither should inherit the
-     block's nowrap above -- that would bleed either one off-screen on
-     mobile. Let both wrap, with a cap wide enough to still sit on one
-     line on desktop for #hint-goal (natural width ~465px) and two
-     comfortable lines for the longer #hint-walk; on narrow screens the
-     vw cap takes over and lets both wrap further. */
-  #hint-walk{
-    white-space: normal;
-    max-width: min(92vw, 620px);
-    text-align: center;
-  }
-  #hint-goal{
-    white-space: normal;
-    max-width: min(90vw, 500px);
-    text-align: center;
-  }
+  /* REMOVED: .forest-hint / #hint-walk / #hint-goal (the walking-screen
+     instruction overlay) -- see the HTML comment where it used to sit,
+     just above .stage. */
 
   /* ---------- Win moment: rescue helicopter ---------- */
   /* Screen-anchored, flat 2D overlay -- NOT part of .stage's 3D
@@ -1320,20 +1315,37 @@
   .encounter-hearts{
     display:flex;
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
     z-index: 16;
     pointer-events:none;
   }
-  /* Reading mode hides the hearts (see enterReadingMode/
-     enterSelectingMode), but via visibility rather than display:none
-     -- this keeps its box (and the gap around it) reserved in
-     .encounter-card-wrap's flex column, so the cards below it don't
-     jump position the moment the hearts actually appear at the start
+  /* UPDATED: wraps the hearts AND the mirrored hunger bar (below) as
+     one row -- was just the hearts' own margin-bottom directly, now
+     lives here since the hearts alone no longer own the bottom
+     spacing in .encounter-card-wrap's flex column. */
+  .encounter-vitals{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    z-index: 16;
+  }
+  /* Reading mode hides this whole row, but via visibility rather than
+     display:none -- this keeps its box (and the gap around it)
+     reserved in .encounter-card-wrap's flex column, so the cards below
+     it don't jump position the moment it actually appears at the start
      of selecting mode. Same "reserve the space, don't remove it"
      principle as .encounter-footer's min-height, just done with
      visibility here since this element's size never varies (unlike
      the footer, whose content genuinely differs in height). */
   .encounter-hearts-invisible{ visibility: hidden; }
+  /* Same track/slider/label look as the HUD's hunger bar (.hunger-bar
+     etc.), just non-interactive here (it's a readout, not a control)
+     and slightly narrower so it comfortably fits beside the hearts at
+     the modal's own width. */
+  .encounter-hunger-bar{ pointer-events:none; }
+  .encounter-hunger-bar .hunger-track{ width: 108px; }
   body:has(#modal-encounter:not(.hidden)) .hud-vitals{
     opacity: 0;
   }
@@ -1900,7 +1912,7 @@
       padding: 0.6rem;
     }
     .encounter-card-wrap{ gap: 0.7rem; }
-    .encounter-hearts{ margin-bottom: 0; }
+    .encounter-vitals{ margin-bottom: 0; }
     .encounter-hearts .heart{ font-size: 2.3rem; }
     .encounter-prompt-reading{ font-size: clamp(1.1rem, 4vw, 1.4rem); }
     .encounter-prompt-sub{ font-size: clamp(0.82rem, 2.6vw, 0.98rem); }
@@ -1951,15 +1963,27 @@
       <span class="placeholder-tag">forest — art coming later</span>
     </div>
     <div class="mission-content">
-      <div class="mission-copy">
-        <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. <span class="mission-text-question">Will you make it?</span></p>
-        <div class="mission-howto">
-          <p>Use ← / → or A / D to move and eat edible plants while avoiding toxic ones.</p>
-          <p>Learn to tell them apart, then keep choosing the right ones.</p>
-        </div>
+      <!-- UPDATED: cream instructions panel on the left -- same How to
+           Play content as the About modal's (#modal-about
+           .about-howtoplay), kept in sync by hand since they're two
+           separate DOM locations. -->
+      <div class="mission-howto-panel">
+        <h3 class="mission-howto-heading">How to Play</h3>
+        <ul class="mission-howto-list">
+          <li>Use ← / → or A / D to move and encounter plants. Edible plants are friends — eat them to refill your hunger bar.</li>
+          <li>Toxic plants are foes. Eating one costs you a big chunk of hunger instead of refilling it.</li>
+          <li>Learn to tell them apart, and choose wisely with every encounter.</li>
+          <li>Keep eating! If your hunger bar runs out, you lose a heart.</li>
+          <li>Lose both hearts and it's game over.</li>
+        </ul>
       </div>
-      <div class="mission-actions">
-        <button id="btn-mission-continue" class="btn btn-primary btn-block">Let's Go!</button>
+      <!-- The "why" beat + CTA, now the right-hand column since the
+           panel above takes the left. -->
+      <div class="mission-cta">
+        <p class="mission-text">Oh no, you just got lost in the forest and need to survive until rescue arrives. <span class="mission-text-question">Will you make it?</span></p>
+        <div class="mission-actions">
+          <button id="btn-mission-continue" class="btn btn-primary btn-block">Let's Go!</button>
+        </div>
       </div>
     </div>
   </section>
@@ -1971,10 +1995,23 @@
       <h2>About This Game</h2>
 
       <h3 class="about-section-heading">How to Play</h3>
-      <div class="about-howtoplay">
-        <p class="about-plain-text">Use ← / → or A / D to move and eat edible plants while avoiding toxic ones.</p>
-        <p class="about-plain-text">Learn to tell them apart, then keep choosing the right ones.</p>
-      </div>
+      <!-- UPDATED: bulleted list now, was plain stacked paragraphs
+           (.about-plain-text) -- content also mirrored on the Mission
+           screen's cream instructions panel (.mission-howto-panel). -->
+      <ul class="about-howtoplay">
+        <li>Use ← / → or A / D to move and encounter plants. Edible plants are friends — eat them to refill your hunger bar.</li>
+        <!-- UPDATED: originally drafted as "eat one and you lose a heart,"
+             which described the OLD mechanic -- under the current hybrid
+             (see WRONG_PICK_HUNGER_PENALTY/applyHungerPenalty in the
+             script), eating a foe costs a big chunk of hunger instead of
+             a heart directly; only an empty hunger bar ever costs a
+             heart (see the next two lines). Confirmed with the user --
+             fixing the copy to match the game, not the other way around. -->
+        <li>Toxic plants are foes. Eating one costs you a big chunk of hunger instead of refilling it.</li>
+        <li>Learn to tell them apart, and choose wisely with every encounter.</li>
+        <li>Keep eating! If your hunger bar runs out, you lose a heart.</li>
+        <li>Lose both hearts and it's game over.</li>
+      </ul>
 
       <h3 class="about-section-heading">Disclaimer</h3>
       <div class="disclaimer-box">
@@ -2016,10 +2053,12 @@
            onload="this.classList.add('loaded'); this.closest('.placeholder-art').classList.add('has-bg');"
            onerror="this.remove();">
       <span class="placeholder-tag">forest — art coming later</span>
-      <div class="forest-hint">
-        <span id="hint-walk">Use ← / → or A / D to move and eat edible plants while avoiding toxic ones.</span>
-        <span id="hint-goal">Learn to tell them apart, then keep choosing the right ones.</span>
-      </div>
+      <!-- REMOVED: the on-screen "Use ← / → or A / D..." / "Learn to
+           tell them apart..." walking-screen hints (.forest-hint,
+           #hint-walk/#hint-goal) -- per request, now that the same
+           How to Play instructions live in the Mission screen's
+           instructions panel (and the About modal), repeating them
+           again as an overlay during actual play was redundant. -->
 
       <!-- 3D depth plane: plants are placed by JS, pushed back in Z -->
       <div class="stage" id="stage">
@@ -2124,7 +2163,7 @@
                    onerror="this.remove();">
             </div>
           </div>
-          <div class="rescue-label" id="rescue-label">0 / 30s</div>
+          <div class="rescue-label" id="rescue-label">0 / 15s</div>
         </div>
       </div>
     </div>
@@ -2233,22 +2272,36 @@
            purely informational. Kept in the layout (rather than
            display:none) so its reserved space doesn't shift the cards
            below it when it appears -- see the CSS comment by
-           .encounter-hearts-invisible. -->
-      <div class="encounter-hearts encounter-hearts-invisible" id="encounter-hearts">
-        <span class="heart">
-          <span class="heart-glyph" aria-hidden="true">♥</span>
-          <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
-               onload="this.classList.add('loaded');" onerror="this.remove();">
-          <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
-               onload="this.classList.add('loaded');" onerror="this.remove();">
-        </span>
-        <span class="heart">
-          <span class="heart-glyph" aria-hidden="true">♥</span>
-          <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
-               onload="this.classList.add('loaded');" onerror="this.remove();">
-          <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
-               onload="this.classList.add('loaded');" onerror="this.remove();">
-        </span>
+           .encounter-hearts-invisible. UPDATED: the hunger bar now
+           sits right next to these hearts too (same
+           .encounter-hearts-invisible toggle, now on this wrapper
+           instead of the hearts alone) -- per request, so the player
+           can watch it refill/drain live as they pick, mirroring the
+           same #hunger-track/#hunger-slider/#hunger-label the HUD uses
+           (updateHungerUI() keeps both copies in sync -- see there). -->
+      <div class="encounter-vitals encounter-hearts-invisible" id="encounter-vitals">
+        <div class="encounter-hearts" id="encounter-hearts">
+          <span class="heart">
+            <span class="heart-glyph" aria-hidden="true">♥</span>
+            <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
+                 onload="this.classList.add('loaded');" onerror="this.remove();">
+            <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
+                 onload="this.classList.add('loaded');" onerror="this.remove();">
+          </span>
+          <span class="heart">
+            <span class="heart-glyph" aria-hidden="true">♥</span>
+            <img class="heart-img heart-img-full" src="images/heart-full.png" alt=""
+                 onload="this.classList.add('loaded');" onerror="this.remove();">
+            <img class="heart-img heart-img-broken" src="images/heart-broken.png" alt=""
+                 onload="this.classList.add('loaded');" onerror="this.remove();">
+          </span>
+        </div>
+        <div class="hunger-bar encounter-hunger-bar">
+          <span class="hunger-label" id="encounter-hunger-label">HUNGRY!</span>
+          <div class="hunger-track" id="encounter-hunger-track">
+            <div class="hunger-slider" id="encounter-hunger-slider"></div>
+          </div>
+        </div>
       </div>
       <!-- Two different prompts for the two different stages (see
            enterReadingMode/enterSelectingMode) -- both are always laid
@@ -2525,16 +2578,21 @@
   const galleryTapHint        = document.getElementById("gallery-tap-hint");
   const btnGalleryPrev        = document.getElementById("btn-gallery-prev");
   const btnGalleryNext        = document.getElementById("btn-gallery-next");
-  const hintWalk               = document.getElementById("hint-walk");
-  const hintGoal                = document.getElementById("hint-goal");
   const playerSway              = document.getElementById("player-sway");
   const playerFp                 = document.getElementById("player-fp");
   const winHelicopter           = document.getElementById("win-helicopter");
   const heartsEl              = document.getElementById("hearts");
+  const encounterVitalsEl      = document.getElementById("encounter-vitals");
   const encounterHeartsEl      = document.getElementById("encounter-hearts");
   const hungerSlider            = document.getElementById("hunger-slider");
   const hungerTrack               = document.getElementById("hunger-track");
   const hungerLabel              = document.getElementById("hunger-label");
+  // Mirrors the HUD's hunger bar inside the encounter modal -- see
+  // updateHungerUI(), which now updates both copies from the same
+  // `hunger` value every time it's called.
+  const encounterHungerSlider   = document.getElementById("encounter-hunger-slider");
+  const encounterHungerTrack    = document.getElementById("encounter-hunger-track");
+  const encounterHungerLabel    = document.getElementById("encounter-hunger-label");
   const rescueTrackFill        = document.getElementById("rescue-track-fill");
   const rescueMarker           = document.getElementById("rescue-marker");
   const rescueLabel            = document.getElementById("rescue-label");
@@ -2556,6 +2614,16 @@
   function goToMissionScreen(){
     screenStart.classList.add("hidden");
     screenMission.classList.remove("hidden");
+    // UPDATED: walk music now starts right here, on the Start Game
+    // click itself, instead of waiting for "Let's Go!" -- this is
+    // ALSO the first guaranteed real user gesture of the session if
+    // the player never clicked to skip the credits (see beginReveal's
+    // own attempt, which the browser's autoplay policy silently blocks
+    // without one), so this doubles as an earlier, more reliable
+    // fallback than goToPlayScreen()'s. Calling playWalkMusic() again
+    // there is harmless -- switchMusic() just re-issues .play() on the
+    // same already-playing track, which doesn't restart or glitch it.
+    playWalkMusic();
   }
   function goToPlayScreen(){
     screenStart.classList.add("hidden"); // harmless if already hidden -- covers any future caller that skips the mission screen
@@ -2652,7 +2720,7 @@
   const TRAIL_BOTTOM = { left: 4,  right: 96 };  // ground's clip-path, near edge (%)
   const SIDE_MARGIN = 6;      // % — how far beside the trail edge a plant sits
   const VIEW_RANGE  = 480;    // world units from "just visible" to "at the player"
-  const WALK_SPEED  = 110;    // world units per second, now constant/automatic
+  const WALK_SPEED  = 132;    // world units per second, now constant/automatic -- UPDATED: +20% (was 110), makes plants approach 20% faster since their on-screen position is driven entirely by progress (which advances at WALK_SPEED)
   const FAR_TOP = 38, NEAR_TOP = 84;   // vertical screen % range
   const FAR_Z   = -380, NEAR_Z = -10;  // depth range, matches the old static values
 
@@ -2739,14 +2807,21 @@
      opening/closing encounters, picking, all of it. The three
      encounter sound EFFECTS (card-flip/correct/wrong -- see
      playSound calls) layer on top of it instead of a music swap.
-     Walk music is meant to start the instant the Berry Hungry start
-     screen appears (i.e. as soon as the credits reveal, whether that
-     happens automatically or via the click-to-skip), see
-     beginReveal()/skipCredits() below. goToPlayScreen() below calls
-     playWalkMusic() again as a safety net: if that earlier attempt
-     got blocked by the browser's autoplay policy (no interaction
-     yet -- see the credits-appear note above playSound), Start Game
-     is a real click, so it's guaranteed to work there.
+     Walk music makes its first attempt the instant the Berry Hungry
+     start screen appears (i.e. as soon as the credits reveal, whether
+     that happens automatically or via the click-to-skip), see
+     beginReveal()/skipCredits() below -- but the automatic-reveal path
+     has no user interaction yet, so the browser's autoplay policy
+     silently blocks it there (see the credits-appear note above
+     playSound). UPDATED: goToMissionScreen() (Start Game's click
+     handler) now calls playWalkMusic() too -- since Start Game is
+     always a real click, this is the first GUARANTEED point music
+     actually starts, right as the Mission screen appears, well before
+     the player is even on the walk screen. goToPlayScreen() ("Let's
+     Go!") still calls it again after that, same as several other spots
+     in this file -- entirely harmless, since switchMusic() just
+     re-issues .play() on an already-playing track rather than
+     restarting it.
      ============================================================ */
   const MUSIC_VOLUME = 0.05; // 0-1 -- playtest feedback: music was drowning out the sound effects, dropped to 10% of the old 0.5
   const musicWalk = new Audio("music/walk.mp3");
@@ -3187,23 +3262,27 @@
   // only closes the modal, not the run. Without this flag, an early
   // dismiss would hand movement back to canWalk() (screenPlay is
   // visible again the moment the modal's hidden) for however long is
-  // left until the delayed endGame() call in selectCard actually
-  // fires and hides screenPlay for real -- letting the player keep
-  // walking after they've already lost (or won). Reset in resetGame().
+  // left until the delayed endGame() call (see applyHungerPenalty)
+  // actually fires and hides screenPlay for real -- letting the player
+  // keep walking after they've already lost (or won). Reset in
+  // resetGame().
   let runEnding = false;
 
   // Set alongside runEnding, but ONLY for the losing case -- see the
   // close button and modalEncounter click listeners above. runEnding
   // alone already stops movement even if the modal gets closed early,
-  // but closing it AT ALL on a fatal pick still visually flashes the
-  // (frozen) walk scene for however long is left until endGame("lost")
-  // fires, which reads as "going back to the walk" even though nothing
-  // is actually playable there anymore. This blocks the manual-dismiss
-  // paths entirely during that window, so a fatal pick's only way
-  // forward is the automatic Game Over transition. Reset in
-  // resetGame(); the win path never sets this at all -- it's triggered
-  // by the rescue timer while walking, with no encounter modal open to
-  // begin with, so there's no early-dismiss path for it to guard.
+  // but closing it AT ALL on a fatal hunger penalty still visually
+  // flashes the (frozen) walk scene for however long is left until
+  // endGame("lost") fires, which reads as "going back to the walk" even
+  // though nothing is actually playable there anymore. This blocks the
+  // manual-dismiss paths entirely during that window, so a fatal
+  // penalty's only way forward is the automatic Game Over transition
+  // (see applyHungerPenalty, which is what actually sets this now --
+  // HYBRID: a wrong pick alone can no longer trigger it directly).
+  // Reset in resetGame(); the win path never sets this at all -- it's
+  // triggered by the rescue timer while walking, with no encounter
+  // modal open to begin with, so there's no early-dismiss path for it
+  // to guard.
   let lossPending = false;
 
   // ANALYTICS -- when actual walking starts (goToPlayScreen), so
@@ -3269,11 +3348,11 @@
      correctly is no longer required to win, though it still refills
      hunger and correctCount is still tracked for analytics.
      ============================================================ */
-  const RESCUE_DURATION_MS = 30000; // 30 seconds of active walking time to be rescued
+  const RESCUE_DURATION_MS = 15000; // UPDATED: 15 seconds of active walking time to be rescued (was 30) -- the "Xs / 15s" label below is computed from this, no separate text to update
   let correctCount = 0;
   let rescueElapsedMs = 0;
 
-  // Moves the marker up the track and updates the "Xs / 30s" label --
+  // Moves the marker up the track and updates the "Xs / 15s" label --
   // called every walking frame from tick(), plus on init and
   // resetGame(). Reaching RESCUE_DURATION_MS is checked separately, in
   // tick() itself (see there) via triggerRescueWin() below, since it
@@ -3332,6 +3411,49 @@
         el.classList.add("heart-lost");
       }, HEART_SHAKE_MS);
     });
+  }
+
+  // HYBRID (brought over from the level-based build's hunger/hearts
+  // behavior): the ONLY thing that ever costs a heart is hunger
+  // reaching 0 -- never a wrong pick directly. Shared by both hunger's
+  // own steady drain (tick()) and a wrong pick's extra penalty
+  // (selectCard(), see WRONG_PICK_HUNGER_PENALTY below), so there's one
+  // single rule for "hunger hits 0 -> lose a heart" no matter what drained
+  // it. `wasStarving` guards against losing a heart every single call
+  // while hunger is already sitting at 0 -- only the call that actually
+  // CROSSES into 0 counts. Returns true if this was the fatal call (the
+  // last heart just broke) -- the CALLER decides when to actually call
+  // endGame("lost") off that (tick()'s pure walking-drain case wants it
+  // almost immediately, since no reveal is on screen to protect;
+  // selectCard()'s wrong-pick case wants a longer pause so the player
+  // gets to read the reveal first -- see GAME_OVER_START_DELAY_MS).
+  // FIXED: this function used to schedule endGame("lost") itself AND
+  // selectCard() scheduled its own on top -- a wrong pick that broke
+  // the last heart fired endGame("lost") TWICE (once at HEART_SHAKE_MS,
+  // again at GAME_OVER_START_DELAY_MS), which is exactly the reported
+  // "game over screen, then glitches back to game over again, sound and
+  // all" bug: the second call re-ran the fade-to-black and replayed the
+  // game-over sound on top of a screen that was already showing Game
+  // Over. Returning the boolean and letting each caller own its own
+  // single setTimeout fixes it for good.
+  function applyHungerPenalty(amount){
+    const wasStarving = hunger <= 0;
+    hunger = clamp(hunger - amount, 0, 100);
+    updateHungerUI();
+    if (hunger > 0 || wasStarving) return false;
+    loseHeart();
+    if (heartsRemaining <= 0){
+      runEnding = true;
+      // No manual way out of whatever's on screen right now (the walk
+      // scene, or -- if this fired from a wrong pick -- the still-open
+      // reveal) -- see lossPending's own comment by its declaration.
+      lossPending = true;
+      btnEncounterClose.classList.add("hidden");
+      return true;
+    }
+    hunger = 100;
+    updateHungerUI();
+    return false;
   }
 
   /* ============================================================
@@ -3440,6 +3562,12 @@
   const HUNGER_DURATION = 15;               // seconds, full → empty (twice as fast -- was 30)
   const HUNGER_RATE = 100 / HUNGER_DURATION; // % per second
   let hunger = 100;
+  // HYBRID (brought over from the level-based build): how much hunger a
+  // WRONG pick costs outright, on top of just missing the refill a
+  // correct pick gives -- see applyHungerPenalty() and selectCard().
+  // TUNABLE: adjust this one number to change how punishing a wrong
+  // pick feels; nothing else depends on its value.
+  const WRONG_PICK_HUNGER_PENALTY = 40;
   // Tracks whether the low-hunger alarm is currently sounding, so the
   // sound effect below plays once right as hunger CROSSES into the
   // danger zone -- not on every single frame it stays there -- and
@@ -3449,15 +3577,24 @@
 
   function updateHungerUI(){
     hunger = clamp(hunger, 0, 100);
-    hungerSlider.style.left = hunger + "%";
     const alarm = hunger <= 25;
     if (alarm && !hungerAlarmActive) playSound("hunger-low");
     hungerAlarmActive = alarm;
+    // Drives BOTH copies of the hunger bar from this one call -- the
+    // HUD's own (#hunger-*) and the mirrored one inside the encounter
+    // modal (#encounter-hunger-*, added per request so picking right/
+    // wrong visibly refills/drains it live, right next to the hearts).
     // Label does a plain static color swap; the track + slider handle
     // are what actually flash red as things get dangerous.
-    hungerLabel.classList.toggle("alarm", alarm);
-    hungerTrack.classList.toggle("alarm", alarm);
-    hungerSlider.classList.toggle("alarm", alarm);
+    [
+      { slider: hungerSlider, track: hungerTrack, label: hungerLabel },
+      { slider: encounterHungerSlider, track: encounterHungerTrack, label: encounterHungerLabel },
+    ].forEach(({ slider, track, label }) => {
+      slider.style.left = hunger + "%";
+      label.classList.toggle("alarm", alarm);
+      track.classList.toggle("alarm", alarm);
+      slider.classList.toggle("alarm", alarm);
+    });
   }
 
   function tick(now){
@@ -3474,23 +3611,19 @@
     playerSway.classList.toggle("walking", canWalk());
 
     if (canWalk()){
-      const wasStarving = hunger <= 0;
-      hunger = clamp(hunger - HUNGER_RATE * dt, 0, 100);
-      updateHungerUI();
-
-      // Letting hunger run all the way out costs a heart, same as a
-      // wrong pick -- then refills, so it can't tick away hearts
-      // every frame while sitting at zero.
-      if (hunger <= 0 && !wasStarving){
-        loseHeart();
-        if (heartsRemaining <= 0){
-          // Let the shake/break animation actually finish before the
-          // screen changes out from under it.
-          setTimeout(() => endGame("lost"), HEART_SHAKE_MS);
-        } else {
-          hunger = 100;
-          updateHungerUI();
-        }
+      // Steady per-frame drain -- reaching 0 costs a heart via the same
+      // applyHungerPenalty() a wrong pick's extra penalty uses (see its
+      // own comment); this call's `amount` is just the plain per-frame
+      // drain, not a punitive penalty. Re-checking canWalk() right
+      // after (below) is what stops this same frame from also moving/
+      // spawning/etc. if that heart loss just ended the run.
+      if (applyHungerPenalty(HUNGER_RATE * dt)){
+        // Fatal -- no reveal/modal on screen to protect here (this is
+        // the plain walking drain, not a wrong pick), so there's no
+        // reason to hold off as long as the pick path does. Just let
+        // the shake/break animation actually finish before the screen
+        // changes out from under it.
+        setTimeout(() => endGame("lost"), HEART_SHAKE_MS);
       }
 
       if (canWalk()){
@@ -3520,12 +3653,6 @@
         if (slideDir !== 0){
           playerX = clamp(playerX + slideDir * PLAYER_SLIDE_SPEED * dt, PLAYER_X_MIN, PLAYER_X_MAX);
           playerFp.style.left = playerX + "%";
-          // The player's now actually steered -- no need to keep
-          // teaching the controls for the rest of this playthrough.
-          if (!hasWalkedOnce){
-            hasWalkedOnce = true;
-            hintWalk.classList.add("hidden");
-          }
         }
 
         // Always redraw with catch-checking on -- a plant can now be
@@ -3708,12 +3835,6 @@
     seenPhotoIndices = new Set();
     hasSeenGalleryHint = false;
 
-    // Forest hints teach their mechanic again each fresh playthrough.
-    hasWalkedOnce = false;
-    hasOpenedPlantOnce = false;
-    hintWalk.classList.remove("hidden");
-    hintGoal.classList.remove("hidden");
-
     // Endless trail -- tear down every spot the last run generated and
     // start the generator fresh (progress is already reset to 0 above,
     // so ensurePlantsAhead() reseeds the same first-batch spacing/sides
@@ -3840,13 +3961,6 @@
   // "Tap the cards to see more" only teaches the mechanic once per
   // playthrough -- reset alongside everything else in resetGame().
   let hasSeenGalleryHint = false;
-
-  // Same idea for the forest-hint lines: #hint-walk disappears the
-  // first time the player actually walks; #hint-goal (the goal
-  // reminder) disappears the first time a plant is opened -- reset
-  // alongside everything else in resetGame().
-  let hasWalkedOnce = false;
-  let hasOpenedPlantOnce = false;
 
   // The cute card-flip that plays whenever a card's visible slide
   // crosses the line between the cover and an identification photo
@@ -4006,7 +4120,7 @@
     // two plants made it look like a choice was already underway, when
     // reading mode is purely informational (see enterSelectingMode,
     // which is the only place they come back).
-    encounterHeartsEl.classList.add("encounter-hearts-invisible");
+    encounterVitalsEl.classList.add("encounter-hearts-invisible");
     encounterPrompt.classList.remove("hidden");
     encounterPromptReading.classList.remove("encounter-prompt-invisible");
     encounterPromptSelecting.classList.add("encounter-prompt-invisible");
@@ -4032,7 +4146,7 @@
     // point. They then stay visible through the reveal too (selectCard
     // doesn't touch this class), since a wrong pick's heart-break
     // animation needs somewhere to play.
-    encounterHeartsEl.classList.remove("encounter-hearts-invisible");
+    encounterVitalsEl.classList.remove("encounter-hearts-invisible");
     encounterPrompt.classList.remove("hidden");
     encounterPromptReading.classList.add("encounter-prompt-invisible");
     encounterPromptSelecting.classList.remove("encounter-prompt-invisible");
@@ -4118,13 +4232,6 @@
     // opened, regardless of whether the player goes on to pick.
     posthog.capture("plant_encounter_opened", { pair_id: pair && pair.id });
 
-    // The player's now actually opened a plant -- no need to keep
-    // teaching that mechanic for the rest of this playthrough.
-    if (!hasOpenedPlantOnce){
-      hasOpenedPlantOnce = true;
-      hintGoal.classList.add("hidden");
-    }
-
     cardsRow.classList.remove("selecting", "answered");
     cardsContainer.innerHTML = "";
     const [a, b] = shuffledPair(pair);
@@ -4185,16 +4292,22 @@
   // glimpse it.
   const RESULT_DISPLAY_MS = 3468; // was 6935 -- cut in half again (playtest feedback: still too slow to auto-close)
 
-  // On a wrong pick, let the "Foe" reveal register on its own first --
-  // the heart only starts shaking once the word has had a moment to
-  // sink in, rather than both firing at the same instant.
+  // HYBRID note: a wrong pick's heart-loss animation (when it happens
+  // at all -- see applyHungerPenalty) now starts IMMEDIATELY, not after
+  // a delay -- there's no pick-specific heart loss left to stagger
+  // after the reveal any more. HEART_LOSE_DELAY_MS is kept only as the
+  // pacing anchor GAME_OVER_START_DELAY_MS below is built from, so that
+  // constant's value (and the Game Over transition's timing) didn't
+  // need to be re-tuned along with everything else.
   const HEART_LOSE_DELAY_MS = 900;
 
-  // When the pick about to be made will break the LAST heart, the
+  // When a wrong pick's hunger penalty just broke the LAST heart, the
   // player doesn't need to sit with the broken-heart result nearly as
   // long before the Game Over transition starts -- half the usual gap
-  // after the heart actually breaks (RESULT_DISPLAY_MS's gap after
-  // HEART_LOSE_DELAY_MS, halved).
+  // (RESULT_DISPLAY_MS's gap after HEART_LOSE_DELAY_MS, halved). Still
+  // comfortably outlasts the heart-break animation itself
+  // (HEART_SHAKE_MS), which now starts at the wrong pick instead of
+  // 900ms after it.
   const GAME_OVER_START_DELAY_MS = HEART_LOSE_DELAY_MS + Math.round((RESULT_DISPLAY_MS - HEART_LOSE_DELAY_MS) / 2);
 
   // How long the helicopter's own descent (see .win-helicopter's `top`
@@ -4259,11 +4372,6 @@
     markPlantAnswered(currentPlantSpot);
 
     const isCorrect = card.dataset.correct === "true";
-    // heartsRemaining hasn't been decremented for THIS pick yet (that
-    // happens later, inside loseHeart() -- see the setTimeout below),
-    // so "<= 1" here means "this is the last heart" i.e. this pick,
-    // if wrong, ends the run.
-    const isFatalPick = !isCorrect && heartsRemaining <= 1;
 
     // Reveal BOTH cards -- the player should learn which one is the
     // Friend and which is the Foe (and why), not just get feedback on
@@ -4278,6 +4386,16 @@
       pair_id: currentPlantSpot.pair && currentPlantSpot.pair.id,
     });
 
+    // HYBRID (brought over from the level-based build's hunger/hearts
+    // behavior): a wrong pick no longer costs a heart directly -- only
+    // hunger reaching 0 does, via the same applyHungerPenalty() tick()
+    // uses for its own steady drain (see its comment). A wrong pick
+    // instead costs a big, immediate chunk of hunger outright
+    // (WRONG_PICK_HUNGER_PENALTY, on top of simply missing the refill a
+    // correct pick gives) -- a real, keenly-felt setback without being
+    // an instant heart loss. `isFatal` is true only if THIS penalty
+    // happened to be the one that broke the last heart.
+    let isFatal = false;
     if (isCorrect){
       playSound("correct");
       hunger = 100;
@@ -4292,32 +4410,17 @@
       posthog.capture("progress_milestone", { milestone: correctCount });
     } else {
       playSound("wrong");
-      setTimeout(() => { loseHeart(); }, HEART_LOSE_DELAY_MS);
+      isFatal = applyHungerPenalty(WRONG_PICK_HUNGER_PENALTY);
     }
 
-    // Freeze movement right now, synchronously, the moment this pick
-    // is known to end the run -- see runEnding's own comment by
-    // canWalk(). UPDATED: winning is no longer decided by a pick at
-    // all -- it's now purely time-based (see triggerRescueWin() and
-    // the rescue-timer check in tick()) -- so the only way a single
-    // pick can end the run here is the fatal-heart case below.
-    if (isFatalPick){
-      runEnding = true;
-      lossPending = true;
-      // No manual way out of this reveal -- see lossPending's own
-      // comment. Hiding the close button (rather than just no-oping its
-      // click) also stops it from sitting there looking clickable when
-      // it isn't.
-      btnEncounterClose.classList.add("hidden");
-    }
-
-    // Let the result (and the heart-loss animation, if any) actually
-    // register, then hand the player back to the field -- unless that
-    // was the last heart (run over), in which case a transition starts
-    // instead. endGame("lost") closes the encounter modal itself, only
-    // once the fade-to-black is done, so the result stays visible
-    // under the fade rather than being cut away first.
-    if (isFatalPick){
+    // Let the result (and the heart-loss animation, if any -- see
+    // applyHungerPenalty) actually register, then hand the player back
+    // to the field -- unless that penalty happened to break the last
+    // heart (run over), in which case a transition starts instead.
+    // endGame("lost") closes the encounter modal itself, only once the
+    // fade-to-black is done, so the result stays visible under the
+    // fade rather than being cut away first.
+    if (isFatal){
       setTimeout(() => { endGame("lost"); }, GAME_OVER_START_DELAY_MS);
     } else {
       setTimeout(() => {
