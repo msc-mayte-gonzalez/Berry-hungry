@@ -274,6 +274,8 @@
     line-height: 1;
   }
   .title-sub{
+    position: relative; /* UPDATED: containing block for the blurred backdrop below */
+    isolation: isolate;   /* keeps ::before's negative z-index scoped to this element only */
     font-family: var(--font-body);
     font-weight: 700;
     font-size: 0.9rem;
@@ -281,6 +283,23 @@
     text-transform: uppercase;
     color: var(--amber-tint);
     text-shadow:none;
+  }
+  /* UPDATED: a soft, blurred dark patch behind the win/lose subtitle
+     ("you made it out of the forest" / "the forest got the better of
+     you") -- purely for contrast against whatever background art sits
+     behind it. A radial gradient fading to fully transparent, then
+     blurred further, so there's no visible edge/box -- just a soft
+     dark glow the text sits on. Same technique as
+     .encounter-prompt-main::before below. */
+  .title-sub::before{
+    content:"";
+    position:absolute;
+    inset: -0.7em -1.4em;
+    z-index:-1;
+    border-radius: 999px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0) 75%);
+    filter: blur(16px);
+    pointer-events:none;
   }
   .start-actions{
     display:flex;
@@ -324,7 +343,7 @@
     flex-wrap: wrap;
     align-items:center;
     justify-content:center;
-    gap: 2.5rem;
+    gap: 6rem; /* UPDATED: was 2.5rem -- more breathing room between the panel and the CTA column */
     padding: 2rem;
     text-align:center;
   }
@@ -364,7 +383,7 @@
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap: 2.2rem;
+    gap: 4rem; /* UPDATED: was 2.2rem */
   }
   .mission-text{
     color: var(--white);
@@ -1264,6 +1283,13 @@
   }
   .encounter-prompt-reading, .encounter-prompt-selecting{
     grid-area: 1 / 1;
+    /* UPDATED: bottom-align both within the shared reserved cell, so
+       "First, let's learn about 2 similar plants" (reading mode, a
+       single line) sits at the same level as "Friend or foe? Pick the
+       one you'd eat" (selecting mode's bigger, second/bottom line) --
+       instead of the reading line defaulting to the top of the taller
+       cell while the question line sits lower. */
+    align-self: end;
   }
   /* Hides whichever of reading/selecting isn't the current stage --
      visibility (not display:none) so it still occupies its grid cell
@@ -1296,7 +1322,9 @@
     text-shadow: 0 3px 10px rgba(0,0,0,0.4);
   }
   .encounter-prompt-main{
-    font-size: clamp(1.35rem, 5.4vw, 1.8rem);
+    position: relative; /* UPDATED: containing block for the blurred backdrop below */
+    isolation: isolate;
+    font-size: 2.3rem; /* UPDATED: was clamp(1.35rem, 5.4vw, 1.8rem) */
     font-weight: 800;
     color: #ffd93d;
     animation: encounter-prompt-pulse 1.6s ease-in-out infinite;
@@ -1304,6 +1332,19 @@
   @keyframes encounter-prompt-pulse{
     0%, 100%{ text-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 0 rgba(255,255,255,0); }
     50%{ text-shadow: 0 4px 14px rgba(0,0,0,0.45), 0 0 16px rgba(255,255,255,0.95), 0 0 28px rgba(255,255,255,0.65); }
+  }
+  /* Same blurred-dark-patch contrast trick as .title-sub::before --
+     see its comment. This one sits behind the "Friend or foe? Pick the
+     one you'd eat" line specifically, since that's the line asked for. */
+  .encounter-prompt-main::before{
+    content:"";
+    position:absolute;
+    inset: -0.5em -1em;
+    z-index:-1;
+    border-radius: 999px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0) 75%);
+    filter: blur(14px);
+    pointer-events:none;
   }
   /* The .heart glyphs here are styled identically to the HUD's (same
      base .heart rule) -- shown above the cards, separated from them
@@ -1388,6 +1429,7 @@
      the tiny counter text in the footer, not beside the cards, so they
      don't reopen that space problem. */
   .cards-stage{
+    position: relative; /* UPDATED: containing block for .gallery-tap-hint's overlay */
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -1396,7 +1438,7 @@
   }
   .cards{
     display:flex;
-    gap: 1.1rem;
+    gap: 5rem; /* UPDATED: was 1.1rem */
     width: 100%;
     min-width: 0;
     justify-content:center;
@@ -1422,11 +1464,11 @@
     gap: 0.5rem;
     min-height: 44px;
     justify-content:flex-start;
-    /* Pulls it in tighter than .encounter-card-wrap's own 1.4rem gap --
-       playtest feedback asked for "Review plants again" to sit close
-       to the cards now that "Select one" isn't there to fill the
-       space between them. */
-    margin-top: -0.7rem;
+    /* UPDATED: was -0.7rem (pulled the footer in tighter than the
+       wrap's own 1.4rem gap). Now set so the TOTAL visual gap between
+       the cards and this row (the wrap's 1.4rem gap + this margin)
+       comes to a full 2rem, per request -- 2rem - 1.4rem = 0.6rem. */
+    margin-top: 0.6rem;
   }
   /* Counter row ("‹ 3 / 6 ›", cover counted as photo 1) on top, plus a
      one-time "click the cards" hint on its own line below for the very
@@ -1477,14 +1519,34 @@
     justify-content:center;
   }
   .gallery-nav-btn:hover{ background: rgba(255,255,255,0.32); }
+  /* UPDATED: overlaid directly on top of the two cards (was a plain
+     caption line underneath them) -- centered over .cards-stage
+     (its containing block, see there), sized way up so it reads as a
+     bold callout, with a strong drop shadow standing in for the old
+     text-shadow now that it's sitting on top of card art/photos
+     instead of the plain modal background. pointer-events:none is
+     load-bearing -- tapping the cards (or the gap between them) is
+     how the gallery actually pages (see stepGalleryPhoto/buildCard's
+     click handler); without this the hint would sit in front of the
+     cards and eat those taps instead of passing them through. */
   .gallery-tap-hint{
-    font-size: 1rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    width: 85%;
+    max-width: 320px;
+    font-size: 3rem;
     font-weight: 700;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.85);
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    white-space: nowrap;
+    text-align: center;
+    line-height: 1.15;
+    white-space: normal;
+    color: rgba(255,255,255,0.92);
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.65)) drop-shadow(0 2px 4px rgba(0,0,0,0.55));
+    pointer-events: none;
   }
 
   .card{
@@ -1551,7 +1613,7 @@
     100% { transform: rotateY(0deg); }
   }
   .card-name{
-    font-size: 1rem;
+    font-size: 1.8rem; /* UPDATED: was 1rem */
     font-weight: 700;
     color: var(--ink);
     text-align:center;
@@ -2314,12 +2376,22 @@
       <div id="encounter-prompt" class="encounter-prompt hidden">
         <p id="encounter-prompt-reading" class="encounter-prompt-reading">First, let&rsquo;s learn about 2 similar plants</p>
         <div id="encounter-prompt-selecting" class="encounter-prompt-selecting encounter-prompt-invisible">
-          <p class="encounter-prompt-sub">Now that you know about both plants</p>
-          <p class="encounter-prompt-main">Which plant would you eat?</p>
+          <p class="encounter-prompt-sub">Try to guess</p>
+          <p class="encounter-prompt-main">Friend or foe? Pick the one you&rsquo;d eat</p>
         </div>
       </div>
       <div class="cards-stage">
         <div class="cards" id="cards-container"></div>
+        <!-- UPDATED: moved here (was inside #gallery-hint-row below,
+             sitting under the cards as a plain caption) so it can
+             overlap the cards themselves, per request -- same element/
+             id, so all the existing show/hide JS (stepGalleryPhoto,
+             openEncounter -- toggles the "hidden" class directly on
+             this element, independent of #gallery-hint-row) keeps
+             working unchanged regardless of where it sits in the DOM.
+             Positioned via .gallery-tap-hint's own CSS against
+             .cards-stage (see there). -->
+        <span id="gallery-tap-hint" class="gallery-tap-hint">Click cards to see more</span>
       </div>
       <!-- Fixed-height footer: reading mode and selecting mode each
            show a different subset of what's in here (or nothing at
@@ -2334,7 +2406,6 @@
             <span id="gallery-nav-hint" class="gallery-nav-hint">1 / 6</span>
             <button type="button" id="btn-gallery-next" class="gallery-nav-btn" aria-label="Next photo">›</button>
           </div>
-          <span id="gallery-tap-hint" class="gallery-tap-hint">Click cards to see more</span>
         </div>
         <button id="btn-review" class="btn-review hidden">Review plants again</button>
       </div>
@@ -3559,7 +3630,7 @@
      pressure moving on to the next plant, slow enough that a single
      walk between plants is comfortable. Refills on a correct choice.
      ============================================================ */
-  const HUNGER_DURATION = 15;               // seconds, full → empty (twice as fast -- was 30)
+  const HUNGER_DURATION = 5;                // seconds, full → empty (UPDATED: 3x faster -- was 15)
   const HUNGER_RATE = 100 / HUNGER_DURATION; // % per second
   let hunger = 100;
   // HYBRID (brought over from the level-based build): how much hunger a
@@ -3881,7 +3952,11 @@
 
   btnStartOver.addEventListener("click", startOver);
   document.getElementById("btn-gameover-again").addEventListener("click", tryAgain);
-  document.getElementById("btn-win-again").addEventListener("click", startOver);
+  // UPDATED: "Play Again" on the Win screen now drops straight back
+  // into a fresh run too, same as "Try Again" on the Game Over screen
+  // -- was startOver(), which sent the player back to the title screen
+  // and required hitting "Start Game" again.
+  document.getElementById("btn-win-again").addEventListener("click", tryAgain);
 
   // Pause: dark backdrop (reuses .modal-overlay) with a big Resume and
   // a big Start Over action. canWalk() already checks modalPause, so
