@@ -1348,6 +1348,51 @@
     white-space: nowrap;
     box-shadow: var(--shadow);
   }
+
+  /* Touch steering -- movement has always been keyboard-only
+     (slidingLeft/slidingRight, set by the keydown/keyup listeners
+     further down); forward walking is automatic regardless of input,
+     so left/right is genuinely the only control that needs one. Every
+     other HUD piece above is TOP-anchored -- these are the first
+     BOTTOM-anchored ones, one in each corner, thumb-reachable in a
+     landscape phone grip (the orientation-lock screen already
+     guarantees landscape by the time a touch player ever reaches this
+     screen). Same (hover:none)+(pointer:coarse) gate as
+     #orientation-lock, so a mouse/trackpad user never sees these --
+     the keyboard already covers them. */
+  .mobile-move-btn{
+    display: none;
+    position: absolute;
+    bottom: 28px;
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    pointer-events: auto;
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    background: rgba(44,36,16,0.55);
+    color: var(--white);
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    line-height: 1;
+    transition: background 0.1s ease;
+    /* Stops the browser from treating a press-and-hold as a scroll/
+       zoom/text-selection gesture instead of steering -- without this,
+       a held finger can trigger the page's own touch handling and the
+       button never sees a clean, sustained press. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .mobile-move-btn.pressed{ background: rgba(44,36,16,0.85); }
+  .mobile-move-left{ left: 28px; }
+  .mobile-move-right{ right: 28px; }
+  @media (hover: none) and (pointer: coarse){
+    .mobile-move-btn{ display: flex; }
+  }
+
   /* Big centered pause overlay: dark backdrop (reuses .modal-overlay)
      with a "Paused" heading, well clear of the two large icon+label
      actions below it so it clearly reads as the game's state rather
@@ -2549,6 +2594,13 @@
           </div>
           <div class="rescue-label" id="rescue-label">0 / 15s</div>
         </div>
+
+        <!-- Touch steering -- see .mobile-move-btn's own comment for why
+             this exists at all (movement was keyboard-only until now).
+             aria-labels match the keyboard's own "←/→" framing from the
+             how-to-play copy, just spelled out for touch. -->
+        <button type="button" id="btn-move-left" class="mobile-move-btn mobile-move-left" aria-label="Move left">‹</button>
+        <button type="button" id="btn-move-right" class="mobile-move-btn mobile-move-right" aria-label="Move right">›</button>
       </div>
     </div>
   </section>
@@ -4241,6 +4293,51 @@
   });
   // Letting go of the window (alt-tab, etc.) should stop the slide too.
   window.addEventListener("blur", () => { slidingLeft = false; slidingRight = false; });
+
+  // ---------------------------------------------------------------
+  // Touch steering (see .mobile-move-btn's own CSS comment for why) --
+  // press-and-hold sets the exact same slidingLeft/slidingRight flags
+  // the keyboard does, so every downstream consumer (tick()'s movement,
+  // the walking-sway animation, etc.) already just works without
+  // caring which input drove it.
+  // ---------------------------------------------------------------
+  function wireMoveButton(btn, setSliding){
+    if (!btn) return;
+    let activePointerId = null;
+    const press = (e) => {
+      e.preventDefault();
+      activePointerId = e.pointerId;
+      // Keeps this pointer's up/cancel routed back to this element even
+      // if the finger drifts off the (smallish, circular) button mid-
+      // hold -- without it, a release just outside the button's bounds
+      // would leave the slide stuck on with nothing left to clear it
+      // (the window-level safety net below only helps once an up/cancel
+      // event actually fires SOMEWHERE, which capture is what ensures).
+      if (btn.setPointerCapture) { try { btn.setPointerCapture(e.pointerId); } catch (err) {} }
+      btn.classList.add("pressed");
+      setSliding(true);
+    };
+    const release = (e) => {
+      // Ignore a different finger's up/cancel (e.g. the other move
+      // button, or an unrelated tap) so a second touch elsewhere can't
+      // cancel this button's own held press.
+      if (e && e.pointerId !== undefined && activePointerId !== null && e.pointerId !== activePointerId) return;
+      activePointerId = null;
+      btn.classList.remove("pressed");
+      setSliding(false);
+    };
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointercancel", release);
+    // Safety net for the rare case an up/cancel never reaches the
+    // button itself (pointer capture unsupported, a browser quirk) --
+    // same "don't let the slide get stuck on" spirit as the blur
+    // listener above.
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+  }
+  wireMoveButton(document.getElementById("btn-move-left"), (v) => { slidingLeft = v; });
+  wireMoveButton(document.getElementById("btn-move-right"), (v) => { slidingRight = v; });
 
   ensurePlantsAhead();
   updatePlants();
