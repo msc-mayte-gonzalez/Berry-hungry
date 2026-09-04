@@ -1349,50 +1349,6 @@
     box-shadow: var(--shadow);
   }
 
-  /* Touch steering -- movement has always been keyboard-only
-     (slidingLeft/slidingRight, set by the keydown/keyup listeners
-     further down); forward walking is automatic regardless of input,
-     so left/right is genuinely the only control that needs one. Every
-     other HUD piece above is TOP-anchored -- these are the first
-     BOTTOM-anchored ones, one in each corner, thumb-reachable in a
-     landscape phone grip (the orientation-lock screen already
-     guarantees landscape by the time a touch player ever reaches this
-     screen). Same (hover:none)+(pointer:coarse) gate as
-     #orientation-lock, so a mouse/trackpad user never sees these --
-     the keyboard already covers them. */
-  .mobile-move-btn{
-    display: none;
-    position: absolute;
-    bottom: 28px;
-    width: 66px;
-    height: 66px;
-    border-radius: 50%;
-    pointer-events: auto;
-    appearance: none;
-    border: none;
-    cursor: pointer;
-    background: rgba(44,36,16,0.55);
-    color: var(--white);
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    line-height: 1;
-    transition: background 0.1s ease;
-    /* Stops the browser from treating a press-and-hold as a scroll/
-       zoom/text-selection gesture instead of steering -- without this,
-       a held finger can trigger the page's own touch handling and the
-       button never sees a clean, sustained press. */
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-  .mobile-move-btn.pressed{ background: rgba(44,36,16,0.85); }
-  .mobile-move-left{ left: 28px; }
-  .mobile-move-right{ right: 28px; }
-  @media (hover: none) and (pointer: coarse){
-    .mobile-move-btn{ display: flex; }
-  }
-
   /* Big centered pause overlay: dark backdrop (reuses .modal-overlay)
      with a "Paused" heading, well clear of the two large icon+label
      actions below it so it clearly reads as the game's state rather
@@ -2241,21 +2197,26 @@
   }
 
   /* ============================================================
-     ORIENTATION LOCK -- the card/gallery sizing throughout this game
-     was built and tuned for a landscape layout (see e.g. .card,
-     .id-text's own narrow-phone shrinkage above); portrait on an
-     actual phone just doesn't leave enough width for it to hold up.
-     Rather than try to redesign every screen for portrait too, this
-     blocks play outright on a touch device held in portrait and asks
-     for a rotate -- same idea as the "please rotate your device"
-     screen most landscape-only mobile games/sites use. Gated on
-     (hover:none)+(pointer:coarse) together with (orientation:portrait)
-     specifically so it does NOT fire on a desktop/laptop browser
-     window that's merely narrow (mouse+trackpad input reports
-     hover:hover/pointer:fine even in a tall, narrow window) -- only an
-     actual touch-primary device (phone/tablet) currently held upright
-     trips it. See isOrientationLocked()/canWalk() in the script: while
-     this is showing, walking/hunger drain/the rescue timer all freeze
+     DESKTOP-ONLY BLOCK (id/classes kept as "orientation-lock" for a
+     smaller diff against the rest of the code -- see the script's
+     isOrientationLocked()/canWalk()) -- the card/gallery sizing
+     throughout this game was built and tuned for a mouse/trackpad,
+     desktop-width layout (see e.g. .card, .id-text's own narrow-phone
+     shrinkage above); a touch device just doesn't leave enough room
+     for it to hold up, in EITHER orientation -- landscape phones were
+     tried (see the on-screen move-button controls that briefly lived
+     here) and the sizing/layout still didn't hold together well enough
+     to trust without a much larger redesign, which risks the desktop
+     experience along the way. So this blocks play outright on any
+     touch device, portrait or landscape, and says so plainly instead
+     of asking for a rotate. Gated on (hover:none)+(pointer:coarse)
+     alone (no orientation condition) specifically so it does NOT fire
+     on a desktop/laptop browser window that's merely narrow
+     (mouse+trackpad input reports hover:hover/pointer:fine even in a
+     tall, narrow window) -- only an actual touch-primary device
+     (phone/tablet) trips it, in any orientation. See
+     isOrientationLocked()/canWalk() in the script: while this is
+     showing, walking/hunger drain/the rescue timer all freeze
      (canWalk() re-checks the same media query every frame), so nothing
      unfair happens to the player's run while their screen is covered
      -- and the overlay's own fixed positioning simply intercepts every
@@ -2278,17 +2239,12 @@
     text-align: center;
     background: var(--ink);
   }
-  @media (orientation: portrait) and (hover: none) and (pointer: coarse){
+  @media (hover: none) and (pointer: coarse){
     #orientation-lock{ display: flex; }
   }
   .orientation-lock-icon{
     font-size: 2.6rem;
     line-height: 1;
-    animation: orientation-lock-rotate-hint 1.6s ease-in-out infinite;
-  }
-  @keyframes orientation-lock-rotate-hint{
-    0%, 100%{ transform: rotate(0deg); }
-    50%{ transform: rotate(90deg); }
   }
   .orientation-lock-title{
     font-family: var(--font-display);
@@ -2594,13 +2550,6 @@
           </div>
           <div class="rescue-label" id="rescue-label">0 / 15s</div>
         </div>
-
-        <!-- Touch steering -- see .mobile-move-btn's own comment for why
-             this exists at all (movement was keyboard-only until now).
-             aria-labels match the keyboard's own "←/→" framing from the
-             how-to-play copy, just spelled out for touch. -->
-        <button type="button" id="btn-move-left" class="mobile-move-btn mobile-move-left" aria-label="Move left">‹</button>
-        <button type="button" id="btn-move-right" class="mobile-move-btn mobile-move-right" aria-label="Move right">›</button>
       </div>
     </div>
   </section>
@@ -2791,14 +2740,14 @@
   <!-- Lives outside every .screen section, same "always-on-top, body-
        level fixed element" pattern as .build-tag/#btn-mute below --
        shown/hidden purely by the CSS media query above (no JS needed
-       to toggle it, so it reacts instantly to an actual device
-       rotation). See the CSS block's own comment for the full
-       reasoning and canWalk()/isOrientationLocked() in the script for
-       how this also freezes the game underneath it. -->
+       to toggle it, so it reacts instantly the moment a touch device
+       is detected, in any orientation). See the CSS block's own
+       comment for the full reasoning and canWalk()/isOrientationLocked()
+       in the script for how this also freezes the game underneath it. -->
   <div id="orientation-lock" aria-hidden="true">
-    <div class="orientation-lock-icon">🔄</div>
-    <div class="orientation-lock-title">Please Rotate Your Device</div>
-    <div class="orientation-lock-text">Berry Hungry is built for landscape mode. Turn your phone sideways to play.</div>
+    <div class="orientation-lock-icon">💻</div>
+    <div class="orientation-lock-title">Berry Hungry is built for desktop, for now.</div>
+    <div class="orientation-lock-text">Come back on a computer to start your survival adventure.</div>
   </div>
 
   <!-- Global mute toggle -- upper left, icon-only at every screen
@@ -3813,8 +3762,14 @@
   // below and the ANALYTICS listener right after it are guaranteed to
   // agree on the exact same condition as the #orientation-lock CSS
   // media query above -- one definition, instead of the query text
-  // copy-pasted in three places and free to quietly drift apart.
-  const orientationLockQuery = window.matchMedia("(orientation: portrait) and (hover: none) and (pointer: coarse)");
+  // copy-pasted in three places and free to quietly drift apart. No
+  // (orientation: portrait) clause -- this now blocks any touch device
+  // in either orientation, not just portrait (see the CSS block's own
+  // comment for why). Name/function kept as "orientationLock"/
+  // "isOrientationLocked" for a smaller diff against the rest of the
+  // code, even though the condition itself is no longer orientation-
+  // specific.
+  const orientationLockQuery = window.matchMedia("(hover: none) and (pointer: coarse)");
   // Kept as a live matchMedia() check (not a cached flag) so it's
   // always current the instant the device is rotated -- canWalk() is
   // re-evaluated every animation frame anyway (see tick() below), so
@@ -3824,15 +3779,16 @@
   function isOrientationLocked(){
     return orientationLockQuery.matches;
   }
-  // ANALYTICS -- how many mobile visits get stopped by the "please
-  // rotate your device" wall, and how many make it back to landscape
-  // and actually continue. change only fires when the match result
-  // actually flips, so this naturally fires once per rotation rather
-  // than needing its own de-dupe guard; the immediate call right after
-  // covers a page load that starts already in the locked state (that
-  // load never triggers a "change").
+  // ANALYTICS -- how many mobile visits get stopped by the desktop-only
+  // wall, and how many of those later come back on a device the wall
+  // doesn't trip (renamed from orientation_lock_shown/cleared now that
+  // this isn't about orientation anymore). change only fires when the
+  // match result actually flips, so this naturally fires once per
+  // transition rather than needing its own de-dupe guard; the immediate
+  // call right after covers a page load that starts already blocked
+  // (that load never triggers a "change").
   function reportOrientationLockChange(isLocked){
-    posthog.capture(isLocked ? "orientation_lock_shown" : "orientation_lock_cleared");
+    posthog.capture(isLocked ? "mobile_block_shown" : "mobile_block_cleared");
   }
   orientationLockQuery.addEventListener("change", (e) => reportOrientationLockChange(e.matches));
   if (orientationLockQuery.matches) reportOrientationLockChange(true);
@@ -4293,51 +4249,6 @@
   });
   // Letting go of the window (alt-tab, etc.) should stop the slide too.
   window.addEventListener("blur", () => { slidingLeft = false; slidingRight = false; });
-
-  // ---------------------------------------------------------------
-  // Touch steering (see .mobile-move-btn's own CSS comment for why) --
-  // press-and-hold sets the exact same slidingLeft/slidingRight flags
-  // the keyboard does, so every downstream consumer (tick()'s movement,
-  // the walking-sway animation, etc.) already just works without
-  // caring which input drove it.
-  // ---------------------------------------------------------------
-  function wireMoveButton(btn, setSliding){
-    if (!btn) return;
-    let activePointerId = null;
-    const press = (e) => {
-      e.preventDefault();
-      activePointerId = e.pointerId;
-      // Keeps this pointer's up/cancel routed back to this element even
-      // if the finger drifts off the (smallish, circular) button mid-
-      // hold -- without it, a release just outside the button's bounds
-      // would leave the slide stuck on with nothing left to clear it
-      // (the window-level safety net below only helps once an up/cancel
-      // event actually fires SOMEWHERE, which capture is what ensures).
-      if (btn.setPointerCapture) { try { btn.setPointerCapture(e.pointerId); } catch (err) {} }
-      btn.classList.add("pressed");
-      setSliding(true);
-    };
-    const release = (e) => {
-      // Ignore a different finger's up/cancel (e.g. the other move
-      // button, or an unrelated tap) so a second touch elsewhere can't
-      // cancel this button's own held press.
-      if (e && e.pointerId !== undefined && activePointerId !== null && e.pointerId !== activePointerId) return;
-      activePointerId = null;
-      btn.classList.remove("pressed");
-      setSliding(false);
-    };
-    btn.addEventListener("pointerdown", press);
-    btn.addEventListener("pointerup", release);
-    btn.addEventListener("pointercancel", release);
-    // Safety net for the rare case an up/cancel never reaches the
-    // button itself (pointer capture unsupported, a browser quirk) --
-    // same "don't let the slide get stuck on" spirit as the blur
-    // listener above.
-    window.addEventListener("pointerup", release);
-    window.addEventListener("pointercancel", release);
-  }
-  wireMoveButton(document.getElementById("btn-move-left"), (v) => { slidingLeft = v; });
-  wireMoveButton(document.getElementById("btn-move-right"), (v) => { slidingRight = v; });
 
   ensurePlantsAhead();
   updatePlants();
