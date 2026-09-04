@@ -3757,15 +3757,33 @@
   // playing" should actually mean.
   let sessionPlayStartTime = null;
 
+  // Shared MediaQueryList (not just a query string) so isOrientationLocked()
+  // below and the ANALYTICS listener right after it are guaranteed to
+  // agree on the exact same condition as the #orientation-lock CSS
+  // media query above -- one definition, instead of the query text
+  // copy-pasted in three places and free to quietly drift apart.
+  const orientationLockQuery = window.matchMedia("(orientation: portrait) and (hover: none) and (pointer: coarse)");
   // Kept as a live matchMedia() check (not a cached flag) so it's
   // always current the instant the device is rotated -- canWalk() is
   // re-evaluated every animation frame anyway (see tick() below), so
   // there's no need for a resize/orientationchange listener to keep a
-  // separate flag in sync. Must exactly match the #orientation-lock
-  // CSS media query above.
+  // separate flag in sync for THIS check (the analytics one below is a
+  // different story -- it wants to fire once, not every frame).
   function isOrientationLocked(){
-    return window.matchMedia("(orientation: portrait) and (hover: none) and (pointer: coarse)").matches;
+    return orientationLockQuery.matches;
   }
+  // ANALYTICS -- how many mobile visits get stopped by the "please
+  // rotate your device" wall, and how many make it back to landscape
+  // and actually continue. change only fires when the match result
+  // actually flips, so this naturally fires once per rotation rather
+  // than needing its own de-dupe guard; the immediate call right after
+  // covers a page load that starts already in the locked state (that
+  // load never triggers a "change").
+  function reportOrientationLockChange(isLocked){
+    posthog.capture(isLocked ? "orientation_lock_shown" : "orientation_lock_cleared");
+  }
+  orientationLockQuery.addEventListener("change", (e) => reportOrientationLockChange(e.matches));
+  if (orientationLockQuery.matches) reportOrientationLockChange(true);
   function canWalk(){
     return !screenPlay.classList.contains("hidden")
         && !runEnding
@@ -3881,11 +3899,24 @@
 
   // Animated version -- used whenever a heart is actually lost during
   // play: the full heart shakes, then swaps to the broken icon and
-  // eases into the grayed-out .heart-lost state.
-  function loseHeart(){
+  // eases into the grayed-out .heart-lost state. `cause` ("starved" vs
+  // "wrong_pick", passed through from applyHungerPenalty() below) is
+  // analytics-only, same vocabulary as game_over's own `cause`.
+  function loseHeart(cause){
     if (heartsRemaining <= 0) return;
     const lostIndex = heartsRemaining - 1;
     heartsRemaining -= 1;
+    // ANALYTICS -- every heart lost, not just the fatal one (the run-
+    // ending case is also captured separately, on game_over, with its
+    // own `cause`). This is what actually went untracked once the
+    // HYBRID hunger/hearts model decoupled "wrong pick" from "heart
+    // lost" -- lets you see how often players survive a scare (2
+    // hearts -> 1, run continues) vs go straight to zero, and whether
+    // near-misses tend to come from wandering too long or a bad guess.
+    posthog.capture("heart_lost", {
+      cause: cause || "unknown",
+      hearts_remaining: heartsRemaining,
+    });
     [heartEls, encounterHeartEls].forEach((els) => {
       const el = els[lostIndex];
       if (!el) return;
@@ -3922,12 +3953,15 @@
   // game-over sound on top of a screen that was already showing Game
   // Over. Returning the boolean and letting each caller own its own
   // single setTimeout fixes it for good.
-  function applyHungerPenalty(amount){
+  // `cause` ("starved" vs "wrong_pick") is analytics-only -- passed
+  // straight through to loseHeart() (see its own comment); doesn't
+  // affect the actual hunger/heart math at all.
+  function applyHungerPenalty(amount, cause){
     const wasStarving = hunger <= 0;
     hunger = clamp(hunger - amount, 0, 100);
     updateHungerUI();
     if (hunger > 0 || wasStarving) return false;
-    loseHeart();
+    loseHeart(cause);
     if (heartsRemaining <= 0){
       runEnding = true;
       // No manual way out of whatever's on screen right now (the walk
@@ -3956,7 +3990,11 @@
   // see why they lost before the screen starts going dark.
   const FADE_MS = 650;
 
-  function endGame(result){
+  // `cause` is only meaningful for result === "lost" -- see the two
+  // callers below ("starved" from tick()'s steady drain, "wrong_pick"
+  // from selectCard()'s penalty) and the game_over capture further
+  // down. Ignored for "won" (there's only one way to win).
+  function endGame(result, cause){
     slidingLeft = false;
     slidingRight = false;
     stopAllMusic(); // neither the Win nor Game Over screen has its own track
@@ -3966,7 +4004,11 @@
       // ANALYTICS -- "players who won" + contributes to "time spent
       // playing" (paired with game_over's own time_spent_ms below,
       // together covering every run regardless of outcome).
+      // correct_count_at_win mirrors game_over's correct_count_at_loss
+      // below, so winners and losers become directly comparable on how
+      // many plants they actually identified.
       posthog.capture("game_won", {
+        correct_count_at_win: correctCount,
         time_spent_ms: sessionPlayStartTime ? Date.now() - sessionPlayStartTime : null,
       });
       // The helicopter's descent is normally already underway by now --
@@ -4007,8 +4049,15 @@
     // "time spent playing" for a run that ends in a loss. Captured
     // here, immediately, rather than inside the fade's setTimeout below
     // -- the run is already decided at this point, no need to wait for
-    // the animation.
+    // the animation. `cause` ("starved" vs "wrong_pick") is what the
+    // HYBRID hunger/hearts model actually made worth knowing here --
+    // under the old direct heart-loss-per-wrong-pick model those were
+    // the same thing; now they're two different player experiences
+    // (wandered too long without finding a plant, vs. a misidentify's
+    // hunger penalty happened to be the one that broke the last heart)
+    // funneling into the same event, previously indistinguishable.
     posthog.capture("game_over", {
+      cause: cause || "unknown", // "unknown" only if endGame("lost") is ever called without one -- see the two callers
       correct_count_at_loss: correctCount,
       time_spent_ms: sessionPlayStartTime ? Date.now() - sessionPlayStartTime : null,
     });
@@ -4114,13 +4163,13 @@
       // drain, not a punitive penalty. Re-checking canWalk() right
       // after (below) is what stops this same frame from also moving/
       // spawning/etc. if that heart loss just ended the run.
-      if (applyHungerPenalty(HUNGER_RATE * dt)){
+      if (applyHungerPenalty(HUNGER_RATE * dt, "starved")){
         // Fatal -- no reveal/modal on screen to protect here (this is
         // the plain walking drain, not a wrong pick), so there's no
         // reason to hold off as long as the pick path does. Just let
         // the shake/break animation actually finish before the screen
         // changes out from under it.
-        setTimeout(() => endGame("lost"), HEART_SHAKE_MS);
+        setTimeout(() => endGame("lost", "starved"), HEART_SHAKE_MS);
       }
 
       if (canWalk()){
@@ -4911,7 +4960,7 @@
       posthog.capture("progress_milestone", { milestone: correctCount });
     } else {
       playSound("wrong");
-      isFatal = applyHungerPenalty(WRONG_PICK_HUNGER_PENALTY);
+      isFatal = applyHungerPenalty(WRONG_PICK_HUNGER_PENALTY, "wrong_pick");
     }
 
     // Let the result (and the heart-loss animation, if any -- see
@@ -4922,7 +4971,7 @@
     // fade-to-black is done, so the result stays visible under the
     // fade rather than being cut away first.
     if (isFatal){
-      setTimeout(() => { endGame("lost"); }, GAME_OVER_START_DELAY_MS);
+      setTimeout(() => { endGame("lost", "wrong_pick"); }, GAME_OVER_START_DELAY_MS);
     } else {
       setTimeout(() => {
         if (myEncounterToken === encounterToken){
