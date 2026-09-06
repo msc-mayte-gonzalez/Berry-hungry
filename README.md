@@ -2,15 +2,15 @@
 
 **A browser survival game that teaches real plant-foraging safety — can you tell the edible plant from its poisonous look-alike before your hunger runs out?**
 
-▶️ **Play it here:** [ADD YOUR NETLIFY LINK HERE]
+▶️ **Play it here:** https://berry-hungry-the-game.netlify.app/
 
 ---
 
 ## What it is
 
-You're lost in the forest with no food and a rescue helicopter on the way — if you can survive long enough. Along the path you'll run into pairs of real, look-alike plants: one edible, one poisonous. Pick correctly and your hunger refills; pick wrong and it costs you. Run out of hearts before the helicopter arrives, and the run ends.
+You're lost in the forest with no food and a rescue helicopter on the way... if you can survive long enough. Along the path you'll run into pairs of real, look-alike plants: one edible, one poisonous. Pick correctly and your hunger refills; pick wrong and it costs you. Run out of hearts before the helicopter arrives, and the run ends.
 
-It's built to make a real skill — telling a safe plant from a dangerous one — feel like something you *practice*, not something you're just told.
+It's built to make a real skill (telling a safe plant from a dangerous one) feel like something you *practice*, not something you're just told.
 
 ## How to play
 
@@ -23,7 +23,10 @@ It's built to make a real skill — telling a safe plant from a dangerous one �
 
 ## Screenshots
 
-*Add 2–3 screenshots here (title screen, a plant encounter, and the win or game-over screen work well).*
+![Title screen](screenshots/title-screen.png)
+![Walking screen](screenshots/walking-screen.png)
+![Plant encounter](screenshots/plant-encounter.png)
+![Decision screen](screenshots/decision-screen.png)
 
 ## Plant pairs featured
 
