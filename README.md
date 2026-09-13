@@ -2,15 +2,15 @@
 
 **A browser survival game that teaches real plant-foraging safety — can you tell the edible plant from its poisonous look-alike before your hunger runs out?**
 
-▶️ **Play it here:** https://berry-hungry-the-game.netlify.app/
+▶️ **Play it here:** [ADD YOUR NETLIFY LINK HERE]
 
 ---
 
 ## What it is
 
-You're lost in the forest with no food and a rescue helicopter on the way... if you can survive long enough. Along the path you'll run into pairs of real, look-alike plants: one edible, one poisonous. Pick correctly and your hunger refills; pick wrong and it costs you. Run out of hearts before the helicopter arrives, and the run ends.
+You're lost in the forest with no food and a rescue helicopter on the way — if you can survive long enough. Along the path you'll run into pairs of real, look-alike plants: one edible, one poisonous. Pick correctly and your hunger refills; pick wrong and it costs you. Run out of hearts before the helicopter arrives, and the run ends.
 
-It's built to make a real skill (telling a safe plant from a dangerous one) feel like something you *practice*, not something you're just told.
+It's built to make a real skill — telling a safe plant from a dangerous one — feel like something you *practice*, not something you're just told.
 
 ## How to play
 
@@ -23,10 +23,7 @@ It's built to make a real skill (telling a safe plant from a dangerous one) feel
 
 ## Screenshots
 
-![Title screen](screenshots/title-screen.png)
-![Walking screen](screenshots/walking-screen.png)
-![Plant encounter](screenshots/plant-encounter.png)
-![Decision screen](screenshots/decision-screen.png)
+*Add 2–3 screenshots here (title screen, a plant encounter, and the win or game-over screen work well).*
 
 ## Plant pairs featured
 
@@ -66,7 +63,7 @@ open index.html   # or just double-click it
 
 ## Project status
 
-This is a living prototype — you'll see a "prototype · placeholders throughout" tag in the game itself. Known scope:
+This is a living prototype — you'll see a "V0 · POC" tag in the game itself. Known scope:
 
 - **Desktop only, for now.** Mobile support was attempted (a forced-landscape mode with on-screen touch controls) and then intentionally pulled back after real-device testing showed the layout wasn't good enough to ship. Phones and tablets currently see an honest "built for desktop, for now" message instead of a half-working experience.
 - Art and audio are placeholder-ready: dropping correctly-named files into `images/`, `sounds/`, and `music/` lights them up automatically — see the `README.txt` in each folder.
@@ -77,10 +74,11 @@ This is a living prototype — you'll see a "prototype · placeholders throughou
 
 ## Credits
 
-- Idea, info collection, user research, design, and prompting by M. Gonzalez (Sr. UX Researcher).
+- Game concept, planning, info collection, user research, design, QA, and prompting by M. Gonzalez (Sr. UX Researcher).
 - Art by anonymous collaborator (a great 3D Environment Artist, I wish I could tell you who!).
 - Built with Claude.
 - Supervision by H. Botones (our hedgehog).
+- Greatly inspired by [@blackforager](https://www.instagram.com/blackforager/) on Instagram. Go give her a follow!
 - Music: [Nathan-180](https://pixabay.com/users/nathan-180-56136572/) via [Pixabay](https://pixabay.com/music/).
 - Sound effect: [freesound_community](https://pixabay.com/users/freesound_community-46691455/) via [Pixabay](https://pixabay.com/).
 - Sound effect: [Ghostie Graves](https://pixabay.com/users/shut_up_ghost-32917765/) via [Pixabay](https://pixabay.com/).

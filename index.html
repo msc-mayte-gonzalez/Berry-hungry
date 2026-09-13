@@ -2407,10 +2407,11 @@
 
       <h3 class="about-section-heading">Credits</h3>
       <ul class="about-credits">
-        <li>Idea, info collection, user research, design, and prompting by M. Gonzalez (Sr. UX Researcher).</li>
+        <li>Game concept, planning, info collection, user research, design, QA, and prompting by M. Gonzalez (Sr. UX Researcher).</li>
         <li>Art by anonymous collaborator (a great 3D Environment Artist, I wish I could tell you who!).</li>
         <li>Built with Claude.</li>
         <li>Supervision by H. Botones (our hedgehog).</li>
+        <li>Greatly inspired by @blackforager on Instagram. Go give her a follow!</li>
         <li>Music: <a href="https://pixabay.com/users/nathan-180-56136572/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=547010" target="_blank" rel="noopener noreferrer">Nathan-180</a> via <a href="https://pixabay.com/music//?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=547010" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
         <li>Sound effect: <a href="https://pixabay.com/users/freesound_community-46691455/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=102978" target="_blank" rel="noopener noreferrer">freesound_community</a> via <a href="https://pixabay.com//?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=102978" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
         <li>Sound effect: <a href="https://pixabay.com/users/shut_up_ghost-32917765/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=140921" target="_blank" rel="noopener noreferrer">Ghostie Graves</a> via <a href="https://pixabay.com/" target="_blank" rel="noopener noreferrer">Pixabay</a></li>
@@ -2735,7 +2736,7 @@
     </div>
   </div>
 
-  <div class="build-tag">prototype · placeholders throughout</div>
+  <div class="build-tag">V0 · POC</div>
 
   <!-- Lives outside every .screen section, same "always-on-top, body-
        level fixed element" pattern as .build-tag/#btn-mute below --
@@ -3750,6 +3751,23 @@
   // to guard.
   let lossPending = false;
 
+  // BUGFIX: every "fatal transition" (rescue win, starved-to-death,
+  // fatal wrong pick) ends with a delayed endGame() call sitting in a
+  // setTimeout, timed to let an animation/sound finish first (see
+  // WIN_HELICOPTER_MS, HEART_SHAKE_MS, GAME_OVER_START_DELAY_MS below).
+  // None of runEnding/lossPending/the Start Over button actually
+  // disable each other -- Start Over has always been clickable during
+  // that window -- so a player who hits Start Over while, say, the
+  // helicopter is still inbound got resetGame() run immediately, but
+  // the earlier setTimeout was still armed and fired endGame("won")
+  // seconds later regardless, yanking them onto the Rescued screen out
+  // of nowhere (reported after a real playtest). Same idiom already
+  // used for encounterToken just below: bump this in resetGame() and
+  // have every delayed endGame() call check it's still current before
+  // actually firing, so Start Over always wins over a stale timer no
+  // matter which fatal path it was racing.
+  let runToken = 0;
+
   // ANALYTICS -- when actual walking starts (goToPlayScreen), so
   // endGame() can report how long a run lasted. Not the same moment as
   // the "play_clicked" event below (that's the title screen button --
@@ -3900,7 +3918,11 @@
     requestAnimationFrame(() => {
       winHelicopter.classList.add("descending");
     });
+    // See runToken's own comment: Start Over during the descent must
+    // win over this stale call, not the other way around.
+    const myRunToken = runToken;
     setTimeout(() => {
+      if (myRunToken !== runToken) return;
       endGame("won");
     }, WIN_HELICOPTER_MS);
   }
@@ -4176,8 +4198,13 @@
         // the plain walking drain, not a wrong pick), so there's no
         // reason to hold off as long as the pick path does. Just let
         // the shake/break animation actually finish before the screen
-        // changes out from under it.
-        setTimeout(() => endGame("lost", "starved"), HEART_SHAKE_MS);
+        // changes out from under it. Guarded with runToken (see its
+        // comment) so a Start Over during that short window wins.
+        const myRunToken = runToken;
+        setTimeout(() => {
+          if (myRunToken !== runToken) return;
+          endGame("lost", "starved");
+        }, HEART_SHAKE_MS);
       }
 
       if (canWalk()){
@@ -4364,6 +4391,10 @@
     // that just ended -- see the encounterToken comment near its
     // declaration.
     encounterToken += 1;
+    // Invalidate any delayed endGame() call still pending from the run
+    // that just ended (helicopter inbound, starved, or fatal wrong
+    // pick) -- see runToken's own comment. Start Over always wins.
+    runToken += 1;
     currentPlantSpot = null;
     hunger = 100;
     updateHungerUI();
@@ -4979,7 +5010,13 @@
     // fade-to-black is done, so the result stays visible under the
     // fade rather than being cut away first.
     if (isFatal){
-      setTimeout(() => { endGame("lost", "wrong_pick"); }, GAME_OVER_START_DELAY_MS);
+      // Guarded with runToken (see its comment) so a Start Over hit
+      // during this delay wins over the stale endGame() call.
+      const myRunToken = runToken;
+      setTimeout(() => {
+        if (myRunToken !== runToken) return;
+        endGame("lost", "wrong_pick");
+      }, GAME_OVER_START_DELAY_MS);
     } else {
       setTimeout(() => {
         if (myEncounterToken === encounterToken){
