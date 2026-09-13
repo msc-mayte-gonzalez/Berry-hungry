@@ -970,7 +970,10 @@
      i.e. "the horizon line" the player's been walking toward the whole
      game. Duration kept in sync with WIN_HELICOPTER_MS in the script,
      which waits out the full descent before swapping to the Win
-     screen. */
+     screen. UPDATED: 4.4s (was 8.8s) -- twice as fast, per request;
+     the helicopter.mp3 cue is now faded out early to match, since the
+     sound file itself is longer than the shorter descent (see
+     fadeOutAndStop() in the script). */
   .win-helicopter{
     position:absolute;
     left:50%;
@@ -979,7 +982,7 @@
     transform: translateX(-50%);
     z-index: 13;
     pointer-events:none;
-    transition: top 8.8s cubic-bezier(0.28, 0.62, 0.35, 1);
+    transition: top 4.4s cubic-bezier(0.28, 0.62, 0.35, 1);
   }
   .win-helicopter.hidden{ display:none; }
   /* 90px short of the "true" 32% resting spot on purpose (20px, then
@@ -3187,7 +3190,12 @@
      instead (per explicit request), hence the optional second argument.
      ============================================================ */
   function playSound(name, ext, volume){
-    if (isMuted) return; // see the mute toggle further below
+    // Returns the Audio instance (or null if nothing actually started)
+    // so a caller that needs to cut a one-shot short early -- e.g. the
+    // helicopter cue once its descent is done, see triggerRescueWin()
+    // -- has something to call .pause()/fade on. Every existing caller
+    // just ignores the return value, so this is a purely additive change.
+    if (isMuted) return null; // see the mute toggle further below
     try {
       const audio = new Audio(`sounds/${name}.${ext || "m4a"}`);
       // Optional per-call volume (0-1), defaulting to full -- e.g.
@@ -3199,7 +3207,8 @@
       // blocking autoplay until the player's interacted with the page
       // at all (very first sound of a session -- see sounds/README.txt).
       audio.play().catch(() => {});
-    } catch (e) { /* ignore */ }
+      return audio;
+    } catch (e) { /* ignore */ return null; }
   }
 
   /* ============================================================
@@ -3298,6 +3307,31 @@
     musicWalk.volume = MUSIC_VOLUME; // undo any fade-in-progress before the next playthrough
     musicWalk.pause();
     currentMusic = null;
+  }
+
+  // Generic quick fade-out for a one-shot Audio instance (unlike
+  // fadeOutWalkMusic above, which is hardcoded to the single persistent
+  // musicWalk element) -- added so the helicopter.mp3 cue can be cut
+  // short right as the (now-halved, see WIN_HELICOPTER_MS) descent
+  // finishes, instead of playing out its full original length well
+  // past the point the helicopter has actually landed. A quick fade
+  // rather than an instant pause() so it doesn't read as an audible
+  // click/pop cutting off mid-note.
+  const HELICOPTER_SOUND_FADE_MS = 200;
+  function fadeOutAndStop(audio, durationMs){
+    if (!audio) return;
+    const steps = 8;
+    const stepMs = durationMs / steps;
+    const startVolume = audio.volume;
+    let step = 0;
+    const interval = setInterval(() => {
+      step += 1;
+      audio.volume = Math.max(0, startVolume * (1 - step / steps));
+      if (step >= steps){
+        clearInterval(interval);
+        audio.pause();
+      }
+    }, stepMs);
   }
   function pauseMusicForOverlay(){ if (currentMusic) currentMusic.pause(); }
   function resumeMusicFromOverlay(){ if (currentMusic) currentMusic.play().catch(() => {}); }
@@ -3905,7 +3939,11 @@
     // other, unrelated call happens to land after it (see
     // switchMusic()'s own comment).
     fadeOutWalkMusic(HELICOPTER_MUSIC_FADE_MS);
-    playSound("helicopter", "mp3");
+    // Captured (see playSound's own comment) so it can be cut short
+    // below once the descent is actually done -- the sound file's own
+    // length was tuned for the old ~8.8s descent, so a caller here now
+    // has to stop it manually rather than just letting it run out.
+    const helicopterAudio = playSound("helicopter", "mp3");
     // playSound + un-hiding here, THEN forcing a synchronous reflow
     // before adding .descending on the next frame: doing the
     // display:none -> block flip and the position change in the same
@@ -3923,6 +3961,10 @@
     const myRunToken = runToken;
     setTimeout(() => {
       if (myRunToken !== runToken) return;
+      // The descent (WIN_HELICOPTER_MS) is done -- the sound should be
+      // too, even though the file itself may run longer. See
+      // fadeOutAndStop's own comment.
+      fadeOutAndStop(helicopterAudio, HELICOPTER_SOUND_FADE_MS);
       endGame("won");
     }, WIN_HELICOPTER_MS);
   }
@@ -4906,7 +4948,13 @@
   // transition's duration. The Win screen only swaps in once this has
   // fully played out, so the player always gets to watch the whole
   // descent before moving on.
-  const WIN_HELICOPTER_MS = 8800;
+  // UPDATED: halved from 8800 (twice as fast, per request) -- the
+  // helicopter.mp3 cue is now deliberately cut short with a quick fade
+  // the instant this elapses (see triggerRescueWin()/fadeOutAndStop()),
+  // since the sound file's own length was tuned for the old, slower
+  // descent and would otherwise keep playing well after the helicopter
+  // has already landed.
+  const WIN_HELICOPTER_MS = 4400;
 
   // Grows the "Friend"/"Foe" reveal in over ONE card's photo. Any
   // plant with a `caveat` field gets an extra line under its reveal --
